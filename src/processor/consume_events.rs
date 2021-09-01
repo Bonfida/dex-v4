@@ -1,0 +1,267 @@
+use std::{convert::TryInto, rc::Rc};
+
+use agnostic_orderbook::{
+    instruction::consume_events,
+    state::{Event, EventQueue, EventQueueHeader, Side},
+};
+use borsh::{BorshDeserialize, BorshSerialize};
+use solana_program::{
+    account_info::{next_account_info, AccountInfo},
+    entrypoint::ProgramResult,
+    msg,
+    program::invoke_signed,
+    program_error::ProgramError,
+    pubkey::Pubkey,
+};
+
+use crate::{
+    error::DexError,
+    state::{DexState, UserAccount},
+    utils::check_account_key,
+};
+
+#[derive(BorshDeserialize, BorshSerialize)]
+/**
+The required arguments for a create_market instruction.
+*/
+pub struct Params {
+    max_iterations: u64,
+}
+
+#[derive(BorshDeserialize, BorshSerialize, Debug)]
+pub enum OrderType {
+    Limit,
+    ImmediateOrCancel,
+    FillOrKill,
+    PostOnly,
+}
+
+struct Accounts<'a, 'b: 'a> {
+    aaob_program: &'a AccountInfo<'b>,
+    market: &'a AccountInfo<'b>,
+    market_signer: &'a AccountInfo<'b>,
+    orderbook: &'a AccountInfo<'b>,
+    event_queue: &'a AccountInfo<'b>,
+    reward_target: &'a AccountInfo<'b>,
+    user_accounts: &'a [AccountInfo<'b>],
+}
+
+impl<'a, 'b: 'a> Accounts<'a, 'b> {
+    pub fn parse(
+        _program_id: &Pubkey,
+        accounts: &'a [AccountInfo<'b>],
+    ) -> Result<Self, ProgramError> {
+        let accounts_iter = &mut accounts.iter();
+        let a = Self {
+            aaob_program: next_account_info(accounts_iter)?,
+            market: next_account_info(accounts_iter)?,
+            market_signer: next_account_info(accounts_iter)?,
+            orderbook: next_account_info(accounts_iter)?,
+            event_queue: next_account_info(accounts_iter)?,
+            reward_target: next_account_info(accounts_iter)?,
+            user_accounts: accounts_iter.as_slice(),
+        };
+
+        Ok(a)
+    }
+}
+
+pub(crate) fn process(
+    program_id: &Pubkey,
+    accounts: &[AccountInfo],
+    params: Params,
+) -> ProgramResult {
+    let accounts = Accounts::parse(program_id, accounts)?;
+
+    let Params { max_iterations } = params;
+
+    let market_state =
+        DexState::deserialize(&mut (&accounts.market.data.borrow() as &[u8]))?.check()?;
+
+    let mut market_data: &mut [u8] = &mut accounts.market.data.borrow_mut();
+    market_state.serialize(&mut market_data).unwrap();
+
+    let event_queue_header =
+        EventQueueHeader::deserialize(&mut (&accounts.event_queue.data.borrow() as &[u8]))?;
+    let event_queue = EventQueue::new(
+        event_queue_header,
+        Rc::clone(&accounts.event_queue.data),
+        32,
+    );
+
+    check_accounts(program_id, &market_state, &accounts).unwrap();
+
+    let mut total_iterations = 0;
+
+    for event in event_queue.iter().take(max_iterations as usize) {
+        if consume_event(accounts.user_accounts, event).is_err() {
+            break;
+        }
+        total_iterations += 1;
+    }
+
+    if total_iterations == 0 {
+        msg!("Failed to complete one iteration");
+        return Err(DexError::NoOp.into());
+    }
+
+    let pop_events_instruction = consume_events(
+        *accounts.aaob_program.key,
+        *accounts.orderbook.key,
+        *accounts.market_signer.key,
+        *accounts.event_queue.key,
+        *accounts.reward_target.key,
+        agnostic_orderbook::instruction::consume_events::Params {
+            number_of_entries_to_consume: total_iterations,
+        },
+    );
+
+    invoke_signed(
+        &pop_events_instruction,
+        &[
+            accounts.aaob_program.clone(),
+            accounts.orderbook.clone(),
+            accounts.event_queue.clone(),
+            accounts.market_signer.clone(),
+            accounts.reward_target.clone(),
+        ],
+        &[&[
+            &accounts.market.key.to_bytes(),
+            &[market_state.signer_nonce],
+        ]],
+    )?;
+    Ok(())
+}
+
+fn check_accounts(
+    program_id: &Pubkey,
+    market_state: &DexState,
+    accounts: &Accounts,
+) -> ProgramResult {
+    let market_signer = Pubkey::create_program_address(
+        &[
+            &accounts.market.key.to_bytes(),
+            &[market_state.signer_nonce],
+        ],
+        program_id,
+    )?;
+    check_account_key(accounts.market_signer, &market_signer).unwrap();
+    check_account_key(accounts.orderbook, &market_state.orderbook).unwrap();
+    Ok(())
+}
+
+fn consume_event(accounts: &[AccountInfo], event: Event) -> Result<(), DexError> {
+    match event {
+        Event::Fill {
+            taker_side,
+            maker_order_id: _,
+            quote_size,
+            asset_size,
+            maker_callback_info,
+            taker_callback_info,
+        } => {
+            let taker_key = Pubkey::new_from_array(taker_callback_info.try_into().unwrap());
+            let maker_key = Pubkey::new_from_array(maker_callback_info.try_into().unwrap());
+            let taker_account_info = &accounts[accounts
+                .binary_search_by_key(&taker_key, |k| *k.key)
+                .map_err(|_| DexError::MissingUserAccount)?];
+            if taker_key == maker_key {
+                // Self trade scenario
+                let mut taker_account = UserAccount::parse(taker_account_info).unwrap();
+                taker_account.header.base_token_free = taker_account
+                    .header
+                    .base_token_free
+                    .checked_add(asset_size)
+                    .unwrap();
+                taker_account.header.quote_token_locked = taker_account
+                    .header
+                    .quote_token_locked
+                    .checked_sub(quote_size)
+                    .unwrap();
+                taker_account.header.quote_token_free = taker_account
+                    .header
+                    .quote_token_free
+                    .checked_add(quote_size)
+                    .unwrap();
+                taker_account.header.base_token_locked = taker_account
+                    .header
+                    .quote_token_free
+                    .checked_sub(asset_size)
+                    .unwrap();
+            } else {
+                let maker_account_info = &accounts[accounts
+                    .binary_search_by_key(&maker_key, |k| *k.key)
+                    .map_err(|_| DexError::MissingUserAccount)?];
+                let mut taker_account = UserAccount::parse(taker_account_info).unwrap();
+                let mut maker_account = UserAccount::parse(maker_account_info).unwrap();
+                match taker_side {
+                    Side::Bid => {
+                        taker_account.header.base_token_free = taker_account
+                            .header
+                            .base_token_free
+                            .checked_add(asset_size)
+                            .unwrap();
+                        taker_account.header.quote_token_locked = taker_account
+                            .header
+                            .quote_token_locked
+                            .checked_sub(quote_size)
+                            .unwrap();
+                        maker_account.header.quote_token_free = maker_account
+                            .header
+                            .quote_token_free
+                            .checked_add(quote_size)
+                            .unwrap();
+                        maker_account.header.base_token_locked = maker_account
+                            .header
+                            .quote_token_free
+                            .checked_sub(asset_size)
+                            .unwrap();
+                    }
+                    Side::Ask => {
+                        taker_account.header.quote_token_free = taker_account
+                            .header
+                            .quote_token_free
+                            .checked_add(quote_size)
+                            .unwrap();
+                        taker_account.header.base_token_locked = taker_account
+                            .header
+                            .base_token_locked
+                            .checked_sub(asset_size)
+                            .unwrap();
+                        maker_account.header.base_token_free = maker_account
+                            .header
+                            .base_token_free
+                            .checked_add(asset_size)
+                            .unwrap();
+                        maker_account.header.quote_token_locked = maker_account
+                            .header
+                            .quote_token_locked
+                            .checked_sub(quote_size)
+                            .unwrap();
+                    }
+                };
+                maker_account.write();
+                taker_account.write();
+            }
+        }
+        Event::Out {
+            side: _,
+            order_id,
+            asset_size: _,
+            callback_info,
+            delete,
+        } => {
+            if delete {
+                let user_key = Pubkey::new_from_array(callback_info.try_into().unwrap());
+                let user_account_info = &accounts[accounts
+                    .binary_search_by_key(&user_key, |k| *k.key)
+                    .map_err(|_| DexError::MissingUserAccount)?];
+                let mut user_account = UserAccount::parse(user_account_info).unwrap();
+                let order_index = user_account.find_order_index(order_id).unwrap();
+                user_account.remove_order(order_index).unwrap();
+                user_account.write();
+            }
+        }
+    };
+    Ok(())
+}
