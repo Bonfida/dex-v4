@@ -16,7 +16,7 @@ use solana_program::{
 
 use crate::{
     error::DexError,
-    state::{DexState, UserAccount},
+    state::{CallBackInfo, DexState, UserAccount},
     utils::check_account_key,
 };
 
@@ -160,13 +160,16 @@ fn consume_event(accounts: &[AccountInfo], event: Event) -> Result<(), DexError>
             maker_callback_info,
             taker_callback_info,
         } => {
-            let taker_key = Pubkey::new_from_array(taker_callback_info.try_into().unwrap());
-            let maker_key = Pubkey::new_from_array(maker_callback_info.try_into().unwrap());
+            let taker_info =
+                CallBackInfo::deserialize(&mut (&taker_callback_info as &[u8])).unwrap();
+            let maker_info =
+                CallBackInfo::deserialize(&mut (&taker_callback_info as &[u8])).unwrap();
             let taker_account_info = &accounts[accounts
-                .binary_search_by_key(&taker_key, |k| *k.key)
+                .binary_search_by_key(&taker_info.user_account, |k| *k.key)
                 .map_err(|_| DexError::MissingUserAccount)?];
-            if taker_key == maker_key {
+            if taker_info.user_account == maker_info.user_account {
                 // Self trade scenario
+                // TODO: bug when fee tier changes for a particular user account
                 let mut taker_account = UserAccount::parse(taker_account_info).unwrap();
                 taker_account.header.base_token_free = taker_account
                     .header
@@ -190,12 +193,13 @@ fn consume_event(accounts: &[AccountInfo], event: Event) -> Result<(), DexError>
                     .unwrap();
             } else {
                 let maker_account_info = &accounts[accounts
-                    .binary_search_by_key(&maker_key, |k| *k.key)
+                    .binary_search_by_key(&maker_info.user_account, |k| *k.key)
                     .map_err(|_| DexError::MissingUserAccount)?];
                 let mut taker_account = UserAccount::parse(taker_account_info).unwrap();
                 let mut maker_account = UserAccount::parse(maker_account_info).unwrap();
                 match taker_side {
                     Side::Bid => {
+                        let maker_rebate = maker_info.fee_tier.maker_rebate(quote_size);
                         taker_account.header.base_token_free = taker_account
                             .header
                             .base_token_free
@@ -209,7 +213,7 @@ fn consume_event(accounts: &[AccountInfo], event: Event) -> Result<(), DexError>
                         maker_account.header.quote_token_free = maker_account
                             .header
                             .quote_token_free
-                            .checked_add(quote_size)
+                            .checked_add(quote_size + maker_rebate)
                             .unwrap();
                         maker_account.header.base_token_locked = maker_account
                             .header
@@ -218,10 +222,13 @@ fn consume_event(accounts: &[AccountInfo], event: Event) -> Result<(), DexError>
                             .unwrap();
                     }
                     Side::Ask => {
+                        let quote_size_without_fees =
+                            quote_size - taker_info.fee_tier.taker_fee(quote_size);
+                        let maker_rebate = maker_info.fee_tier.maker_rebate(quote_size);
                         taker_account.header.quote_token_free = taker_account
                             .header
                             .quote_token_free
-                            .checked_add(quote_size)
+                            .checked_add(quote_size_without_fees)
                             .unwrap();
                         taker_account.header.base_token_locked = taker_account
                             .header
@@ -236,7 +243,7 @@ fn consume_event(accounts: &[AccountInfo], event: Event) -> Result<(), DexError>
                         maker_account.header.quote_token_locked = maker_account
                             .header
                             .quote_token_locked
-                            .checked_sub(quote_size)
+                            .checked_sub(quote_size - maker_rebate)
                             .unwrap();
                     }
                 };

@@ -2,13 +2,17 @@ use borsh::{BorshDeserialize, BorshSerialize};
 use num_derive::{FromPrimitive, ToPrimitive};
 use solana_program::{
     account_info::AccountInfo,
+    msg,
     program_error::ProgramError,
     program_pack::{IsInitialized, Pack, Sealed},
     pubkey::Pubkey,
 };
 use std::{cell::RefCell, convert::TryInto, rc::Rc};
 
-use crate::error::DexError;
+use crate::{
+    error::DexError,
+    utils::{fp32_div, fp32_mul, FP_32_ONE},
+};
 
 #[derive(BorshDeserialize, BorshSerialize, Clone, Debug, PartialEq)]
 #[allow(missing_docs)]
@@ -161,3 +165,83 @@ impl<'a> UserAccount<'a> {
 pub trait Order {}
 
 impl Order for u128 {}
+
+#[derive(BorshDeserialize, BorshSerialize, Clone, Copy)]
+pub enum FeeTier {
+    Base,
+    Srm2,
+    Srm3,
+    Srm4,
+    Srm5,
+    Srm6,
+    MSrm,
+}
+
+impl FeeTier {
+    pub fn from_srm_and_msrm_balances(srm_held: u64, msrm_held: u64) -> FeeTier {
+        let one_srm = 1_000_000;
+        match () {
+            () if msrm_held >= 1 => FeeTier::MSrm,
+            () if srm_held >= one_srm * 1_000_000 => FeeTier::Srm6,
+            () if srm_held >= one_srm * 100_000 => FeeTier::Srm5,
+            () if srm_held >= one_srm * 10_000 => FeeTier::Srm4,
+            () if srm_held >= one_srm * 1_000 => FeeTier::Srm3,
+            () if srm_held >= one_srm * 100 => FeeTier::Srm2,
+            () => FeeTier::Base,
+        }
+    }
+
+    pub fn get(account: &AccountInfo, expected_owner: &Pubkey) -> Result<Self, ProgramError> {
+        let parsed_token_account = spl_token::state::Account::unpack(&account.data.borrow())?;
+        if &parsed_token_account.owner != expected_owner {
+            msg!("The discount token account must share its owner with the user account.");
+            return Err(ProgramError::InvalidArgument);
+        }
+        let (srm_held, msrm_held) = match parsed_token_account.mint {
+            // TODO: Add actual mints
+            MSRM_MINT => (0, parsed_token_account.amount),
+            SRM_MINT => (parsed_token_account.amount, 0),
+            _ => {
+                msg!("Invalid mint for discount token acccount.");
+                return Err(ProgramError::InvalidArgument);
+            }
+        };
+        Ok(Self::from_srm_and_msrm_balances(srm_held, msrm_held))
+    }
+
+    pub fn taker_rate(self) -> u64 {
+        match self {
+            FeeTier::Base => (22 << 32) / 10_000,
+            FeeTier::Srm2 => (20 << 32) / 10_000,
+            FeeTier::Srm3 => (18 << 32) / 10_000,
+            FeeTier::Srm4 => (16 << 32) / 10_000,
+            FeeTier::Srm5 => (14 << 32) / 10_000,
+            FeeTier::Srm6 => (12 << 32) / 10_000,
+            FeeTier::MSrm => (10 << 32) / 10_000,
+        }
+    }
+
+    pub fn maker_rebate(self, pc_qty: u64) -> u64 {
+        let rate = match self {
+            FeeTier::MSrm => (5 << 32) / 10_000,
+            _ => (3 << 32) / 10_000,
+        };
+        fp32_mul(pc_qty, rate)
+    }
+
+    pub fn remove_taker_fee(self, pc_qty: u64) -> u64 {
+        let rate = self.taker_rate();
+        fp32_div(pc_qty, FP_32_ONE + rate)
+    }
+
+    pub fn taker_fee(self, pc_qty: u64) -> u64 {
+        let rate = self.taker_rate();
+        fp32_mul(pc_qty, rate)
+    }
+}
+
+#[derive(BorshDeserialize, BorshSerialize)]
+pub struct CallBackInfo {
+    pub user_account: Pubkey,
+    pub fee_tier: FeeTier,
+}

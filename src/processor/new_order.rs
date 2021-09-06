@@ -15,7 +15,7 @@ use solana_program::{
 
 use crate::{
     error::DexError,
-    state::{DexState, UserAccount},
+    state::{CallBackInfo, DexState, FeeTier, UserAccount},
     utils::{check_account_key, check_signer},
 };
 
@@ -55,6 +55,7 @@ struct Accounts<'a, 'b: 'a> {
     user: &'a AccountInfo<'b>,
     user_token_account: &'a AccountInfo<'b>,
     user_owner: &'a AccountInfo<'b>,
+    discount_token_account: Option<&'a AccountInfo<'b>>,
 }
 
 impl<'a, 'b: 'a> Accounts<'a, 'b> {
@@ -77,6 +78,7 @@ impl<'a, 'b: 'a> Accounts<'a, 'b> {
             user: next_account_info(accounts_iter)?,
             user_token_account: next_account_info(accounts_iter)?,
             user_owner: next_account_info(accounts_iter)?,
+            discount_token_account: next_account_info(accounts_iter).ok(),
         };
         check_signer(&a.user_owner).unwrap();
         check_account_key(a.spl_token_program, &spl_token::id()).unwrap();
@@ -109,7 +111,7 @@ pub(crate) fn process(
         side,
         limit_price,
         max_base_qty,
-        max_quote_qty,
+        mut max_quote_qty,
         order_type,
         self_trade_behavior,
         match_limit,
@@ -131,6 +133,20 @@ pub(crate) fn process(
         OrderType::PostOnly => (true, true),
     };
 
+    let callback_info = CallBackInfo {
+        user_account: *accounts.user.key,
+        fee_tier: accounts
+            .discount_token_account
+            .map(|a| FeeTier::get(a, accounts.user_owner.key))
+            .unwrap_or(Ok(FeeTier::Base))?,
+    };
+
+    let max_quote_qty_including_fees = max_quote_qty;
+
+    if side == Side::Bid {
+        max_quote_qty = callback_info.fee_tier.remove_taker_fee(max_quote_qty);
+    }
+
     let new_order_instruction = agnostic_orderbook::instruction::new_order(
         *accounts.aaob_program.key,
         *accounts.orderbook.key,
@@ -144,7 +160,7 @@ pub(crate) fn process(
             limit_price,
             side,
             match_limit,
-            callback_info: accounts.user.key.to_bytes().to_vec(),
+            callback_info: callback_info.try_to_vec()?,
             post_only,
             post_allowed,
             self_trade_behavior,
@@ -175,7 +191,13 @@ pub(crate) fn process(
         32,
     );
 
-    let order_summary: OrderSummary = event_queue.read_register().unwrap().unwrap();
+    let mut order_summary: OrderSummary = event_queue.read_register().unwrap().unwrap();
+
+    if side == Side::Bid {
+        order_summary.total_quote_qty += callback_info
+            .fee_tier
+            .taker_fee(order_summary.total_quote_qty)
+    }
 
     let abort = match order_type {
         OrderType::ImmediateOrCancel => order_summary.total_asset_qty == 0,
