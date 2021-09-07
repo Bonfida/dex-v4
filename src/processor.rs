@@ -8,6 +8,18 @@ use crate::instruction::DexInstruction;
 
 ////////////////////////////////////////////////////////////
 // Constants
+mod srm_token {
+    use solana_program::declare_id;
+
+    declare_id!("SRMuApVNdxXokk5GT7XD5cUUgXMBCoAz2LHeuAoKWRt");
+}
+mod msrm_token {
+    use solana_program::declare_id;
+
+    declare_id!("MSRMcoVyrFxnSgo5uXwone5SKcGhT1KEJMFEkMEWf9L");
+}
+pub static SRM_MINT: Pubkey = srm_token::ID;
+pub static MSRM_MINT: Pubkey = msrm_token::ID;
 
 ////////////////////////////////////////////////////////////
 
@@ -15,6 +27,7 @@ pub mod cancel_order;
 pub mod consume_events;
 pub mod create_market;
 pub mod new_order;
+pub mod settle;
 
 pub struct Processor {}
 
@@ -45,6 +58,10 @@ impl Processor {
             DexInstruction::CancelOrder(params) => {
                 msg!("Instruction: Cancel Order");
                 cancel_order::process(program_id, accounts, params)?;
+            }
+            DexInstruction::Settle(params) => {
+                msg!("Instruction: Settle");
+                settle::process(program_id, accounts, params)?;
             }
         }
         Ok(())

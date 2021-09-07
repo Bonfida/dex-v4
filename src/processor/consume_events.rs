@@ -147,6 +147,7 @@ fn check_accounts(
     )?;
     check_account_key(accounts.market_signer, &market_signer).unwrap();
     check_account_key(accounts.orderbook, &market_state.orderbook).unwrap();
+    check_account_key(accounts.aaob_program, &market_state.aaob_program).unwrap();
     Ok(())
 }
 
@@ -163,7 +164,7 @@ fn consume_event(accounts: &[AccountInfo], event: Event) -> Result<(), DexError>
             let taker_info =
                 CallBackInfo::deserialize(&mut (&taker_callback_info as &[u8])).unwrap();
             let maker_info =
-                CallBackInfo::deserialize(&mut (&taker_callback_info as &[u8])).unwrap();
+                CallBackInfo::deserialize(&mut (&maker_callback_info as &[u8])).unwrap();
             let taker_account_info = &accounts[accounts
                 .binary_search_by_key(&taker_info.user_account, |k| *k.key)
                 .map_err(|_| DexError::MissingUserAccount)?];
@@ -215,6 +216,7 @@ fn consume_event(accounts: &[AccountInfo], event: Event) -> Result<(), DexError>
                             .quote_token_free
                             .checked_add(quote_size + maker_rebate)
                             .unwrap();
+                        maker_account.header.accumulated_rebates += maker_rebate;
                         maker_account.header.base_token_locked = maker_account
                             .header
                             .quote_token_free
@@ -245,6 +247,7 @@ fn consume_event(accounts: &[AccountInfo], event: Event) -> Result<(), DexError>
                             .quote_token_locked
                             .checked_sub(quote_size - maker_rebate)
                             .unwrap();
+                        maker_account.header.accumulated_rebates += maker_rebate;
                     }
                 };
                 maker_account.write();

@@ -15,8 +15,8 @@ use solana_program::{
 
 use crate::{
     error::DexError,
-    state::{CallBackInfo, DexState, FeeTier, UserAccount},
-    utils::{check_account_key, check_signer},
+    state::{AccountTag, CallBackInfo, DexState, FeeTier, UserAccount, UserAccountHeader},
+    utils::{check_account_key, check_signer, fp32_mul},
 };
 
 #[derive(BorshDeserialize, BorshSerialize)]
@@ -33,7 +33,7 @@ pub struct Params {
     match_limit: u64,
 }
 
-#[derive(BorshDeserialize, BorshSerialize, Debug)]
+#[derive(BorshDeserialize, BorshSerialize, Debug, PartialEq)]
 pub enum OrderType {
     Limit,
     ImmediateOrCancel,
@@ -87,7 +87,36 @@ impl<'a, 'b: 'a> Accounts<'a, 'b> {
     }
 
     pub fn load_user_account(&self) -> Result<UserAccount<'b>, ProgramError> {
-        let user_account = UserAccount::parse(&self.user)?;
+        let user_account =
+            match AccountTag::deserialize(&mut (&self.user.data.borrow() as &[u8])).unwrap() {
+                AccountTag::UserAccount => {
+                    let u = UserAccount::parse(&self.user)?;
+                    if &u.header.owner != self.user_owner.key {
+                        msg!("Invalid user account owner provided!");
+                        return Err(ProgramError::InvalidArgument);
+                    }
+                    if &u.header.market != self.market.key {
+                        msg!("The provided user account doesn't match the current market");
+                        return Err(ProgramError::InvalidArgument);
+                    };
+                    u
+                }
+                AccountTag::Uninitialized => UserAccount::new(
+                    self.user,
+                    UserAccountHeader {
+                        tag: AccountTag::UserAccount,
+                        market: *self.market.key,
+                        owner: *self.user_owner.key,
+                        base_token_free: 0,
+                        base_token_locked: 0,
+                        quote_token_free: 0,
+                        quote_token_locked: 0,
+                        number_of_orders: 0,
+                        accumulated_rebates: 0,
+                    },
+                ),
+                _ => return Err(ProgramError::InvalidArgument),
+            };
         if &user_account.header.owner != self.user_owner.key {
             msg!("Invalid user account owner provided!");
             return Err(ProgramError::InvalidArgument);
@@ -141,9 +170,8 @@ pub(crate) fn process(
             .unwrap_or(Ok(FeeTier::Base))?,
     };
 
-    let max_quote_qty_including_fees = max_quote_qty;
-
-    if side == Side::Bid {
+    if side == Side::Bid && order_type != OrderType::PostOnly {
+        // We make sure to leave enough quote quantity to pay for taker fees in the worst case
         max_quote_qty = callback_info.fee_tier.remove_taker_fee(max_quote_qty);
     }
 
@@ -194,9 +222,10 @@ pub(crate) fn process(
     let mut order_summary: OrderSummary = event_queue.read_register().unwrap().unwrap();
 
     if side == Side::Bid {
-        order_summary.total_quote_qty += callback_info
-            .fee_tier
-            .taker_fee(order_summary.total_quote_qty)
+        order_summary.total_quote_qty += callback_info.fee_tier.taker_fee(
+            order_summary.total_quote_qty
+                - fp32_mul(order_summary.total_asset_qty_posted, limit_price),
+        )
     }
 
     let abort = match order_type {
@@ -287,5 +316,7 @@ fn check_accounts(
     check_account_key(accounts.orderbook, &market_state.orderbook).unwrap();
     check_account_key(accounts.base_vault, &market_state.base_vault).unwrap();
     check_account_key(accounts.quote_vault, &market_state.quote_vault).unwrap();
+    check_account_key(accounts.aaob_program, &market_state.aaob_program).unwrap();
+
     Ok(())
 }

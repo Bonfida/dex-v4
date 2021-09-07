@@ -11,13 +11,14 @@ use std::{cell::RefCell, convert::TryInto, rc::Rc};
 
 use crate::{
     error::DexError,
+    processor::{MSRM_MINT, SRM_MINT},
     utils::{fp32_div, fp32_mul, FP_32_ONE},
 };
 
 #[derive(BorshDeserialize, BorshSerialize, Clone, Debug, PartialEq)]
 #[allow(missing_docs)]
 pub enum AccountTag {
-    Initialized,
+    Uninitialized,
     DexState,
     UserAccount,
 }
@@ -55,6 +56,8 @@ pub struct DexState {
     pub base_vault: Pubkey,
     pub quote_vault: Pubkey,
     pub orderbook: Pubkey,
+    pub aaob_program: Pubkey,
+    pub creation_timestamp: i64,
 }
 
 impl DexState {
@@ -76,12 +79,13 @@ pub struct UserAccountHeader {
     pub quote_token_free: u64,
     pub quote_token_locked: u64,
     pub number_of_orders: u32,
+    pub accumulated_rebates: u64,
 }
 
 impl Sealed for UserAccountHeader {}
 
 impl Pack for UserAccountHeader {
-    const LEN: usize = 101;
+    const LEN: usize = 109;
 
     fn pack_into_slice(&self, mut dst: &mut [u8]) {
         self.serialize(&mut dst).unwrap()
@@ -104,6 +108,12 @@ pub struct UserAccount<'a> {
 }
 
 impl<'a> UserAccount<'a> {
+    pub fn new(account: &AccountInfo<'a>, header: UserAccountHeader) -> Self {
+        Self {
+            header,
+            data: Rc::clone(&account.data),
+        }
+    }
     pub fn parse(account: &AccountInfo<'a>) -> Result<Self, ProgramError> {
         Ok(Self {
             header: UserAccountHeader::unpack(&account.data.borrow())?,
@@ -198,9 +208,8 @@ impl FeeTier {
             return Err(ProgramError::InvalidArgument);
         }
         let (srm_held, msrm_held) = match parsed_token_account.mint {
-            // TODO: Add actual mints
-            MSRM_MINT => (0, parsed_token_account.amount),
-            SRM_MINT => (parsed_token_account.amount, 0),
+            a if a == MSRM_MINT => (0, parsed_token_account.amount),
+            a if a == SRM_MINT => (parsed_token_account.amount, 0),
             _ => {
                 msg!("Invalid mint for discount token acccount.");
                 return Err(ProgramError::InvalidArgument);

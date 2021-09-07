@@ -2,16 +2,18 @@ use borsh::{BorshDeserialize, BorshSerialize};
 use solana_program::{
     instruction::{AccountMeta, Instruction},
     pubkey::Pubkey,
+    sysvar,
 };
 
-use crate::processor::consume_events;
 pub use crate::processor::{cancel_order, create_market, new_order};
+use crate::processor::{consume_events, settle};
 #[derive(BorshDeserialize, BorshSerialize)]
 pub enum DexInstruction {
     CreateMarket(create_market::Params),
     NewOrder(new_order::Params),
     CancelOrder(cancel_order::Params),
     ConsumeEvents(consume_events::Params),
+    Settle(settle::Params),
 }
 pub fn create_market(
     dex_program_id: Pubkey,
@@ -19,6 +21,7 @@ pub fn create_market(
     orderbook: Pubkey,
     base_vault: Pubkey,
     quote_vault: Pubkey,
+    aaob_program: Pubkey,
     create_market_params: create_market::Params,
 ) -> Instruction {
     let instruction_data = DexInstruction::CreateMarket(create_market_params);
@@ -28,6 +31,8 @@ pub fn create_market(
         AccountMeta::new_readonly(orderbook, false),
         AccountMeta::new_readonly(base_vault, false),
         AccountMeta::new_readonly(quote_vault, false),
+        AccountMeta::new_readonly(aaob_program, false),
+        AccountMeta::new_readonly(sysvar::clock::ID, false),
     ];
 
     Instruction {

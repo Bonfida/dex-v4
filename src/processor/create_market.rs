@@ -1,14 +1,19 @@
 use borsh::{BorshDeserialize, BorshSerialize};
 use solana_program::{
     account_info::{next_account_info, AccountInfo},
+    clock::{self, Clock},
     entrypoint::ProgramResult,
     msg,
     program_error::ProgramError,
     program_pack::Pack,
     pubkey::Pubkey,
+    sysvar::{Sysvar, SysvarId},
 };
 
-use crate::state::{AccountTag, DexState};
+use crate::{
+    state::{AccountTag, DexState},
+    utils::check_account_key,
+};
 
 #[derive(BorshDeserialize, BorshSerialize)]
 /**
@@ -19,10 +24,12 @@ pub struct Params {
 }
 
 struct Accounts<'a, 'b: 'a> {
+    sysvar_clock: &'a AccountInfo<'b>,
     market: &'a AccountInfo<'b>,
     orderbook: &'a AccountInfo<'b>,
     base_vault: &'a AccountInfo<'b>,
     quote_vault: &'a AccountInfo<'b>,
+    aaob_program: &'a AccountInfo<'b>,
 }
 
 impl<'a, 'b: 'a> Accounts<'a, 'b> {
@@ -32,12 +39,18 @@ impl<'a, 'b: 'a> Accounts<'a, 'b> {
     ) -> Result<Self, ProgramError> {
         let accounts_iter = &mut accounts.iter();
 
-        Ok(Self {
+        let a = Self {
+            sysvar_clock: next_account_info(accounts_iter)?,
             market: next_account_info(accounts_iter)?,
             orderbook: next_account_info(accounts_iter)?,
             base_vault: next_account_info(accounts_iter)?,
             quote_vault: next_account_info(accounts_iter)?,
-        })
+            aaob_program: next_account_info(accounts_iter)?,
+        };
+
+        check_account_key(a.sysvar_clock, &clock::Clock::id()).unwrap();
+
+        Ok(a)
     }
 }
 
@@ -56,6 +69,8 @@ pub(crate) fn process(
     let quote_mint = check_vault_account_and_get_mint(accounts.quote_vault, &market_signer)?;
     check_orderbook(&accounts.orderbook, &market_signer)?;
 
+    let current_timestamp = Clock::from_account_info(accounts.sysvar_clock)?.unix_timestamp;
+
     let market_state = DexState {
         tag: AccountTag::DexState,
         signer_nonce,
@@ -64,6 +79,8 @@ pub(crate) fn process(
         base_vault: *accounts.base_vault.key,
         quote_vault: *accounts.quote_vault.key,
         orderbook: *accounts.orderbook.key,
+        aaob_program: *accounts.aaob_program.key,
+        creation_timestamp: current_timestamp,
     };
 
     let mut market_data: &mut [u8] = &mut accounts.market.data.borrow_mut();

@@ -21,5 +21,15 @@ enumflags2 = "0.7.1"
 spl-token = "3.2.0"
 agnostic-orderbook = {path = "../../agnostic-orderbook/program", features = ["no-entrypoint"]}
 
+[dev-dependencies]
+solana-sdk = "1.7.10"
+solana-client = "1.7.10"
+rand = "0.8.3"
+solana-program-test = "1.7.10"
+tokio = {version="1.10.0", features = ["macros"]}
+futures = "0.3.15"
+futures-util = "0.3.15"
+rand_distr = "0.4.0"
+
 [lib]
 crate-type = ["cdylib", "lib"]
