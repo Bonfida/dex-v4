@@ -1,7 +1,8 @@
 use std::rc::Rc;
 
-use agnostic_orderbook::state::{
-    EventQueue, EventQueueHeader, OrderSummary, SelfTradeBehavior, Side,
+use agnostic_orderbook::{
+    state::{EventQueue, EventQueueHeader, OrderSummary, SelfTradeBehavior, Side},
+    CRANKER_REWARD,
 };
 use borsh::{BorshDeserialize, BorshSerialize};
 use solana_program::{
@@ -11,12 +12,16 @@ use solana_program::{
     program::{invoke, invoke_signed},
     program_error::ProgramError,
     pubkey::Pubkey,
+    rent::Rent,
+    system_instruction, system_program,
+    sysvar::Sysvar,
 };
 
 use crate::{
     error::DexError,
     state::{AccountTag, CallBackInfo, DexState, FeeTier, UserAccount, UserAccountHeader},
-    utils::{check_account_key, check_signer, fp32_mul},
+    utils::fp32_mul,
+    utils::{check_account_key, check_account_owner, check_signer},
 };
 
 #[derive(BorshDeserialize, BorshSerialize)]
@@ -24,13 +29,13 @@ use crate::{
 The required arguments for a create_market instruction.
 */
 pub struct Params {
-    side: Side,
-    limit_price: u64,
-    max_base_qty: u64,
-    max_quote_qty: u64,
-    order_type: OrderType,
-    self_trade_behavior: SelfTradeBehavior,
-    match_limit: u64,
+    pub side: Side,
+    pub limit_price: u64,
+    pub max_base_qty: u64,
+    pub max_quote_qty: u64,
+    pub order_type: OrderType,
+    pub self_trade_behavior: SelfTradeBehavior,
+    pub match_limit: u64,
 }
 
 #[derive(BorshDeserialize, BorshSerialize, Debug, PartialEq)]
@@ -44,6 +49,8 @@ pub enum OrderType {
 struct Accounts<'a, 'b: 'a> {
     aaob_program: &'a AccountInfo<'b>,
     spl_token_program: &'a AccountInfo<'b>,
+    system_program: &'a AccountInfo<'b>,
+    rent_sysvar: &'a AccountInfo<'b>,
     market: &'a AccountInfo<'b>,
     market_signer: &'a AccountInfo<'b>,
     orderbook: &'a AccountInfo<'b>,
@@ -67,6 +74,8 @@ impl<'a, 'b: 'a> Accounts<'a, 'b> {
         let a = Self {
             aaob_program: next_account_info(accounts_iter)?,
             spl_token_program: next_account_info(accounts_iter)?,
+            system_program: next_account_info(accounts_iter)?,
+            rent_sysvar: next_account_info(accounts_iter)?,
             market: next_account_info(accounts_iter)?,
             market_signer: next_account_info(accounts_iter)?,
             orderbook: next_account_info(accounts_iter)?,
@@ -82,6 +91,7 @@ impl<'a, 'b: 'a> Accounts<'a, 'b> {
         };
         check_signer(&a.user_owner).unwrap();
         check_account_key(a.spl_token_program, &spl_token::id()).unwrap();
+        check_account_key(a.system_program, &system_program::id()).unwrap();
 
         Ok(a)
     }
@@ -175,6 +185,26 @@ pub(crate) fn process(
         max_quote_qty = callback_info.fee_tier.remove_taker_fee(max_quote_qty);
     }
 
+    //Transfer the cranking fee to the AAOB program
+    let rent = Rent::from_account_info(accounts.rent_sysvar)?;
+    if accounts.user.lamports() < rent.minimum_balance(accounts.user.data_len()) + CRANKER_REWARD {
+        msg!("The user does not have enough lamports on his account.");
+        return Err(DexError::OutofFunds.into());
+    }
+    let transfer_cranking_fee = system_instruction::transfer(
+        accounts.user.key,
+        accounts.orderbook.key,
+        agnostic_orderbook::CRANKER_REWARD,
+    );
+    invoke(
+        &transfer_cranking_fee,
+        &[
+            accounts.system_program.clone(),
+            accounts.user.clone(),
+            accounts.orderbook.clone(),
+        ],
+    )?;
+
     let new_order_instruction = agnostic_orderbook::instruction::new_order(
         *accounts.aaob_program.key,
         *accounts.orderbook.key,
@@ -223,8 +253,7 @@ pub(crate) fn process(
 
     if side == Side::Bid {
         order_summary.total_quote_qty += callback_info.fee_tier.taker_fee(
-            order_summary.total_quote_qty
-                - fp32_mul(order_summary.total_asset_qty_posted, limit_price),
+            order_summary.total_quote_qty - fp32_mul(order_summary.total_asset_qty, limit_price), //TODO check
         )
     }
 

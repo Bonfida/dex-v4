@@ -20,7 +20,7 @@ use crate::{
 The required arguments for a create_market instruction.
 */
 pub struct Params {
-    signer_nonce: u8,
+    pub signer_nonce: u8,
 }
 
 struct Accounts<'a, 'b: 'a> {
@@ -62,12 +62,17 @@ pub(crate) fn process(
     let accounts = Accounts::parse(program_id, accounts)?;
 
     let Params { signer_nonce } = params;
-    let market_signer =
-        Pubkey::create_program_address(&[&accounts.market.key.to_bytes()], program_id)?;
+    let market_signer = Pubkey::create_program_address(
+        &[&accounts.market.key.to_bytes(), &[signer_nonce]],
+        program_id,
+    )?;
 
     let base_mint = check_vault_account_and_get_mint(accounts.base_vault, &market_signer)?;
     let quote_mint = check_vault_account_and_get_mint(accounts.quote_vault, &market_signer)?;
     check_orderbook(&accounts.orderbook, &market_signer)?;
+    //TODO check ownership of accounts
+
+    //TODO create the aaob market?
 
     let current_timestamp = Clock::from_account_info(accounts.sysvar_clock)?.unix_timestamp;
 

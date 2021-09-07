@@ -2,7 +2,7 @@ use borsh::{BorshDeserialize, BorshSerialize};
 use solana_program::{
     instruction::{AccountMeta, Instruction},
     pubkey::Pubkey,
-    sysvar,
+    system_program, sysvar,
 };
 
 pub use crate::processor::{cancel_order, create_market, new_order};
@@ -70,6 +70,8 @@ pub fn new_order(
     let accounts = vec![
         AccountMeta::new_readonly(agnostic_orderbook_program_id, false),
         AccountMeta::new_readonly(spl_token::id(), false),
+        AccountMeta::new_readonly(system_program::id(), false),
+        AccountMeta::new_readonly(sysvar::rent::id(), false),
         AccountMeta::new_readonly(market_account, false),
         AccountMeta::new_readonly(market_signer, false),
         AccountMeta::new(orderbook, false),

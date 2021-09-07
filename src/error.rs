@@ -20,6 +20,8 @@ pub enum DexError {
     OrderNotFound,
     #[error("The operation is a no-op")]
     NoOp,
+    #[error("The user does not own enough lamports")]
+    OutofFunds,
 }
 
 impl From<DexError> for ProgramError {
