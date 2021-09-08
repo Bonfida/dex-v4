@@ -21,6 +21,8 @@ mod msrm_token {
 pub static SRM_MINT: Pubkey = srm_token::ID;
 pub static MSRM_MINT: Pubkey = msrm_token::ID;
 
+pub static CALLBACK_INFO_LEN: u64 = 33;
+
 ////////////////////////////////////////////////////////////
 
 pub mod cancel_order;

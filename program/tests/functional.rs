@@ -152,7 +152,7 @@ async fn test_agnostic_orderbook() {
             limit_price: 1000,
             max_base_qty: 1000,
             max_quote_qty: 1000,
-            order_type: new_order::OrderType::ImmediateOrCancel,
+            order_type: new_order::OrderType::Limit,
             self_trade_behavior: agnostic_orderbook::state::SelfTradeBehavior::DecrementTake,
             match_limit: 10,
         },
