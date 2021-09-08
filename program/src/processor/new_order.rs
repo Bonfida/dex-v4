@@ -20,6 +20,8 @@ use solana_program::{
 use crate::{
     error::DexError,
     state::{AccountTag, CallBackInfo, DexState, FeeTier, UserAccount},
+    utils::fp32_mul,
+    utils::{check_account_key, check_signer},
     utils::{check_account_key, check_signer},
     utils::{check_account_owner, fp32_mul},
 };
