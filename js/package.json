@@ -1,0 +1,45 @@
+{
+  "name": "spl-dex",
+  "version": "0.0.1",
+  "license": "MIT",
+  "repository": {
+    "type": "git"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "dev": "tsc && node dist/test.js",
+    "build": "tsc",
+    "prepublish": "tsc",
+    "lint": "yarn pretty && eslint .",
+    "lint:fix": "yarn pretty:fix && eslint . --fix",
+    "pretty": "prettier --check 'src/*.[jt]s'",
+    "pretty:fix": "prettier --write 'src/*.[jt]s'",
+    "doc": "yarn typedoc src/index.ts"
+  },
+  "devDependencies": {
+    "@tsconfig/recommended": "^1.0.1",
+    "@types/bs58": "^4.0.1",
+    "@types/node": "^14.14.20",
+    "babel-eslint": "^10.1.0",
+    "eslint": "^7.17.0",
+    "eslint-plugin-import": "^2.22.1",
+    "nodemon": "^2.0.7",
+    "prettier": "^2.2.1",
+    "save-dev": "0.0.1-security",
+    "ts-node": "^9.1.1",
+    "tslib": "^2.2.0",
+    "typedoc": "^0.20.35",
+    "typescript": "^4.1.3"
+  },
+  "dependencies": {
+    "@solana/spl-token": "0.1.5",
+    "@solana/web3.js": "^1.15.0",
+    "bn.js": "^5.1.3",
+    "borsh": "^0.4.0",
+    "bs58": "4.0.1"
+  }
+}
