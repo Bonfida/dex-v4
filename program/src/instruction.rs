@@ -88,7 +88,7 @@ pub fn new_order(
         AccountMeta::new(quote_vault, false),
         AccountMeta::new(user_account, false),
         AccountMeta::new(user_token_account, false),
-        AccountMeta::new_readonly(user_account_owner, true),
+        AccountMeta::new(user_account_owner, true),
     ];
 
     Instruction {

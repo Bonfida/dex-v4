@@ -20,8 +20,8 @@ use solana_program::{
 use crate::{
     error::DexError,
     state::{AccountTag, CallBackInfo, DexState, FeeTier, UserAccount},
-    utils::fp32_mul,
-    utils::{check_account_key, check_account_owner, check_signer},
+    utils::{check_account_key, check_signer},
+    utils::{check_account_owner, fp32_mul},
 };
 
 #[derive(BorshDeserialize, BorshSerialize)]
@@ -146,23 +146,18 @@ pub(crate) fn process(
         self_trade_behavior,
         match_limit,
     } = params;
-
     let market_state =
         DexState::deserialize(&mut (&accounts.market.data.borrow() as &[u8]))?.check()?;
-
     let mut user_account = accounts.load_user_account()?;
-
     let mut market_data: &mut [u8] = &mut accounts.market.data.borrow_mut();
     market_state.serialize(&mut market_data).unwrap();
 
     check_accounts(program_id, &market_state, &accounts).unwrap();
-
     let (post_only, post_allowed) = match order_type {
         OrderType::Limit => (false, true),
         OrderType::ImmediateOrCancel | OrderType::FillOrKill => (false, false),
         OrderType::PostOnly => (true, true),
     };
-
     let callback_info = CallBackInfo {
         user_account: *accounts.user.key,
         fee_tier: accounts
@@ -170,7 +165,6 @@ pub(crate) fn process(
             .map(|a| FeeTier::get(a, accounts.user_owner.key))
             .unwrap_or(Ok(FeeTier::Base))?,
     };
-
     if side == Side::Bid && order_type != OrderType::PostOnly {
         // We make sure to leave enough quote quantity to pay for taker fees in the worst case
         max_quote_qty = callback_info.fee_tier.remove_taker_fee(max_quote_qty);
@@ -217,7 +211,6 @@ pub(crate) fn process(
             self_trade_behavior,
         },
     );
-
     invoke_signed(
         &new_order_instruction,
         &[
@@ -233,7 +226,6 @@ pub(crate) fn process(
             &[market_state.signer_nonce],
         ]],
     )?;
-
     let event_queue_header =
         EventQueueHeader::deserialize(&mut (&accounts.event_queue.data.borrow() as &[u8]))?;
     let event_queue = EventQueue::new(
