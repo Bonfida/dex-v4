@@ -27,12 +27,12 @@ pub fn create_market(
     let instruction_data = DexInstruction::CreateMarket(create_market_params);
     let data = instruction_data.try_to_vec().unwrap();
     let accounts = vec![
+        AccountMeta::new_readonly(sysvar::clock::ID, false),
         AccountMeta::new(market_account, false),
         AccountMeta::new_readonly(orderbook, false),
         AccountMeta::new_readonly(base_vault, false),
         AccountMeta::new_readonly(quote_vault, false),
         AccountMeta::new_readonly(aaob_program, false),
-        AccountMeta::new_readonly(sysvar::clock::ID, false),
     ];
 
     Instruction {

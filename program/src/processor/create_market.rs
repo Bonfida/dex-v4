@@ -100,7 +100,7 @@ fn check_vault_account_and_get_mint(
 ) -> Result<Pubkey, ProgramError> {
     let acc = spl_token::state::Account::unpack(&account.data.borrow())?;
     if &acc.owner != market_signer {
-        msg!("The vault accoutn should be owned by the market signer");
+        msg!("The vault account should be owned by the market signer");
         return Err(ProgramError::InvalidArgument);
     }
     if acc.close_authority.is_some() || acc.delegate.is_some() {

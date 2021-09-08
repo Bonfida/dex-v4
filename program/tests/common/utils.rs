@@ -1,11 +1,16 @@
+use std::str::FromStr;
+
 use agnostic_orderbook::instruction::create_market;
 use solana_program::instruction::Instruction;
+use solana_program::program_pack::Pack;
 use solana_program::pubkey::Pubkey;
 use solana_program::system_instruction::create_account;
-use solana_program_test::ProgramTestContext;
+use solana_program_test::{ProgramTest, ProgramTestContext};
+use solana_sdk::account::Account;
 use solana_sdk::signature::Signer;
 use solana_sdk::{signature::Keypair, transaction::Transaction, transport::TransportError};
 use spl_associated_token_account::{create_associated_token_account, get_associated_token_address};
+use spl_token::state::Mint;
 
 pub async fn sign_send_instructions(
     ctx: &mut ProgramTestContext,
@@ -25,9 +30,9 @@ pub async fn create_associated_token(
     mut prg_test_ctx: &mut ProgramTestContext,
     mint: &Pubkey,
     owner: &Pubkey,
-) -> Pubkey {
+) -> Result<Pubkey, TransportError> {
     let create_associated_instruction =
-        create_associated_token_account(&prg_test_ctx.payer.pubkey(), mint, owner);
+        create_associated_token_account(&prg_test_ctx.payer.pubkey(), owner, mint);
     let associated_key = get_associated_token_address(owner, mint);
 
     sign_send_instructions(
@@ -36,8 +41,40 @@ pub async fn create_associated_token(
         vec![],
     )
     .await
-    .unwrap();
-    associated_key
+    .map(|()| associated_key)
+}
+
+pub type MintInfo = (Pubkey, Mint);
+
+pub fn mint_bootstrap(
+    address: Option<&str>,
+    decimals: u8,
+    program_test: &mut ProgramTest,
+    mint_authority: &Pubkey,
+) -> MintInfo {
+    let address = address
+        .map(|s| Pubkey::from_str(s).unwrap())
+        .unwrap_or_else(|| Pubkey::new_unique());
+    let mint_info = Mint {
+        mint_authority: Some(*mint_authority).into(),
+        supply: u32::MAX.into(),
+        decimals,
+        is_initialized: true,
+        freeze_authority: None.into(),
+    };
+    let mut data = [0; Mint::LEN];
+    mint_info.pack_into_slice(&mut data);
+    program_test.add_account(
+        address,
+        Account {
+            lamports: u32::MAX.into(),
+            data: data.into(),
+            owner: spl_token::id(),
+            executable: false,
+            ..Account::default()
+        },
+    );
+    (address, mint_info)
 }
 
 /// Creates the accounts needed for the AAOB market testing and returns the
@@ -45,7 +82,7 @@ pub async fn create_associated_token(
 pub async fn create_market_and_accounts(
     mut prg_test_ctx: &mut ProgramTestContext,
     agnostic_orderbook_program_id: Pubkey,
-    caller_authority: &Keypair,
+    caller_authority: Pubkey,
 ) -> Pubkey {
     // Create market state account
     let market_account = Keypair::new();
@@ -123,7 +160,7 @@ pub async fn create_market_and_accounts(
         bids_account.pubkey(),
         asks_account.pubkey(),
         create_market::Params {
-            caller_authority: caller_authority.pubkey(),
+            caller_authority,
             callback_info_len: 32,
         },
     );

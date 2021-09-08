@@ -58,6 +58,7 @@ pub struct DexState {
     pub orderbook: Pubkey,
     pub aaob_program: Pubkey,
     pub creation_timestamp: i64,
+    //TODO metrics (volume quote, volume base)
 }
 
 impl DexState {

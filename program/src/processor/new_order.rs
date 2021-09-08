@@ -187,12 +187,14 @@ pub(crate) fn process(
 
     //Transfer the cranking fee to the AAOB program
     let rent = Rent::from_account_info(accounts.rent_sysvar)?;
-    if accounts.user.lamports() < rent.minimum_balance(accounts.user.data_len()) + CRANKER_REWARD {
+    if accounts.user_owner.lamports()
+        < rent.minimum_balance(accounts.user_owner.data_len()) + CRANKER_REWARD
+    {
         msg!("The user does not have enough lamports on his account.");
         return Err(DexError::OutofFunds.into());
     }
     let transfer_cranking_fee = system_instruction::transfer(
-        accounts.user.key,
+        accounts.user_owner.key,
         accounts.orderbook.key,
         agnostic_orderbook::CRANKER_REWARD,
     );
@@ -200,7 +202,7 @@ pub(crate) fn process(
         &transfer_cranking_fee,
         &[
             accounts.system_program.clone(),
-            accounts.user.clone(),
+            accounts.user_owner.clone(),
             accounts.orderbook.clone(),
         ],
     )?;
