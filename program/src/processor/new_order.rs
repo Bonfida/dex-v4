@@ -19,7 +19,7 @@ use solana_program::{
 
 use crate::{
     error::DexError,
-    state::{AccountTag, CallBackInfo, DexState, FeeTier, UserAccount, UserAccountHeader},
+    state::{AccountTag, CallBackInfo, DexState, FeeTier, UserAccount},
     utils::fp32_mul,
     utils::{check_account_key, check_account_owner, check_signer},
 };
@@ -67,7 +67,7 @@ struct Accounts<'a, 'b: 'a> {
 
 impl<'a, 'b: 'a> Accounts<'a, 'b> {
     pub fn parse(
-        _program_id: &Pubkey,
+        program_id: &Pubkey,
         accounts: &'a [AccountInfo<'b>],
     ) -> Result<Self, ProgramError> {
         let accounts_iter = &mut accounts.iter();
@@ -92,6 +92,7 @@ impl<'a, 'b: 'a> Accounts<'a, 'b> {
         check_signer(&a.user_owner).unwrap();
         check_account_key(a.spl_token_program, &spl_token::id()).unwrap();
         check_account_key(a.system_program, &system_program::id()).unwrap();
+        check_account_owner(a.user, program_id).unwrap();
 
         Ok(a)
     }
@@ -111,20 +112,10 @@ impl<'a, 'b: 'a> Accounts<'a, 'b> {
                     };
                     u
                 }
-                AccountTag::Uninitialized => UserAccount::new(
-                    self.user,
-                    UserAccountHeader {
-                        tag: AccountTag::UserAccount,
-                        market: *self.market.key,
-                        owner: *self.user_owner.key,
-                        base_token_free: 0,
-                        base_token_locked: 0,
-                        quote_token_free: 0,
-                        quote_token_locked: 0,
-                        number_of_orders: 0,
-                        accumulated_rebates: 0,
-                    },
-                ),
+                AccountTag::Uninitialized => {
+                    msg!("Invalid user account!");
+                    return Err(ProgramError::InvalidArgument);
+                }
                 _ => return Err(ProgramError::InvalidArgument),
             };
         if &user_account.header.owner != self.user_owner.key {

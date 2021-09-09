@@ -26,6 +26,7 @@ pub static MSRM_MINT: Pubkey = msrm_token::ID;
 pub mod cancel_order;
 pub mod consume_events;
 pub mod create_market;
+pub mod initialize_account;
 pub mod new_order;
 pub mod settle;
 
@@ -62,6 +63,10 @@ impl Processor {
             DexInstruction::Settle(params) => {
                 msg!("Instruction: Settle");
                 settle::process(program_id, accounts, params)?;
+            }
+            DexInstruction::InitializeAccount(params) => {
+                msg!("Instruction: Initialize account");
+                initialize_account::process(program_id, accounts, params)?;
             }
         }
         Ok(())

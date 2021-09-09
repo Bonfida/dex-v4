@@ -6,7 +6,7 @@ use solana_program::{
 };
 
 pub use crate::processor::{cancel_order, create_market, new_order};
-use crate::processor::{consume_events, settle};
+use crate::processor::{consume_events, initialize_account, settle};
 #[derive(BorshDeserialize, BorshSerialize)]
 pub enum DexInstruction {
     CreateMarket(create_market::Params),
@@ -14,6 +14,7 @@ pub enum DexInstruction {
     CancelOrder(cancel_order::Params),
     ConsumeEvents(consume_events::Params),
     Settle(settle::Params),
+    InitializeAccount(initialize_account::Params),
 }
 pub fn create_market(
     dex_program_id: Pubkey,
@@ -153,6 +154,32 @@ pub fn consume_events(
     ];
 
     accounts.extend(user_accounts.iter().map(|k| AccountMeta::new(*k, false)));
+
+    Instruction {
+        program_id: dex_program_id,
+        accounts,
+        data,
+    }
+}
+
+#[allow(clippy::too_many_arguments)]
+pub fn intialize_account(
+    dex_program_id: Pubkey,
+    user_account: Pubkey,
+    user_account_owner: Pubkey,
+    fee_payer: Pubkey,
+    params: initialize_account::Params,
+) -> Instruction {
+    let data = DexInstruction::InitializeAccount(params)
+        .try_to_vec()
+        .unwrap();
+    let accounts = vec![
+        AccountMeta::new_readonly(system_program::ID, false),
+        AccountMeta::new_readonly(sysvar::rent::ID, false),
+        AccountMeta::new(user_account, false),
+        AccountMeta::new_readonly(user_account_owner, true),
+        AccountMeta::new(fee_payer, true),
+    ];
 
     Instruction {
         program_id: dex_program_id,

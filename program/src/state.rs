@@ -173,9 +173,13 @@ impl<'a> UserAccount<'a> {
     }
 }
 
-pub trait Order {}
+pub trait Order {
+    const LEN: usize;
+}
 
-impl Order for u128 {}
+impl Order for u128 {
+    const LEN: usize = 16;
+}
 
 #[derive(BorshDeserialize, BorshSerialize, Clone, Copy)]
 pub enum FeeTier {

@@ -54,7 +54,7 @@ pub fn mint_bootstrap(
 ) -> MintInfo {
     let address = address
         .map(|s| Pubkey::from_str(s).unwrap())
-        .unwrap_or_else(|| Pubkey::new_unique());
+        .unwrap_or_else(Pubkey::new_unique);
     let mint_info = Mint {
         mint_authority: Some(*mint_authority).into(),
         supply: u32::MAX.into(),
