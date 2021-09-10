@@ -39,7 +39,7 @@ export class DexState {
           ["quoteVault", [32]],
           ["orderbook", [32]],
           ["aaobProgram", [32]],
-          ["creationTimestamp", "i64"],
+          ["creationTimestamp", "u64"],
         ],
       },
     ],
