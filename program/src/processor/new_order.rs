@@ -24,6 +24,8 @@ use crate::{
     utils::{check_account_owner, fp32_mul},
 };
 
+use super::CALLBACK_INFO_LEN;
+
 #[derive(BorshDeserialize, BorshSerialize)]
 /**
 The required arguments for a create_market instruction.
@@ -231,7 +233,7 @@ pub(crate) fn process(
     let event_queue = EventQueue::new(
         event_queue_header,
         Rc::clone(&accounts.event_queue.data),
-        32,
+        CALLBACK_INFO_LEN as usize,
     );
 
     let mut order_summary: OrderSummary = event_queue.read_register().unwrap().unwrap();
@@ -300,7 +302,7 @@ pub(crate) fn process(
             accounts.spl_token_program.clone(),
             accounts.user_token_account.clone(),
             transfer_destination.clone(),
-            accounts.user.clone(),
+            accounts.user_owner.clone(),
         ],
     )?;
 

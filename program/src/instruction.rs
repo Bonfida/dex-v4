@@ -78,7 +78,7 @@ pub fn new_order(
         AccountMeta::new_readonly(spl_token::id(), false),
         AccountMeta::new_readonly(system_program::id(), false),
         AccountMeta::new_readonly(sysvar::rent::id(), false),
-        AccountMeta::new_readonly(market_account, false),
+        AccountMeta::new(market_account, false),
         AccountMeta::new_readonly(market_signer, false),
         AccountMeta::new(orderbook, false),
         AccountMeta::new(event_queue, false),

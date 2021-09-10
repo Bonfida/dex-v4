@@ -20,6 +20,8 @@ use crate::{
     utils::check_account_key,
 };
 
+use super::CALLBACK_INFO_LEN;
+
 #[derive(BorshDeserialize, BorshSerialize)]
 /**
 The required arguments for a create_market instruction.
@@ -90,7 +92,7 @@ pub(crate) fn process(
     let event_queue = EventQueue::new(
         event_queue_header,
         Rc::clone(&accounts.event_queue.data),
-        32,
+        CALLBACK_INFO_LEN as usize,
     );
 
     check_accounts(program_id, &market_state, &accounts).unwrap();
