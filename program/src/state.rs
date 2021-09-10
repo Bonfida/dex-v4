@@ -120,7 +120,7 @@ impl<'a> UserAccount<'a> {
     }
     pub fn parse(account: &AccountInfo<'a>) -> Result<Self, ProgramError> {
         Ok(Self {
-            header: UserAccountHeader::unpack(&account.data.borrow())?,
+            header: UserAccountHeader::unpack(&account.data.borrow()[..UserAccountHeader::LEN])?,
             data: Rc::clone(&account.data),
         })
     }
