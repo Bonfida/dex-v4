@@ -23,8 +23,8 @@ use crate::{
 The required arguments for a create_market instruction.
 */
 pub struct Params {
-    market: Pubkey,
-    max_orders: u64,
+    pub market: Pubkey,
+    pub max_orders: u64,
 }
 
 #[derive(BorshDeserialize, BorshSerialize, Debug, PartialEq)]
@@ -96,7 +96,7 @@ pub(crate) fn process(
         accounts.user.key,
         lamports,
         space,
-        accounts.user_owner.key,
+        program_id,
     );
 
     invoke_signed(

@@ -163,7 +163,7 @@ pub fn consume_events(
 }
 
 #[allow(clippy::too_many_arguments)]
-pub fn intialize_account(
+pub fn initialize_account(
     dex_program_id: Pubkey,
     user_account: Pubkey,
     user_account_owner: Pubkey,

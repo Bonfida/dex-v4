@@ -86,6 +86,8 @@ pub(crate) fn process(
         orderbook: *accounts.orderbook.key,
         aaob_program: *accounts.aaob_program.key,
         creation_timestamp: current_timestamp,
+        base_volume: 0,
+        quote_volume: 0,
     };
 
     let mut market_data: &mut [u8] = &mut accounts.market.data.borrow_mut();

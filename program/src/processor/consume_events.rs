@@ -75,7 +75,7 @@ pub(crate) fn process(
 
     let Params { max_iterations } = params;
 
-    let market_state =
+    let mut market_state =
         DexState::deserialize(&mut (&accounts.market.data.borrow() as &[u8]))?.check()?;
 
     let mut market_data: &mut [u8] = &mut accounts.market.data.borrow_mut();
@@ -94,7 +94,7 @@ pub(crate) fn process(
     let mut total_iterations = 0;
 
     for event in event_queue.iter().take(max_iterations as usize) {
-        if consume_event(accounts.user_accounts, event).is_err() {
+        if consume_event(accounts.user_accounts, event, &mut market_state).is_err() {
             break;
         }
         total_iterations += 1;
@@ -151,7 +151,11 @@ fn check_accounts(
     Ok(())
 }
 
-fn consume_event(accounts: &[AccountInfo], event: Event) -> Result<(), DexError> {
+fn consume_event(
+    accounts: &[AccountInfo],
+    event: Event,
+    market_state: &mut DexState,
+) -> Result<(), DexError> {
     match event {
         Event::Fill {
             taker_side,
@@ -252,6 +256,8 @@ fn consume_event(accounts: &[AccountInfo], event: Event) -> Result<(), DexError>
                 };
                 maker_account.write();
                 taker_account.write();
+                market_state.quote_volume += quote_size;
+                market_state.base_volume += asset_size;
             }
         }
         Event::Out {

@@ -1,7 +1,9 @@
 use agnostic_orderbook::state::MarketState;
 use borsh::BorshDeserialize;
 use dex_v3::instruction::create_market;
+use dex_v3::instruction::initialize_account;
 use dex_v3::instruction::new_order;
+use dex_v3::processor::initialize_account;
 use solana_program::pubkey::Pubkey;
 use solana_program::system_instruction::create_account;
 use solana_program::system_program;
@@ -97,32 +99,27 @@ async fn test_agnostic_orderbook() {
 
     // Create User accounts
     let user_account_owner = Keypair::new();
-    let create_user_account_owner_instruction = create_account(
-        &prg_test_ctx.payer.pubkey(),
-        &user_account_owner.pubkey(),
-        1_000_000,
-        1,
-        &system_program::id(),
+    let (user_account, _) = Pubkey::find_program_address(
+        &[
+            &market_account.pubkey().to_bytes(),
+            &user_account_owner.pubkey().to_bytes(),
+        ],
+        &dex_program_id,
     );
-    sign_send_instructions(
-        &mut prg_test_ctx,
-        vec![create_user_account_owner_instruction],
-        vec![&user_account_owner],
-    )
-    .await
-    .unwrap();
-    let user_account = Keypair::new();
-    let create_user_account_instruction = create_account(
-        &prg_test_ctx.payer.pubkey(),
-        &user_account.pubkey(),
-        1_000_000,
-        1_000_000,
-        &user_account_owner.pubkey(),
+    let create_user_account_instruction = initialize_account(
+        dex_program_id,
+        user_account,
+        user_account_owner.pubkey(),
+        prg_test_ctx.payer.pubkey(),
+        initialize_account::Params {
+            market: market_account.pubkey(),
+            max_orders: 10,
+        },
     );
     sign_send_instructions(
         &mut prg_test_ctx,
         vec![create_user_account_instruction],
-        vec![&user_account],
+        vec![&user_account_owner],
     )
     .await
     .unwrap();
@@ -146,7 +143,7 @@ async fn test_agnostic_orderbook() {
         aaob_market_state.asks,
         base_vault,
         quote_vault,
-        user_account.pubkey(),
+        user_account,
         user_base_token_account,
         user_account_owner.pubkey(),
         new_order::Params {
