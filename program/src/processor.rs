@@ -29,6 +29,7 @@ pub mod create_market;
 pub mod initialize_account;
 pub mod new_order;
 pub mod settle;
+pub mod sweep_fees;
 
 pub struct Processor {}
 
@@ -67,6 +68,10 @@ impl Processor {
             DexInstruction::InitializeAccount(params) => {
                 msg!("Instruction: Initialize account");
                 initialize_account::process(program_id, accounts, params)?;
+            }
+            DexInstruction::SweepFees => {
+                msg!("Instruction: Initialize account");
+                sweep_fees::process(program_id, accounts)?;
             }
         }
         Ok(())

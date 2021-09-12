@@ -15,7 +15,10 @@ pub enum DexInstruction {
     ConsumeEvents(consume_events::Params),
     Settle(settle::Params),
     InitializeAccount(initialize_account::Params),
+    SweepFees,
 }
+
+#[allow(clippy::clippy::too_many_arguments)]
 pub fn create_market(
     dex_program_id: Pubkey,
     market_account: Pubkey,
@@ -23,6 +26,7 @@ pub fn create_market(
     base_vault: Pubkey,
     quote_vault: Pubkey,
     aaob_program: Pubkey,
+    market_admin: Pubkey,
     create_market_params: create_market::Params,
 ) -> Instruction {
     let instruction_data = DexInstruction::CreateMarket(create_market_params);
@@ -34,6 +38,7 @@ pub fn create_market(
         AccountMeta::new_readonly(base_vault, false),
         AccountMeta::new_readonly(quote_vault, false),
         AccountMeta::new_readonly(aaob_program, false),
+        AccountMeta::new_readonly(market_admin, false),
     ];
 
     Instruction {
@@ -179,6 +184,32 @@ pub fn initialize_account(
         AccountMeta::new(user_account, false),
         AccountMeta::new_readonly(user_account_owner, true),
         AccountMeta::new(fee_payer, true),
+    ];
+
+    Instruction {
+        program_id: dex_program_id,
+        accounts,
+        data,
+    }
+}
+
+#[allow(clippy::too_many_arguments)]
+pub fn sweep_fees(
+    dex_program_id: Pubkey,
+    market_account: Pubkey,
+    market_signer: Pubkey,
+    market_admin: Pubkey,
+    quote_vault: Pubkey,
+    destination_token_account: Pubkey,
+) -> Instruction {
+    let data = DexInstruction::SweepFees.try_to_vec().unwrap();
+    let accounts = vec![
+        AccountMeta::new(market_account, false),
+        AccountMeta::new_readonly(market_signer, false),
+        AccountMeta::new_readonly(market_admin, true),
+        AccountMeta::new(quote_vault, false),
+        AccountMeta::new(destination_token_account, false),
+        AccountMeta::new_readonly(spl_token::ID, false),
     ];
 
     Instruction {

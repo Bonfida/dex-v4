@@ -30,6 +30,7 @@ struct Accounts<'a, 'b: 'a> {
     base_vault: &'a AccountInfo<'b>,
     quote_vault: &'a AccountInfo<'b>,
     aaob_program: &'a AccountInfo<'b>,
+    market_admin: &'a AccountInfo<'b>,
 }
 
 impl<'a, 'b: 'a> Accounts<'a, 'b> {
@@ -46,6 +47,7 @@ impl<'a, 'b: 'a> Accounts<'a, 'b> {
             base_vault: next_account_info(accounts_iter)?,
             quote_vault: next_account_info(accounts_iter)?,
             aaob_program: next_account_info(accounts_iter)?,
+            market_admin: next_account_info(accounts_iter)?,
         };
 
         check_account_key(a.sysvar_clock, &clock::Clock::id()).unwrap();
@@ -85,11 +87,12 @@ pub(crate) fn process(
         quote_vault: *accounts.quote_vault.key,
         orderbook: *accounts.orderbook.key,
         aaob_program: *accounts.aaob_program.key,
+        admin: *accounts.market_admin.key,
         creation_timestamp: current_timestamp,
         base_volume: 0,
         quote_volume: 0,
+        accumulated_fees: 0,
     };
-
     let mut market_data: &mut [u8] = &mut accounts.market.data.borrow_mut();
     market_state.serialize(&mut market_data).unwrap();
 

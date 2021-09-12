@@ -226,10 +226,15 @@ fn consume_event(
                             .quote_token_free
                             .checked_sub(asset_size)
                             .unwrap();
+                        market_state.accumulated_fees += taker_info
+                            .fee_tier
+                            .taker_fee(quote_size)
+                            .checked_sub(maker_rebate)
+                            .unwrap();
                     }
                     Side::Ask => {
-                        let quote_size_without_fees =
-                            quote_size - taker_info.fee_tier.taker_fee(quote_size);
+                        let taker_fee = taker_info.fee_tier.taker_fee(quote_size);
+                        let quote_size_without_fees = quote_size - taker_fee;
                         let maker_rebate = maker_info.fee_tier.maker_rebate(quote_size);
                         taker_account.header.quote_token_free = taker_account
                             .header
@@ -252,6 +257,8 @@ fn consume_event(
                             .checked_sub(quote_size - maker_rebate)
                             .unwrap();
                         maker_account.header.accumulated_rebates += maker_rebate;
+                        market_state.accumulated_fees +=
+                            taker_fee.checked_sub(maker_rebate).unwrap();
                     }
                 };
                 maker_account.write();

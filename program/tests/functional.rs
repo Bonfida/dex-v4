@@ -6,7 +6,6 @@ use dex_v3::instruction::new_order;
 use dex_v3::processor::initialize_account;
 use solana_program::pubkey::Pubkey;
 use solana_program::system_instruction::create_account;
-use solana_program::system_program;
 use solana_program_test::{processor, ProgramTest};
 use solana_sdk::signature::Keypair;
 use solana_sdk::signature::Signer;
@@ -84,6 +83,7 @@ async fn test_agnostic_orderbook() {
         .unwrap();
 
     // Create the dex market
+    let market_admin = Keypair::new();
     let create_market_instruction = create_market(
         dex_program_id,
         market_account.pubkey(),
@@ -91,6 +91,7 @@ async fn test_agnostic_orderbook() {
         base_vault,
         quote_vault,
         aaob_program_id,
+        market_admin.pubkey(),
         create_market::Params { signer_nonce },
     );
     sign_send_instructions(&mut prg_test_ctx, vec![create_market_instruction], vec![])
