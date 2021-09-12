@@ -36,6 +36,7 @@ dependencies = [
  "num-traits",
  "num_enum",
  "solana-program",
+ "spl-token",
  "thiserror",
 ]
 

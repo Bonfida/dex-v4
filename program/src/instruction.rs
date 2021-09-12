@@ -143,6 +143,8 @@ pub fn consume_events(
     orderbook: Pubkey,
     event_queue: Pubkey,
     reward_target: Pubkey,
+    msrm_token_account: Pubkey,
+    msrm_token_account_owner: Pubkey,
     user_accounts: &[Pubkey],
     consume_events_params: consume_events::Params,
 ) -> Instruction {
@@ -156,6 +158,8 @@ pub fn consume_events(
         AccountMeta::new(orderbook, false),
         AccountMeta::new(event_queue, false),
         AccountMeta::new(reward_target, false),
+        AccountMeta::new_readonly(msrm_token_account, false),
+        AccountMeta::new_readonly(msrm_token_account_owner, true),
     ];
 
     accounts.extend(user_accounts.iter().map(|k| AccountMeta::new(*k, false)));
