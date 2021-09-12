@@ -262,3 +262,5 @@ pub struct CallBackInfo {
     pub user_account: Pubkey,
     pub fee_tier: FeeTier,
 }
+
+pub const CALLBACK_INFO_LEN: usize = 33;

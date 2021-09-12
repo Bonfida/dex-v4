@@ -25,7 +25,7 @@ use crate::{
 The required arguments for a create_market instruction.
 */
 pub struct Params {
-    max_iterations: u64,
+    pub max_iterations: u64,
 }
 
 #[derive(BorshDeserialize, BorshSerialize, Debug)]

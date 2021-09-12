@@ -1,0 +1,20 @@
+[package]
+name = "dex-cranker"
+version = "0.1.0"
+authors = ["ellttBen <elliott@bonfida.com>"]
+edition = "2018"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+solana-program = "1.7.11"
+solana-sdk = "1.7.11"
+dex-v3 = {path = "../program", features = ["no-entrypoint"]}
+solana-client = "1.7.11"
+solana-clap-utils = "1.7.11"
+clap = "2.33.3"
+tokio = {version = "1.11.0", features = ["rt-multi-thread", "time"]}
+spl-associated-token-account = "1.0.3"
+thiserror = "1.0.29"
+borsh = "0.9.1"
+agnostic-orderbook = {path = "../../agnostic-orderbook/program", featuers = ["no-entrypoint"]}
