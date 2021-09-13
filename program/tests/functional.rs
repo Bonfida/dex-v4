@@ -139,7 +139,7 @@ async fn test_agnostic_orderbook() {
     sign_send_instructions(
         &mut prg_test_ctx,
         vec![create_user_account_instruction],
-        vec![],
+        vec![&user_account_owner],
     )
     .await
     .unwrap();
