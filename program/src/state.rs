@@ -82,8 +82,8 @@ pub struct UserAccountHeader {
     pub base_token_locked: u64,
     pub quote_token_free: u64,
     pub quote_token_locked: u64,
-    pub number_of_orders: u32,
     pub accumulated_rebates: u64,
+    pub number_of_orders: u32,
 }
 
 impl Sealed for UserAccountHeader {}

@@ -2,6 +2,8 @@ import { Connection, PublicKey } from "@solana/web3.js";
 import BN from "bn.js";
 import { deserialize, Schema } from "borsh";
 
+export const CALLBACK_INFO_LEN = 33;
+
 export enum AccountTag {
   Initialized = 0,
   MarketState = 1,
@@ -92,7 +94,7 @@ export class MarketState {
   }
 }
 
-export class UserAccountHeader {
+export class UserAccount {
   tag: AccountTag;
   market: PublicKey;
   owner: PublicKey;
@@ -100,8 +102,28 @@ export class UserAccountHeader {
   baseTokenLocked: BN;
   quoteTokenFree: BN;
   quoteTokenLocked: BN;
-  numberOfOrders: BN;
   accumulatedRebates: BN;
+  orders: BN[];
+
+  static schema: Schema = new Map([
+    [
+      UserAccount,
+      {
+        kind: "struct",
+        fields: [
+          ["tag", "u8"],
+          ["market", [32]],
+          ["owner", [32]],
+          ["baseTokenFree", "u64"],
+          ["baseTokenLocked", "u64"],
+          ["quoteTokenFree", "u64"],
+          ["quoteTokenLocked", "u64"],
+          ["accumulatedRebates", "u64"],
+          ["orders", ["u128"]],
+        ],
+      },
+    ],
+  ]);
 
   constructor(obj: {
     tag: number;
@@ -111,7 +133,7 @@ export class UserAccountHeader {
     baseTokenLocked: BN;
     quoteTokenFree: BN;
     quoteTokenLocked: BN;
-    numberOfOrder: BN;
+    orders: BN[];
     accumulatedRebates: BN;
   }) {
     this.tag = obj.tag;
@@ -121,7 +143,21 @@ export class UserAccountHeader {
     this.baseTokenLocked = obj.baseTokenLocked;
     this.quoteTokenFree = obj.quoteTokenFree;
     this.quoteTokenLocked = obj.quoteTokenLocked;
-    this.numberOfOrders = obj.numberOfOrder;
+    this.orders = obj.orders;
     this.accumulatedRebates = obj.accumulatedRebates;
   }
+
+  static async retrieve(connection: Connection, userAccount: PublicKey) {
+    const accountInfo = await connection.getAccountInfo(userAccount);
+    if (!accountInfo?.data) {
+      throw new Error("Invalid account provided");
+    }
+    return deserialize(
+      this.schema,
+      UserAccount,
+      accountInfo.data
+    ) as UserAccount;
+  }
 }
+
+// TODO add event queue parsing with agnostic-orderbook bindings
