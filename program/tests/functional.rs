@@ -8,6 +8,7 @@ use dex_v3::processor::consume_events;
 use dex_v3::processor::initialize_account;
 use solana_program::pubkey::Pubkey;
 use solana_program::system_instruction::create_account;
+use solana_program::system_program;
 use solana_program_test::{processor, ProgramTest};
 use solana_sdk::signature::Keypair;
 use solana_sdk::signature::Signer;
@@ -262,6 +263,8 @@ async fn test_agnostic_orderbook() {
         market_signer,
         aaob_market_account,
         aaob_market_state.event_queue,
+        prg_test_ctx.payer.pubkey(),
+        aaob_program_id,
         prg_test_ctx.payer.pubkey(),
         &[user_account],
         consume_events::Params { max_iterations: 10 },

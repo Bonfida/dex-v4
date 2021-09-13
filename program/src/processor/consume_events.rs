@@ -203,7 +203,7 @@ fn consume_event(
                     .unwrap();
                 taker_account.header.base_token_locked = taker_account
                     .header
-                    .quote_token_free
+                    .base_token_locked
                     .checked_sub(asset_size)
                     .unwrap();
             } else {
