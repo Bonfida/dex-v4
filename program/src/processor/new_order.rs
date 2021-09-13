@@ -194,9 +194,6 @@ pub(crate) fn process(
         ],
     )?;
 
-    msg!("CALl me bbaby {:?}", callback_info);
-    msg!("CALl me BABY {:?}", callback_info.try_to_vec()?);
-
     let new_order_instruction = agnostic_orderbook::instruction::new_order(
         *accounts.aaob_program.key,
         *accounts.orderbook.key,
@@ -274,7 +271,10 @@ pub(crate) fn process(
                 order_summary.total_quote_qty,
                 user_account.header.quote_token_free,
             );
-            user_account.header.quote_token_locked += order_summary.total_quote_qty;
+            let posted_quote_qty = (order_summary.total_asset_qty_posted * limit_price) >> 32;
+            user_account.header.quote_token_locked += posted_quote_qty;
+            user_account.header.base_token_free +=
+                order_summary.total_asset_qty - order_summary.total_asset_qty_posted;
             (q, accounts.quote_vault)
         }
         Side::Ask => {
@@ -285,7 +285,11 @@ pub(crate) fn process(
                 order_summary.total_asset_qty,
                 user_account.header.base_token_free,
             );
-            user_account.header.base_token_locked += order_summary.total_asset_qty;
+            user_account.header.base_token_locked += order_summary.total_asset_qty_posted;
+            let posted_quote_qty = (order_summary.total_asset_qty_posted * limit_price) >> 32;
+            let taken_quote_qty = order_summary.total_quote_qty - posted_quote_qty;
+            let taker_fee = callback_info.fee_tier.taker_fee(taken_quote_qty);
+            user_account.header.quote_token_free += taken_quote_qty - taker_fee;
             (q, accounts.base_vault)
         }
     };

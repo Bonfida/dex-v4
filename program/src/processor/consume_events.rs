@@ -188,7 +188,6 @@ fn consume_event(
                 .map_err(|_| DexError::MissingUserAccount)?];
             if taker_info.user_account == maker_info.user_account {
                 // Self trade scenario
-                // TODO: bug when fee tier changes for a particular user account
                 let mut taker_account = UserAccount::parse(taker_account_info).unwrap();
                 taker_account.header.base_token_free = taker_account
                     .header
@@ -214,21 +213,10 @@ fn consume_event(
                 let maker_account_info = &accounts[accounts
                     .binary_search_by_key(&maker_info.user_account, |k| *k.key)
                     .map_err(|_| DexError::MissingUserAccount)?];
-                let mut taker_account = UserAccount::parse(taker_account_info).unwrap();
                 let mut maker_account = UserAccount::parse(maker_account_info).unwrap();
                 match taker_side {
                     Side::Bid => {
                         let maker_rebate = maker_info.fee_tier.maker_rebate(quote_size);
-                        taker_account.header.base_token_free = taker_account
-                            .header
-                            .base_token_free
-                            .checked_add(asset_size)
-                            .unwrap();
-                        taker_account.header.quote_token_locked = taker_account
-                            .header
-                            .quote_token_locked
-                            .checked_sub(quote_size)
-                            .unwrap();
                         maker_account.header.quote_token_free = maker_account
                             .header
                             .quote_token_free
@@ -248,18 +236,7 @@ fn consume_event(
                     }
                     Side::Ask => {
                         let taker_fee = taker_info.fee_tier.taker_fee(quote_size);
-                        let quote_size_without_fees = quote_size - taker_fee;
                         let maker_rebate = maker_info.fee_tier.maker_rebate(quote_size);
-                        taker_account.header.quote_token_free = taker_account
-                            .header
-                            .quote_token_free
-                            .checked_add(quote_size_without_fees)
-                            .unwrap();
-                        taker_account.header.base_token_locked = taker_account
-                            .header
-                            .base_token_locked
-                            .checked_sub(asset_size)
-                            .unwrap();
                         maker_account.header.base_token_free = maker_account
                             .header
                             .base_token_free
@@ -276,7 +253,6 @@ fn consume_event(
                     }
                 };
                 maker_account.write();
-                taker_account.write();
                 market_state.quote_volume += quote_size;
                 market_state.base_volume += asset_size;
             }
