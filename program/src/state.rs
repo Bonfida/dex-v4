@@ -184,7 +184,7 @@ impl Order for u128 {
     const LEN: usize = 16;
 }
 
-#[derive(BorshDeserialize, BorshSerialize, Clone, Copy)]
+#[derive(BorshDeserialize, BorshSerialize, Debug, Clone, Copy)]
 pub enum FeeTier {
     Base,
     Srm2,
@@ -257,7 +257,7 @@ impl FeeTier {
     }
 }
 
-#[derive(BorshDeserialize, BorshSerialize)]
+#[derive(BorshDeserialize, BorshSerialize, Debug)]
 pub struct CallBackInfo {
     pub user_account: Pubkey,
     pub fee_tier: FeeTier,

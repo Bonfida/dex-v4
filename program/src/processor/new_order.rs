@@ -194,6 +194,9 @@ pub(crate) fn process(
         ],
     )?;
 
+    msg!("CALl me bbaby {:?}", callback_info);
+    msg!("CALl me BABY {:?}", callback_info.try_to_vec()?);
+
     let new_order_instruction = agnostic_orderbook::instruction::new_order(
         *accounts.aaob_program.key,
         *accounts.orderbook.key,
