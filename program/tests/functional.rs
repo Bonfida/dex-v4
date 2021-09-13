@@ -255,6 +255,8 @@ async fn test_agnostic_orderbook() {
     .await
     .unwrap();
 
+    let reward_target = Keypair::new();
+
     // Consume Events
     let consume_events_instruction = consume_events(
         dex_program_id,
@@ -263,8 +265,8 @@ async fn test_agnostic_orderbook() {
         market_signer,
         aaob_market_account,
         aaob_market_state.event_queue,
-        prg_test_ctx.payer.pubkey(),
-        aaob_program_id,
+        reward_target.pubkey(),
+        base_vault,
         prg_test_ctx.payer.pubkey(),
         &[user_account],
         consume_events::Params { max_iterations: 10 },

@@ -17,7 +17,7 @@ use solana_program::{
 use crate::{
     error::DexError,
     state::{CallBackInfo, DexState, UserAccount},
-    utils::check_account_key,
+    utils::{check_account_key, check_signer},
 };
 
 use super::CALLBACK_INFO_LEN;
@@ -67,6 +67,8 @@ impl<'a, 'b: 'a> Accounts<'a, 'b> {
             msrm_token_account_owner: next_account_info(accounts_iter)?,
             user_accounts: accounts_iter.as_slice(),
         };
+
+        check_signer(a.msrm_token_account_owner).unwrap();
 
         Ok(a)
     }
@@ -132,6 +134,8 @@ pub(crate) fn process(
             accounts.event_queue.clone(),
             accounts.market_signer.clone(),
             accounts.reward_target.clone(),
+            accounts.msrm_token_account.clone(),
+            accounts.msrm_token_account_owner.clone(),
         ],
         &[&[
             &accounts.market.key.to_bytes(),
