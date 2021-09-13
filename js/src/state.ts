@@ -159,5 +159,3 @@ export class UserAccount {
     ) as UserAccount;
   }
 }
-
-// TODO add event queue parsing with agnostic-orderbook bindings

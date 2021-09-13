@@ -12,7 +12,7 @@ import {
   getTokenBalance,
 } from "./utils";
 import { MarketOptions } from "./types/market";
-import { MarketState } from "./state";
+import { CALLBACK_INFO_LEN, MarketState } from "./state";
 import { DEX_ID, SRM_MINT, MSRM_MINT } from "./ids";
 import { EventQueue, OrderbookState } from "@bonfida/aaob";
 import { getFeeTier } from "./fees";
@@ -149,6 +149,16 @@ export class Market {
     return this._orderbookState;
   }
 
+  /** Returns the number of decimals of the quote spl-token */
+  get quoteDecimals(): number {
+    return this._quoteDecimals;
+  }
+
+  /** Returns the number of decimals of the quote spl-token */
+  get baseDecimals(): number {
+    return this._baseDecimals;
+  }
+
   /**
    *
    * @param connection The solana connection object to the RPC node
@@ -272,7 +282,8 @@ export class Market {
   async loadEventQueue(connection: Connection) {
     const eventQueue = await EventQueue.load(
       connection,
-      this._orderbookState.eventQueue
+      this._orderbookState.eventQueue,
+      CALLBACK_INFO_LEN
     );
     return eventQueue;
   }

@@ -122,7 +122,7 @@
     "@babel/helper-validator-identifier" "^7.14.9"
     to-fast-properties "^2.0.0"
 
-"@bonfida/aaob@../../agnostic-orderbook/js":
+"@bonfida/aaob@file:../../agnostic-orderbook/js":
   version "0.0.1"
   dependencies:
     "@solana/spl-token" "0.1.5"
