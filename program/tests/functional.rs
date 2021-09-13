@@ -4,11 +4,11 @@ use dex_v3::instruction::consume_events;
 use dex_v3::instruction::create_market;
 use dex_v3::instruction::initialize_account;
 use dex_v3::instruction::new_order;
+use dex_v3::instruction::settle;
 use dex_v3::processor::consume_events;
 use dex_v3::processor::initialize_account;
 use solana_program::pubkey::Pubkey;
 use solana_program::system_instruction::create_account;
-use solana_program::system_instruction::transfer;
 use solana_program::system_program;
 use solana_program_test::{processor, ProgramTest};
 use solana_sdk::signature::Keypair;
@@ -275,4 +275,25 @@ async fn test_agnostic_orderbook() {
     sign_send_instructions(&mut prg_test_ctx, vec![consume_events_instruction], vec![])
         .await
         .unwrap();
+
+    // Settle
+    let settle_instruction = settle(
+        dex_program_id,
+        aaob_program_id,
+        market_account.pubkey(),
+        market_signer,
+        base_vault,
+        quote_vault,
+        user_account,
+        user_account_owner.pubkey(),
+        user_base_token_account,
+        user_quote_token_account,
+    );
+    sign_send_instructions(
+        &mut prg_test_ctx,
+        vec![settle_instruction],
+        vec![&user_account_owner],
+    )
+    .await
+    .unwrap();
 }

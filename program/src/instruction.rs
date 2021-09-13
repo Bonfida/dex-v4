@@ -222,3 +222,39 @@ pub fn sweep_fees(
         data,
     }
 }
+
+#[allow(clippy::too_many_arguments)]
+pub fn settle(
+    dex_program_id: Pubkey,
+    agnostic_orderbook_program_id: Pubkey,
+    market_account: Pubkey,
+    market_signer: Pubkey,
+    base_vault: Pubkey,
+    quote_vault: Pubkey,
+    user_account: Pubkey,
+    user_account_owner: Pubkey,
+    destination_base_account: Pubkey,
+    destination_quote_account: Pubkey,
+) -> Instruction {
+    let data = DexInstruction::Settle(settle::Params {})
+        .try_to_vec()
+        .unwrap();
+    let accounts = vec![
+        AccountMeta::new_readonly(agnostic_orderbook_program_id, false),
+        AccountMeta::new_readonly(spl_token::id(), false),
+        AccountMeta::new_readonly(market_account, false),
+        AccountMeta::new(base_vault, false),
+        AccountMeta::new(quote_vault, false),
+        AccountMeta::new_readonly(market_signer, false),
+        AccountMeta::new(user_account, false),
+        AccountMeta::new_readonly(user_account_owner, true),
+        AccountMeta::new(destination_base_account, false),
+        AccountMeta::new(destination_quote_account, false),
+    ];
+
+    Instruction {
+        program_id: dex_program_id,
+        accounts,
+        data,
+    }
+}
