@@ -73,6 +73,14 @@ export class Market {
     this._programId = programdId;
   }
 
+  /**
+   *
+   * @param connection The solana connection object to the RPC node
+   * @param address Address of the Serum market to load
+   * @param programId Program ID of Serum
+   * @param options MarketOptions object (skipPreflight and Commitment)
+   * @returns Returns a market object
+   */
   static async load(
     connection: Connection,
     address: PublicKey,
@@ -101,43 +109,61 @@ export class Market {
     );
   }
 
+  /** Returns the Serum program ID of the market */
   get programId(): PublicKey {
     return this._programId;
   }
 
+  /** Return the market address */
   get address(): PublicKey {
     return this._address;
   }
 
+  /** Returns the mint address of the base token */
   get baseMintAddress(): PublicKey {
     return this._marketState.baseMint;
   }
 
+  /** Returns the mint address of the quote token */
   get quoteMintAddress(): PublicKey {
     return this._marketState.quoteMint;
   }
 
+  /** Returns the bids address (AOB program) of the market */
   get bidsAddress(): PublicKey {
     return this._orderbookState.bids;
   }
 
+  /** Returns the asks address (AOB program) of the market */
   get asksAddress(): PublicKey {
     return this._orderbookState.asks;
   }
 
+  /** Returns the market state */
   get marketState(): MarketState {
     return this._marketState;
   }
 
+  /** Returns the orderbook state */
   get orderbookState(): OrderbookState {
     return this._orderbookState;
   }
 
+  /**
+   *
+   * @param connection The solana connection object to the RPC node
+   * @returns The decoded bids of the market
+   */
   async loadBids(connection: Connection) {
     const bids = await this._orderbookState.loadBidsSlab(connection);
     return bids;
   }
 
+  /**
+   *
+   * @param connection The solana connection object to the RPC node
+   * @returns The decoded asks of the market
+   */
   async loadAsks(connection: Connection) {
     const asks = await this._orderbookState.loadAsksSlab(connection);
     return asks;
@@ -147,6 +173,11 @@ export class Market {
 
   filterForOpenOrders() {}
 
+  /**
+   * Fetch the associated token account of the owner for the base token of the market
+   * @param owner The public key of the owner
+   * @returns The public key of the associated token account of the owner
+   */
   async findBaseTokenAccountsForOwner(owner: PublicKey) {
     const pubkey = await findAssociatedTokenAccount(
       owner,
@@ -155,6 +186,11 @@ export class Market {
     return pubkey;
   }
 
+  /**
+   * Fetch the associated token account of the owner for the quote token of the market
+   * @param owner The public key of the owner
+   * @returns The public key of the associated token account of the owner
+   */
   async findQuoteTokenAccountsForOwner(owner: PublicKey) {
     const pubkey = await findAssociatedTokenAccount(
       owner,
@@ -163,6 +199,11 @@ export class Market {
     return pubkey;
   }
 
+  /**
+   * Fetch the open order account of the owner
+   * @param owner The public key of the owner
+   * @returns The public key of the open order account
+   */
   async findOpenOrdersAccountForOwner(owner: PublicKey) {
     const [address] = await PublicKey.findProgramAddress(
       [this.address.toBuffer(), owner.toBuffer()],
