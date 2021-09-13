@@ -107,7 +107,7 @@ async fn test_agnostic_orderbook() {
         &prg_test_ctx.payer.pubkey(),
         &user_account_owner.pubkey(),
         1_000_000,
-        1,
+        0,
         &system_program::id(),
     );
     sign_send_instructions(
@@ -137,7 +137,7 @@ async fn test_agnostic_orderbook() {
     sign_send_instructions(
         &mut prg_test_ctx,
         vec![create_user_account_instruction],
-        vec![],
+        vec![&user_account_owner],
     )
     .await
     .unwrap();
@@ -233,7 +233,7 @@ async fn test_agnostic_orderbook() {
         aaob_market_state.asks,
         base_vault,
         quote_vault,
-        user_account.pubkey(),
+        user_account,
         user_quote_token_account,
         user_account_owner.pubkey(),
         new_order::Params {
@@ -263,7 +263,7 @@ async fn test_agnostic_orderbook() {
         aaob_market_account,
         aaob_market_state.event_queue,
         prg_test_ctx.payer.pubkey(),
-        &[user_account.pubkey()],
+        &[user_account],
         consume_events::Params { max_iterations: 10 },
     );
     sign_send_instructions(&mut prg_test_ctx, vec![consume_events_instruction], vec![])
