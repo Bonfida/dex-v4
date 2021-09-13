@@ -24,6 +24,9 @@ export class DexState {
   orderbook: PublicKey;
   aaobProgram: PublicKey;
   creationTimestamp: BN;
+  baseVolume: BN;
+  quoteVolume: BN;
+  accumulatedFees: BN;
 
   static schema: Schema = new Map([
     [
@@ -40,6 +43,9 @@ export class DexState {
           ["orderbook", [32]],
           ["aaobProgram", [32]],
           ["creationTimestamp", "u64"],
+          ["baseVolume", "u64"],
+          ["quoteVolume", "u64"],
+          ["accumulatedFees", "u64"],
         ],
       },
     ],
@@ -55,6 +61,9 @@ export class DexState {
     orderbook: Uint8Array;
     aaobProgram: Uint8Array;
     creationTimestamp: BN;
+    baseVolume: BN;
+    quoteVolume: BN;
+    accumulatedFees: BN;
   }) {
     this.tag = obj.tag as AccountTag;
     this.signerNonce = obj.signerNonce;
@@ -65,6 +74,9 @@ export class DexState {
     this.orderbook = new PublicKey(obj.orderbook);
     this.aaobProgram = new PublicKey(Uint8Array);
     this.creationTimestamp = obj.creationTimestamp;
+    this.baseVolume = obj.baseVolume;
+    this.quoteVolume = obj.quoteVolume;
+    this.accumulatedFees = obj.accumulatedFees;
   }
 
   static async retrieve(connection: Connection, market: PublicKey) {
