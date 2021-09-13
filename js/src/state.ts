@@ -4,7 +4,7 @@ import { deserialize, Schema } from "borsh";
 
 export enum AccountTag {
   Initialized = 0,
-  DexState = 1,
+  MarketState = 1,
   UserAccount = 2,
 }
 
@@ -14,7 +14,7 @@ export enum SelfTradeBehavior {
   AbortTransaction = 2,
 }
 
-export class DexState {
+export class MarketState {
   tag: AccountTag;
   signerNonce: number;
   baseMint: PublicKey;
@@ -30,7 +30,7 @@ export class DexState {
 
   static schema: Schema = new Map([
     [
-      DexState,
+      MarketState,
       {
         kind: "struct",
         fields: [
@@ -84,7 +84,11 @@ export class DexState {
     if (!accountInfo?.data) {
       throw new Error("Invalid account provided");
     }
-    return deserialize(this.schema, DexState, accountInfo.data) as DexState;
+    return deserialize(
+      this.schema,
+      MarketState,
+      accountInfo.data
+    ) as MarketState;
   }
 }
 
