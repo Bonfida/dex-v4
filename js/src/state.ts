@@ -29,6 +29,7 @@ export class MarketState {
   baseVolume: BN;
   quoteVolume: BN;
   accumulatedFees: BN;
+  minBaseOrderSize: BN;
 
   static schema: Schema = new Map([
     [
@@ -48,6 +49,7 @@ export class MarketState {
           ["baseVolume", "u64"],
           ["quoteVolume", "u64"],
           ["accumulatedFees", "u64"],
+          ["minBaseOrderSize", "u64"],
         ],
       },
     ],
@@ -66,6 +68,7 @@ export class MarketState {
     baseVolume: BN;
     quoteVolume: BN;
     accumulatedFees: BN;
+    minBaseOrderSize: BN;
   }) {
     this.tag = obj.tag as AccountTag;
     this.signerNonce = obj.signerNonce;
@@ -79,6 +82,7 @@ export class MarketState {
     this.baseVolume = obj.baseVolume;
     this.quoteVolume = obj.quoteVolume;
     this.accumulatedFees = obj.accumulatedFees;
+    this.minBaseOrderSize = obj.minBaseOrderSize;
   }
 
   static async retrieve(connection: Connection, market: PublicKey) {

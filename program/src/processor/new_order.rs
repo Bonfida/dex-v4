@@ -154,6 +154,12 @@ pub(crate) fn process(
     let mut market_data: &mut [u8] = &mut accounts.market.data.borrow_mut();
     market_state.serialize(&mut market_data).unwrap();
 
+    // Check the order size
+    if max_base_qty < market_state.min_base_order_size {
+        msg!("The base order size is too small.");
+        return Err(ProgramError::InvalidArgument);
+    }
+
     check_accounts(program_id, &market_state, &accounts).unwrap();
     let (post_only, post_allowed) = match order_type {
         OrderType::Limit => (false, true),

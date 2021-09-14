@@ -20,7 +20,7 @@ use crate::common::utils::mint_bootstrap;
 use crate::common::utils::{create_market_and_accounts, sign_send_instructions};
 
 #[tokio::test]
-async fn test_agnostic_orderbook() {
+async fn test_dex() {
     // Create program and test environment
     let dex_program_id = Pubkey::new_unique();
     let aaob_program_id = Pubkey::new_unique();
@@ -97,7 +97,10 @@ async fn test_agnostic_orderbook() {
         quote_vault,
         aaob_program_id,
         market_admin.pubkey(),
-        create_market::Params { signer_nonce },
+        create_market::Params {
+            signer_nonce,
+            min_base_order_size: 1000,
+        },
     );
     sign_send_instructions(&mut prg_test_ctx, vec![create_market_instruction], vec![])
         .await

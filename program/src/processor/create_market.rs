@@ -21,6 +21,7 @@ The required arguments for a create_market instruction.
 */
 pub struct Params {
     pub signer_nonce: u8,
+    pub min_base_order_size: u64,
 }
 
 struct Accounts<'a, 'b: 'a> {
@@ -63,7 +64,10 @@ pub(crate) fn process(
 ) -> ProgramResult {
     let accounts = Accounts::parse(program_id, accounts)?;
 
-    let Params { signer_nonce } = params;
+    let Params {
+        signer_nonce,
+        min_base_order_size,
+    } = params;
     let market_signer = Pubkey::create_program_address(
         &[&accounts.market.key.to_bytes(), &[signer_nonce]],
         program_id,
@@ -92,6 +96,7 @@ pub(crate) fn process(
         base_volume: 0,
         quote_volume: 0,
         accumulated_fees: 0,
+        min_base_order_size,
     };
     let mut market_data: &mut [u8] = &mut accounts.market.data.borrow_mut();
     market_state.serialize(&mut market_data).unwrap();

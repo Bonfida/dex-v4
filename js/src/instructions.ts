@@ -14,6 +14,7 @@ import { TOKEN_PROGRAM_ID } from "@solana/spl-token";
 export class createMarketInstruction {
   tag: number;
   signerNonce: number;
+  minBaseOrderSize: number;
 
   static schema: Schema = new Map([
     [
@@ -23,14 +24,16 @@ export class createMarketInstruction {
         fields: [
           ["tag", "u8"],
           ["signerNonce", "u8"],
+          ["minBaseOrderSize", "u64"],
         ],
       },
     ],
   ]);
 
-  constructor(obj: { signerNonce: number }) {
+  constructor(obj: { signerNonce: number; minBaseOrderSize: number }) {
     this.tag = 0;
     this.signerNonce = obj.signerNonce;
+    this.minBaseOrderSize = obj.minBaseOrderSize;
   }
 
   serialize(): Uint8Array {

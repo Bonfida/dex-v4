@@ -62,6 +62,7 @@ pub struct DexState {
     pub base_volume: u64,
     pub quote_volume: u64, //TODO metrics (volume quote, volume base)
     pub accumulated_fees: u64,
+    pub min_base_order_size: u64,
 }
 
 impl DexState {
