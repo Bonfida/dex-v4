@@ -189,26 +189,22 @@ fn consume_event(
             if taker_info.user_account == maker_info.user_account {
                 // Self trade scenario
                 let mut taker_account = UserAccount::parse(taker_account_info).unwrap();
-                taker_account.header.base_token_free = taker_account
-                    .header
-                    .base_token_free
-                    .checked_add(asset_size)
-                    .unwrap();
-                taker_account.header.quote_token_locked = taker_account
-                    .header
-                    .quote_token_locked
-                    .checked_sub(quote_size)
-                    .unwrap();
-                taker_account.header.quote_token_free = taker_account
-                    .header
-                    .quote_token_free
-                    .checked_add(quote_size)
-                    .unwrap();
-                taker_account.header.base_token_locked = taker_account
-                    .header
-                    .base_token_locked
-                    .checked_sub(asset_size)
-                    .unwrap();
+                match taker_side {
+                    Side::Bid => {
+                        taker_account.header.base_token_locked = taker_account
+                            .header
+                            .base_token_locked
+                            .checked_sub(asset_size)
+                            .unwrap();
+                    }
+                    Side::Ask => {
+                        taker_account.header.quote_token_locked = taker_account
+                            .header
+                            .quote_token_locked
+                            .checked_sub(quote_size)
+                            .unwrap();
+                    }
+                };
             } else {
                 let maker_account_info = &accounts[accounts
                     .binary_search_by_key(&maker_info.user_account, |k| *k.key)

@@ -1,7 +1,7 @@
 use std::str::FromStr;
 
 use agnostic_orderbook::instruction::create_market;
-use dex_v3::processor::CALLBACK_INFO_LEN;
+use dex_v3::processor::{CALLBACK_ID_LEN, CALLBACK_INFO_LEN};
 use solana_program::instruction::Instruction;
 use solana_program::program_pack::Pack;
 use solana_program::pubkey::Pubkey;
@@ -163,6 +163,7 @@ pub async fn create_market_and_accounts(
         create_market::Params {
             caller_authority,
             callback_info_len: CALLBACK_INFO_LEN,
+            callback_id_len: CALLBACK_ID_LEN,
         },
     );
     sign_send_instructions(&mut prg_test_ctx, vec![create_market_instruction], vec![])
