@@ -1,7 +1,9 @@
 import { PublicKey } from "@solana/web3.js";
 
-// TODO change once deployed
-export const DEX_ID = PublicKey.default;
+// Devnet
+export const DEX_ID = new PublicKey(
+  "SerumSqm3PWpKcHva3sxfUPXsYaE53czAbWtgAaisCf"
+);
 
 export const SRM_MINT = new PublicKey(
   "SRMuApVNdxXokk5GT7XD5cUUgXMBCoAz2LHeuAoKWRt"

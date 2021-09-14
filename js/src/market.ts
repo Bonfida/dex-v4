@@ -14,7 +14,7 @@ import {
 import { MarketOptions } from "./types/market";
 import { CALLBACK_INFO_LEN, MarketState } from "./state";
 import { DEX_ID, SRM_MINT, MSRM_MINT } from "./ids";
-import { EventQueue, OrderbookState } from "@bonfida/aaob";
+import { EventQueue, MarketState as AaobMarketState } from "@bonfida/aaob";
 import { getFeeTier } from "./fees";
 
 /**
@@ -25,26 +25,52 @@ export class Market {
    * @private
    */
   private _marketState: MarketState;
+
   /** Asset agnostic orderbook state
    * @private
    */
-  private _orderbookState: OrderbookState;
+  private _orderbookState: AaobMarketState;
+
   /** Address of the Serum DEX market
    * @private
    */
   private _address: PublicKey;
+
   /** Number of decimals of the base token
    * @private
    */
   private _baseDecimals: number;
+
   /** Number of decimals of the quote token
    * @private
    */
   private _quoteDecimals: number;
+
   /** Serum program ID of the market
    * @private
    */
   private _programId: PublicKey;
+
+  /** Base vault address of the market
+   * @private
+   */
+  private _baseVault: PublicKey;
+
+  /** Quote vault address of the market
+   * @private
+   */
+  private _quoteVault: PublicKey;
+
+  /** Event queue address of the market
+   * @private
+   */
+  private _eventQueueAddress: PublicKey;
+
+  /** Address of the orderbook or AAOB market
+   * @private
+   */
+  private _orderbookAddress: PublicKey;
+
   /** Preflight option (used in the connection object for sending tx)
    * @private
    */
@@ -56,12 +82,16 @@ export class Market {
 
   constructor(
     marketState: MarketState,
-    orderbookState: OrderbookState,
+    orderbookState: AaobMarketState,
     address: PublicKey,
     baseDecimals: number,
     quoteDecimals: number,
     options: MarketOptions,
-    programdId: PublicKey
+    programdId: PublicKey,
+    baseVault: PublicKey,
+    quoteVault: PublicKey,
+    eventQueueAddress: PublicKey,
+    orderbookAddress: PublicKey
   ) {
     this._marketState = marketState;
     this._orderbookState = orderbookState;
@@ -71,6 +101,10 @@ export class Market {
     this._skipPreflight = !!options.skipPreflight;
     this._commitment = options.commitment || "recent";
     this._programId = programdId;
+    this._baseVault = baseVault;
+    this._quoteVault = quoteVault;
+    this._eventQueueAddress = eventQueueAddress;
+    this._orderbookAddress = orderbookAddress;
   }
 
   /**
@@ -89,7 +123,7 @@ export class Market {
   ) {
     const marketState = await MarketState.retrieve(connection, address);
 
-    const orderbookState = await OrderbookState.retrieve(
+    const orderbookState = await AaobMarketState.retrieve(
       connection,
       marketState.orderbook
     );
@@ -98,6 +132,7 @@ export class Market {
       getMintDecimals(connection, marketState.baseMint),
       getMintDecimals(connection, marketState.quoteMint),
     ]);
+
     return new Market(
       marketState,
       orderbookState,
@@ -105,7 +140,11 @@ export class Market {
       baseDecimals,
       quoteDecimals,
       options,
-      programId
+      programId,
+      marketState.baseVault,
+      marketState.quoteVault,
+      orderbookState.eventQueue,
+      marketState.orderbook
     );
   }
 
@@ -145,7 +184,7 @@ export class Market {
   }
 
   /** Returns the orderbook state */
-  get orderbookState(): OrderbookState {
+  get orderbookState(): AaobMarketState {
     return this._orderbookState;
   }
 
@@ -157,6 +196,41 @@ export class Market {
   /** Returns the number of decimals of the quote spl-token */
   get baseDecimals(): number {
     return this._baseDecimals;
+  }
+
+  /** Returns the base vault address of the market */
+  get baseVault(): PublicKey {
+    return this._baseVault;
+  }
+
+  /** Returns the quote vault address of the market */
+  get quoteVault(): PublicKey {
+    return this._quoteVault;
+  }
+
+  /** Returns the orderbook address of the market */
+  get orderbookAddress(): PublicKey {
+    return this._orderbookAddress;
+  }
+
+  /** Returns the event queue address of the market */
+  get eventQueueAddress(): PublicKey {
+    return this._eventQueueAddress;
+  }
+
+  /** Returns the inception base volume */
+  baseVolume(): number {
+    return this._marketState.baseVolume.toNumber();
+  }
+
+  /** Returns the inception quote volume */
+  quoteVolume(): number {
+    return this._marketState.quoteVolume.toNumber();
+  }
+
+  /** Returns the timestamp of the market creation */
+  marketCreation(): number {
+    return this._marketState.creationTimestamp.toNumber();
   }
 
   /**
