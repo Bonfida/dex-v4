@@ -13,7 +13,7 @@ import * as aaob from "@bonfida/aaob";
 import BN from "bn.js";
 import {
   createAssociatedTokenAccount,
-  findAssociatedTokenAccount,
+  findAssociatedTokenAddress,
 } from "./utils";
 import { SelfTradeBehavior } from "./state";
 import { Market } from "./market";
@@ -26,10 +26,12 @@ export const createMarket = async (
   connection: Connection,
   baseMint: PublicKey,
   quoteMint: PublicKey,
+  minBaseOrderSize: number,
   feePayer: PublicKey
-): Promise<PrimedTransaction> => {
+): Promise<PrimedTransaction[]> => {
   // Market Account
   const marketAccount = new Keypair();
+  console.log(`Market address ${marketAccount.publicKey.toBase58()}`);
   const balance = await connection.getMinimumBalanceForRentExemption(
     MARKET_STATE_SPACE
   );
@@ -74,24 +76,20 @@ export const createMarket = async (
 
   const createMarket = new createMarketInstruction({
     signerNonce: marketSignerNonce,
+    minBaseOrderSize,
   }).getInstruction(
     DEX_ID,
     marketAccount.publicKey,
     aaobSigners[3].publicKey,
-    await findAssociatedTokenAccount(marketSigner, baseMint),
-    await findAssociatedTokenAccount(marketSigner, quoteMint),
+    await findAssociatedTokenAddress(marketSigner, baseMint),
+    await findAssociatedTokenAddress(marketSigner, quoteMint),
     aaob.AAOB_ID
   );
 
   return [
-    [marketAccount, ...aaobSigners],
-    [
-      createMarketAccount,
-      ...aaobInstructions,
-      createBaseVault,
-      createQuoteVault,
-      createMarket,
-    ],
+    [[marketAccount], [createMarketAccount]],
+    [aaobSigners, aaobInstructions],
+    [[], [createBaseVault, createQuoteVault, createMarket]],
   ];
 };
 

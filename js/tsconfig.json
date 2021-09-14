@@ -25,8 +25,6 @@
       "*": ["node_modules/*", "src/types/*"]
     },
     "resolveJsonModule": true,
-    "noUnusedLocals": true,
-    "noUnusedParameters": true
   },
   "include": ["src/*", "src/.ts"],
   "exclude": ["src/**/*.test.ts", "**/node_modules", "dist"]

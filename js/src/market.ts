@@ -8,7 +8,7 @@ import {
 } from "@solana/web3.js";
 import {
   getMintDecimals,
-  findAssociatedTokenAccount,
+  findAssociatedTokenAddress,
   getTokenBalance,
 } from "./utils";
 import { MarketOptions } from "./types/market";
@@ -263,7 +263,7 @@ export class Market {
    * @returns The public key of the associated token account of the owner
    */
   async findBaseTokenAccountsForOwner(owner: PublicKey) {
-    const pubkey = await findAssociatedTokenAccount(
+    const pubkey = await findAssociatedTokenAddress(
       owner,
       this._marketState.baseMint
     );
@@ -276,7 +276,7 @@ export class Market {
    * @returns The public key of the associated token account of the owner
    */
   async findQuoteTokenAccountsForOwner(owner: PublicKey) {
-    const pubkey = await findAssociatedTokenAccount(
+    const pubkey = await findAssociatedTokenAddress(
       owner,
       this._marketState.quoteMint
     );
@@ -306,7 +306,7 @@ export class Market {
    */
   async findFeeDiscountKeys(connection: Connection, owner: PublicKey) {
     const [srmAddress, msrmAddress] = await Promise.all(
-      [SRM_MINT, MSRM_MINT].map((e) => findAssociatedTokenAccount(owner, e))
+      [SRM_MINT, MSRM_MINT].map((e) => findAssociatedTokenAddress(owner, e))
     );
     const [srmBalance, msrmBalance] = await Promise.all(
       [srmAddress, msrmAddress].map((e) => getTokenBalance(connection, e))

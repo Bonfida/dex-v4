@@ -4,6 +4,8 @@ import {
   TransactionInstruction,
   SystemProgram,
   SYSVAR_RENT_PUBKEY,
+  Keypair,
+  Transaction,
 } from "@solana/web3.js";
 import {
   Token,
@@ -31,19 +33,6 @@ export const getMintDecimals = async (
   );
   // @ts-ignore
   return value?.data?.parsed.info.decimals;
-};
-
-export const findAssociatedTokenAccount = async (
-  owner: PublicKey,
-  mint: PublicKey
-) => {
-  const account = await Token.getAssociatedTokenAddress(
-    ASSOCIATED_TOKEN_PROGRAM_ID,
-    TOKEN_PROGRAM_ID,
-    mint,
-    owner
-  );
-  return account;
 };
 
 export const getTokenBalance = async (
@@ -124,5 +113,21 @@ export const createAssociatedTokenAccount = async (
     keys,
     programId: ASSOCIATED_TOKEN_PROGRAM_ID,
     data: Buffer.from([]),
+  });
+};
+
+export const signAndSendTransactionInstructions = async (
+  // sign and send transaction
+  connection: Connection,
+  signers: Array<Keypair>,
+  feePayer: Keypair,
+  txInstructions: Array<TransactionInstruction>
+): Promise<string> => {
+  const tx = new Transaction();
+  tx.feePayer = feePayer.publicKey;
+  signers.push(feePayer);
+  tx.add(...txInstructions);
+  return await connection.sendTransaction(tx, signers, {
+    preflightCommitment: "single",
   });
 };
