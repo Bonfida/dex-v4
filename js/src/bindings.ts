@@ -76,7 +76,7 @@ export const createMarket = async (
 
   const createMarket = new createMarketInstruction({
     signerNonce: marketSignerNonce,
-    minBaseOrderSize,
+    minBaseOrderSize: new BN(minBaseOrderSize),
   }).getInstruction(
     DEX_ID,
     marketAccount.publicKey,

@@ -14,7 +14,7 @@ import { TOKEN_PROGRAM_ID } from "@solana/spl-token";
 export class createMarketInstruction {
   tag: number;
   signerNonce: number;
-  minBaseOrderSize: number;
+  minBaseOrderSize: BN;
 
   static schema: Schema = new Map([
     [
@@ -30,7 +30,7 @@ export class createMarketInstruction {
     ],
   ]);
 
-  constructor(obj: { signerNonce: number; minBaseOrderSize: number }) {
+  constructor(obj: { signerNonce: number; minBaseOrderSize: BN }) {
     this.tag = 0;
     this.signerNonce = obj.signerNonce;
     this.minBaseOrderSize = obj.minBaseOrderSize;
