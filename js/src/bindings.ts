@@ -18,7 +18,8 @@ import {
 import { SelfTradeBehavior } from "./state";
 import { Market } from "./market";
 
-const MARKET_STATE_SPACE = 1 + 1 + 32 + 32 + 32 + 32 + 32 + 32 + 8 + 8 + 8 + 8;
+const MARKET_STATE_SPACE =
+  1 + 1 + 32 + 32 + 32 + 32 + 32 + 32 + 32 + 8 + 8 + 8 + 8 + 8;
 const NODE_CAPACITY = 100;
 const EVENT_CAPACITY = 100;
 
@@ -27,7 +28,8 @@ export const createMarket = async (
   baseMint: PublicKey,
   quoteMint: PublicKey,
   minBaseOrderSize: number,
-  feePayer: PublicKey
+  feePayer: PublicKey,
+  marketAdmin: PublicKey
 ): Promise<PrimedTransaction[]> => {
   // Market Account
   const marketAccount = new Keypair();
@@ -83,7 +85,8 @@ export const createMarket = async (
     aaobSigners[3].publicKey,
     await findAssociatedTokenAddress(marketSigner, baseMint),
     await findAssociatedTokenAddress(marketSigner, quoteMint),
-    aaob.AAOB_ID
+    aaob.AAOB_ID,
+    marketAdmin
   );
 
   return [
@@ -103,12 +106,12 @@ export const placeOrder = async (
   ownerTokenAccount: PublicKey,
   owner: PublicKey
 ) => {
-  const marketSigner = await PublicKey.createProgramAddress(
+  const [marketSigner] = await PublicKey.findProgramAddress(
     [market.address.toBuffer()],
     DEX_ID
   );
 
-  const userAccount = await PublicKey.createProgramAddress(
+  const [userAccount] = await PublicKey.findProgramAddress(
     [market.address.toBuffer(), owner.toBuffer()],
     DEX_ID
   );
@@ -145,12 +148,12 @@ export const cancelOrder = async (
   orderIndex: BN,
   owner: PublicKey
 ) => {
-  const marketSigner = await PublicKey.createProgramAddress(
+  const [marketSigner] = await PublicKey.findProgramAddress(
     [market.address.toBuffer()],
     DEX_ID
   );
 
-  const userAccount = await PublicKey.createProgramAddress(
+  const [userAccount] = await PublicKey.findProgramAddress(
     [market.address.toBuffer(), owner.toBuffer()],
     DEX_ID
   );
@@ -176,7 +179,7 @@ export const initializeAccount = async (
   owner: PublicKey,
   maxOrders = 20
 ) => {
-  const userAccount = await PublicKey.createProgramAddress(
+  const [userAccount] = await PublicKey.findProgramAddress(
     [market.toBuffer(), owner.toBuffer()],
     DEX_ID
   );
@@ -195,13 +198,13 @@ export const settle = async (
   destinationBaseAccount: PublicKey,
   destinationQuoteAccount: PublicKey
 ) => {
-  const userAccount = await PublicKey.createProgramAddress(
-    [market.address.toBuffer(), owner.toBuffer()],
+  const [marketSigner] = await PublicKey.findProgramAddress(
+    [market.address.toBuffer()],
     DEX_ID
   );
 
-  const marketSigner = await PublicKey.createProgramAddress(
-    [market.address.toBuffer()],
+  const [userAccount] = await PublicKey.findProgramAddress(
+    [market.address.toBuffer(), owner.toBuffer()],
     DEX_ID
   );
 
@@ -229,7 +232,7 @@ export const comsumEvents = async (
   userAccounts: PublicKey[],
   maxIteration: BN
 ) => {
-  const marketSigner = await PublicKey.createProgramAddress(
+  const [marketSigner] = await PublicKey.findProgramAddress(
     [market.address.toBuffer()],
     DEX_ID
   );

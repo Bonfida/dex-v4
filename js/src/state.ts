@@ -25,6 +25,7 @@ export class MarketState {
   quoteVault: PublicKey;
   orderbook: PublicKey;
   aaobProgram: PublicKey;
+  admin: PublicKey;
   creationTimestamp: BN;
   baseVolume: BN;
   quoteVolume: BN;
@@ -45,6 +46,7 @@ export class MarketState {
           ["quoteVault", [32]],
           ["orderbook", [32]],
           ["aaobProgram", [32]],
+          ["admin", [32]],
           ["creationTimestamp", "u64"],
           ["baseVolume", "u64"],
           ["quoteVolume", "u64"],
@@ -64,6 +66,7 @@ export class MarketState {
     quoteVault: Uint8Array;
     orderbook: Uint8Array;
     aaobProgram: Uint8Array;
+    admin: Uint8Array;
     creationTimestamp: BN;
     baseVolume: BN;
     quoteVolume: BN;
@@ -77,7 +80,8 @@ export class MarketState {
     this.baseVault = new PublicKey(obj.baseVault);
     this.quoteVault = new PublicKey(obj.quoteVault);
     this.orderbook = new PublicKey(obj.orderbook);
-    this.aaobProgram = new PublicKey(Uint8Array);
+    this.aaobProgram = new PublicKey(obj.aaobProgram);
+    this.admin = new PublicKey(obj.admin);
     this.creationTimestamp = obj.creationTimestamp;
     this.baseVolume = obj.baseVolume;
     this.quoteVolume = obj.quoteVolume;

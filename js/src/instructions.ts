@@ -46,7 +46,8 @@ export class createMarketInstruction {
     orderbook: PublicKey,
     baseVault: PublicKey,
     quoteVault: PublicKey,
-    aaobId: PublicKey
+    aaobId: PublicKey,
+    marketAdmin: PublicKey
   ): TransactionInstruction {
     const data = Buffer.from(this.serialize());
     // TODO check isSigner and isWritable
@@ -61,35 +62,35 @@ export class createMarketInstruction {
       {
         pubkey: market,
         isSigner: false,
-        isWritable: false,
+        isWritable: true,
       },
       // Account 3
       {
         pubkey: orderbook,
         isSigner: false,
-        isWritable: true,
+        isWritable: false,
       },
       // Account 4
       {
         pubkey: baseVault,
         isSigner: false,
-        isWritable: true,
+        isWritable: false,
       },
       // Account 5
       {
-        pubkey: baseVault,
+        pubkey: quoteVault,
         isSigner: false,
-        isWritable: true,
+        isWritable: false,
       },
       // Account 6
       {
-        pubkey: quoteVault,
+        pubkey: aaobId,
         isSigner: false,
-        isWritable: true,
+        isWritable: false,
       },
       // Account 7
       {
-        pubkey: aaobId,
+        pubkey: marketAdmin,
         isSigner: false,
         isWritable: false,
       },
@@ -599,12 +600,12 @@ export class settleInstruction {
 
 export class initializeAccountInstruction {
   tag: number;
-  market: PublicKey;
+  market: Uint8Array;
   maxOrders: BN;
 
   constructor(obj: { market: Uint8Array; maxOrders: BN }) {
     this.tag = 5;
-    this.market = new PublicKey(obj.market);
+    this.market = obj.market;
     this.maxOrders = obj.maxOrders;
   }
 
