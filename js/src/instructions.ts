@@ -201,7 +201,7 @@ export class newOrderInstruction {
       {
         pubkey: market,
         isSigner: false,
-        isWritable: false,
+        isWritable: true,
       },
       // Account 6
       {
@@ -261,14 +261,14 @@ export class newOrderInstruction {
       {
         pubkey: userOwner,
         isSigner: true,
-        isWritable: false,
+        isWritable: true,
       },
     ];
     if (discountTokenAccount) {
       keys.push(
         // Account 16
         {
-          pubkey: userOwner,
+          pubkey: discountTokenAccount,
           isSigner: false,
           isWritable: false,
         }
@@ -448,13 +448,13 @@ export class consumeEventInstruction {
       {
         pubkey: orderbook,
         isSigner: false,
-        isWritable: false,
+        isWritable: true,
       },
       // Account 5
       {
         pubkey: eventQueue,
         isSigner: false,
-        isWritable: false,
+        isWritable: true,
       },
       // Account 6
       {
@@ -472,7 +472,7 @@ export class consumeEventInstruction {
       {
         pubkey: msrmTokenAccountOwner,
         isSigner: true,
-        isWritable: true,
+        isWritable: false,
       },
     ];
 
@@ -656,7 +656,7 @@ export class initializeAccountInstruction {
       {
         pubkey: userOwner,
         isSigner: true,
-        isWritable: true,
+        isWritable: false,
       },
       // Account 5
       {
@@ -734,6 +734,12 @@ export class sweepFeesInstruction {
         pubkey: destinationTokenAccount,
         isSigner: false,
         isWritable: true,
+      },
+      // Account 6
+      {
+        pubkey: TOKEN_PROGRAM_ID,
+        isSigner: false,
+        isWritable: false,
       },
     ];
 
