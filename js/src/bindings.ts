@@ -119,7 +119,7 @@ export const placeOrder = async (
   const instruction = new newOrderInstruction({
     side: side as number,
     limitPrice: new BN(limitPrice),
-    maxBaseQty: new BN(1),
+    maxBaseQty: new BN(size),
     maxQuoteQty: new BN(Math.ceil(size / limitPrice)),
     orderType: type,
     selfTradeBehaviour: selfTradeBehaviour,

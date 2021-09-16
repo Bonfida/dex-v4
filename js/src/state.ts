@@ -1,6 +1,6 @@
 import { Connection, PublicKey } from "@solana/web3.js";
 import BN from "bn.js";
-import { deserialize, Schema } from "borsh";
+import { deserialize, deserializeUnchecked, Schema } from "borsh";
 
 export const CALLBACK_INFO_LEN = 33;
 
@@ -160,7 +160,7 @@ export class UserAccount {
     if (!accountInfo?.data) {
       throw new Error("Invalid account provided");
     }
-    return deserialize(
+    return deserializeUnchecked(
       this.schema,
       UserAccount,
       accountInfo.data

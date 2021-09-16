@@ -131,3 +131,8 @@ export const signAndSendTransactionInstructions = async (
     preflightCommitment: "single",
   });
 };
+
+export async function sleep(ms: number) {
+  console.log("Sleeping for ", ms, " ms");
+  return await new Promise((resolve) => setTimeout(resolve, ms));
+}
