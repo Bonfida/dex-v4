@@ -1,5 +1,5 @@
 import { Keypair, PublicKey, Connection, SystemProgram } from "@solana/web3.js";
-import { DEX_ID } from "./ids";
+import { DEX_ID, SRM_MINT } from "./ids";
 import {
   cancelOrderInstruction,
   consumeEventInstruction,
@@ -108,7 +108,8 @@ export const placeOrder = async (
   type: OrderType,
   selfTradeBehaviour: SelfTradeBehavior,
   ownerTokenAccount: PublicKey,
-  owner: PublicKey
+  owner: PublicKey,
+  discountTokenAccount?: PublicKey
 ) => {
   const [marketSigner] = await PublicKey.findProgramAddress(
     [market.address.toBuffer()],
@@ -119,6 +120,10 @@ export const placeOrder = async (
     [market.address.toBuffer(), owner.toBuffer()],
     DEX_ID
   );
+
+  if (!discountTokenAccount) {
+    discountTokenAccount = await findAssociatedTokenAddress(owner, SRM_MINT);
+  }
 
   const instruction = new newOrderInstruction({
     side: side as number,
@@ -141,7 +146,8 @@ export const placeOrder = async (
     market.quoteVault,
     userAccount,
     ownerTokenAccount,
-    owner
+    owner,
+    discountTokenAccount
   );
 
   return instruction;
