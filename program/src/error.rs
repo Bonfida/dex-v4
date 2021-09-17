@@ -22,6 +22,8 @@ pub enum DexError {
     NoOp,
     #[error("The user does not own enough lamports")]
     OutofFunds,
+    #[error("The user account is still active")]
+    UserAccountStillActive,
 }
 
 impl From<DexError> for ProgramError {

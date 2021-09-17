@@ -108,6 +108,14 @@ pub enum DexInstruction {
     /// | 4     | ✅        | ❌      | The destination token account |
     /// | 5     | ❌        | ❌      | The SPL token program         |
     SweepFees,
+    /// Close an inactive and empty user account
+    ///
+    /// | index | writable | signer | description                            |
+    /// |-------|----------|--------|----------------------------------------|
+    /// | 0     | ✅        | ❌      | The user account to close              |
+    /// | 1     | ❌        | ✅      | The owner of the user account to close |
+    /// | 2     | ✅        | ❌      | The target lamports account            |
+    CloseAccount,
 }
 
 /// Create a new DEX market
@@ -355,6 +363,27 @@ pub fn settle(
         AccountMeta::new_readonly(user_account_owner, true),
         AccountMeta::new(destination_base_account, false),
         AccountMeta::new(destination_quote_account, false),
+    ];
+
+    Instruction {
+        program_id: dex_program_id,
+        accounts,
+        data,
+    }
+}
+
+/// Close an inactive and fully settled account
+pub fn close_account(
+    dex_program_id: Pubkey,
+    user_account: Pubkey,
+    user_account_owner: Pubkey,
+    target_lamports_account: Pubkey,
+) -> Instruction {
+    let data = DexInstruction::CloseAccount.try_to_vec().unwrap();
+    let accounts = vec![
+        AccountMeta::new(user_account, false),
+        AccountMeta::new_readonly(user_account_owner, true),
+        AccountMeta::new(target_lamports_account, false),
     ];
 
     Instruction {

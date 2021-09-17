@@ -40,6 +40,7 @@ impl PrintProgramError for DexError {
             DexError::OrderNotFound => todo!(),
             DexError::NoOp => todo!(),
             DexError::OutofFunds => todo!(),
+            DexError::UserAccountStillActive => todo!(),
         }
     }
 }

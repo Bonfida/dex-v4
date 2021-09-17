@@ -43,6 +43,9 @@ pub mod settle;
 #[allow(missing_docs)]
 pub mod sweep_fees;
 
+#[allow(missing_docs)]
+pub mod close_account;
+
 pub struct Processor {}
 
 impl Processor {
@@ -84,6 +87,10 @@ impl Processor {
             DexInstruction::SweepFees => {
                 msg!("Instruction: Initialize account");
                 sweep_fees::process(program_id, accounts)?;
+            }
+            DexInstruction::CloseAccount => {
+                msg!("Instruction: Close Account");
+                close_account::process(program_id, accounts)?;
             }
         }
         Ok(())

@@ -40,7 +40,7 @@ pub enum SelfTradeBehavior {
     DecrementTake,
     /// Cancels the maker side of the order.
     CancelProvide,
-    /// Cancels the whole transaction as soon a self-matching scenario is encountered.
+    /// Cancels the whole transaction as soon as a self-matching scenario is encountered.
     AbortTransaction,
 }
 
@@ -209,8 +209,9 @@ impl Order for u128 {
     const LEN: usize = 16;
 }
 
+#[doc(hidden)]
 #[derive(BorshDeserialize, BorshSerialize, Debug, Clone, Copy)]
-pub(crate) enum FeeTier {
+pub enum FeeTier {
     Base,
     Srm2,
     Srm3,
@@ -220,6 +221,7 @@ pub(crate) enum FeeTier {
     MSrm,
 }
 
+#[doc(hidden)]
 impl FeeTier {
     pub fn from_srm_and_msrm_balances(srm_held: u64, msrm_held: u64) -> FeeTier {
         let one_srm = 1_000_000;
@@ -281,9 +283,9 @@ impl FeeTier {
         fp32_mul(pc_qty, rate)
     }
 }
-
+#[doc(hidden)]
 #[derive(BorshDeserialize, BorshSerialize, Debug)]
-pub(crate) struct CallBackInfo {
+pub struct CallBackInfo {
     pub user_account: Pubkey,
     pub fee_tier: FeeTier,
 }
