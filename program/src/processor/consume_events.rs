@@ -1,4 +1,4 @@
-use std::{convert::TryInto, rc::Rc};
+use std::rc::Rc;
 
 use agnostic_orderbook::{
     instruction::consume_events,
@@ -254,9 +254,10 @@ fn consume_event(
             delete,
         } => {
             if delete {
-                let user_key = Pubkey::new_from_array(callback_info.try_into().unwrap());
+                let user_callback_info =
+                    CallBackInfo::deserialize(&mut (&callback_info as &[u8])).unwrap();
                 let user_account_info = &accounts[accounts
-                    .binary_search_by_key(&user_key, |k| *k.key)
+                    .binary_search_by_key(&user_callback_info.user_account, |k| *k.key)
                     .map_err(|_| DexError::MissingUserAccount)?];
                 let mut user_account = UserAccount::parse(user_account_info).unwrap();
                 let order_index = user_account.find_order_index(order_id).unwrap();

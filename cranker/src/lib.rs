@@ -7,14 +7,18 @@ use agnostic_orderbook::{
 use borsh::BorshDeserialize;
 use dex_v3::{
     instruction::consume_events,
-    processor::consume_events::Params,
-    state::{CallBackInfo, DexState, CALLBACK_INFO_LEN},
+    state::{CallBackInfo, DexState},
+    CALLBACK_INFO_LEN,
 };
 use error::CrankError;
-use solana_client::{rpc_client::RpcClient, rpc_config::RpcSendTransactionConfig};
+use solana_client::{
+    client_error::ClientError, rpc_client::RpcClient, rpc_config::RpcSendTransactionConfig,
+};
 use solana_program::pubkey::Pubkey;
 use solana_sdk::{
-    commitment_config::CommitmentConfig, signature::Keypair, signer::Signer,
+    commitment_config::{CommitmentConfig, CommitmentLevel},
+    signature::{Keypair, Signature},
+    signer::Signer,
     transaction::Transaction,
 };
 use spl_associated_token_account::get_associated_token_address;
@@ -36,7 +40,7 @@ pub const MAX_ITERATIONS: u64 = 10;
 impl Context {
     pub fn crank(self) {
         let connection =
-            RpcClient::new_with_commitment(self.endpoint.clone(), CommitmentConfig::processed());
+            RpcClient::new_with_commitment(self.endpoint.clone(), CommitmentConfig::confirmed());
 
         let market_state_data = connection
             .get_account_data(&self.market)
@@ -58,13 +62,14 @@ impl Context {
         let msrm_token_account =
             get_associated_token_address(&self.cranking_authority.pubkey(), &msrm_token::ID);
         loop {
-            let _ = self.consume_events_iteration(
+            let res = self.consume_events_iteration(
                 &connection,
                 &orderbook,
                 &market_state,
                 &market_signer,
                 &msrm_token_account,
             );
+            println!("{:#?}", res);
         }
     }
 
@@ -75,15 +80,15 @@ impl Context {
         market_state: &DexState,
         market_signer: &Pubkey,
         msrm_token_account: &Pubkey,
-    ) -> Result<(), CrankError> {
-        let mut event_queue_data = connection.get_account_data(&orderbook.event_queue).unwrap();
+    ) -> Result<Signature, ClientError> {
+        let mut event_queue_data = connection.get_account_data(&orderbook.event_queue)?;
         let event_queue_header =
             EventQueueHeader::deserialize(&mut (&event_queue_data as &[u8])).unwrap();
         let length = event_queue_header.count as usize;
         let event_queue = EventQueue::new(
             event_queue_header,
             Rc::new(RefCell::new(&mut event_queue_data)),
-            CALLBACK_INFO_LEN,
+            CALLBACK_INFO_LEN as usize,
         );
         let mut user_accounts = Vec::with_capacity(length << 1);
         for e in event_queue.iter() {
@@ -128,7 +133,7 @@ impl Context {
             *msrm_token_account,
             self.cranking_authority.pubkey(),
             &user_accounts,
-            Params {
+            consume_events::Params {
                 max_iterations: MAX_ITERATIONS,
             },
         );
@@ -137,23 +142,18 @@ impl Context {
             &[consume_events_instruction],
             Some(&self.fee_payer.pubkey()),
         );
-        let (recent_blockhash, _) = connection
-            .get_recent_blockhash()
-            .map_err(|_| CrankError::ConnectionError)?;
+        let (recent_blockhash, _) = connection.get_recent_blockhash()?;
         transaction.partial_sign(
             &[&self.fee_payer, &self.cranking_authority],
             recent_blockhash,
         );
-        connection
-            .send_transaction_with_config(
-                &transaction,
-                RpcSendTransactionConfig {
-                    skip_preflight: false,
-                    preflight_commitment: None,
-                    ..RpcSendTransactionConfig::default()
-                },
-            )
-            .map_err(|_| CrankError::ConnectionError)?;
-        Ok(())
+        connection.send_transaction_with_config(
+            &transaction,
+            RpcSendTransactionConfig {
+                skip_preflight: false,
+                preflight_commitment: Some(CommitmentLevel::Processed),
+                ..RpcSendTransactionConfig::default()
+            },
+        )
     }
 }

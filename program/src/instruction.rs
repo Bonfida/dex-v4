@@ -16,12 +16,12 @@ pub enum DexInstruction {
     /// | index | writable | signer | description                                  |
     /// |-------|----------|--------|----------------------------------------------|
     /// | 0     | ❌        | ❌      | The sysvar clock account                     |
-    /// | 1     | ❌        | ❌      | The market account                           |
-    /// | 3     | ❌        | ✅      | The orderbook account                        |
+    /// | 1     | ✅        | ❌      | The market account                           |
+    /// | 2     | ❌        | ❌      | The orderbook account                        |
     /// | 4     | ❌        | ❌      | The base token vault account                 |
     /// | 5     | ❌        | ❌      | The quote token vault account                |
     /// | 6     | ❌        | ❌      | The Asset Agnostic Orderbook program account |
-    /// | 7     | ❌        | ❌      | The market admin account                     |
+    /// | 6     | ❌        | ❌      | The market admin account                     |
     CreateMarket(create_market::Params),
     /// Execute a new order instruction. Supported types include Limit, IOC, FOK, or Post only.
     ///

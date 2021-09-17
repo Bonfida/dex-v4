@@ -18,7 +18,7 @@ fn main() {
                 .help("A Solana RPC endpoint url")
                 .takes_value(true),
         )
-        .arg(fee_payer_arg())
+        .arg(fee_payer_arg().required(true))
         .arg(
             Arg::with_name("program_id")
                 .short("p")
@@ -41,6 +41,7 @@ fn main() {
             Arg::with_name("cranking-authority")
                 .long("cranking-authority")
                 .takes_value(true)
+                .required(true)
                 .value_name("crank_authority")
                 .validator(input_validators::is_valid_signer)
                 .help("The key of the cranking authority holding at least a msrm"),
@@ -60,7 +61,7 @@ fn main() {
         .unwrap_or("https://solana-api.projectserum.com");
     let program_id = pubkey_of(&matches, "program_id").unwrap();
     let market = pubkey_of(&matches, "market").expect("Invalid market Pubkey");
-    let reward_target = pubkey_of(&matches, "reward_target").expect("Invalid reward target pubkey");
+    let reward_target = pubkey_of(&matches, "reward-target").expect("Invalid reward target pubkey");
     let fee_payer = keypair_of(&matches, FEE_PAYER_ARG.name).unwrap();
     let cranking_authority = keypair_of(&matches, "cranking-authority").unwrap();
     let context = Context {
