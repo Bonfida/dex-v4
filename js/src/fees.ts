@@ -59,4 +59,5 @@ export const getFeeTier = (msrmBalance: number, srmBalance: number) => {
   for (let [key, value] of Object.entries(FEES)) {
     if (srmBalance < value.srm) return parseInt(key) - 1;
   }
+  return 0;
 };

@@ -16,6 +16,10 @@ import { CALLBACK_INFO_LEN, MarketState } from "./state";
 import { DEX_ID, SRM_MINT, MSRM_MINT } from "./ids";
 import { EventQueue, MarketState as AaobMarketState } from "@bonfida/aaob";
 import { getFeeTier } from "./fees";
+import { OpenOrders } from "./openOrders";
+import { cancelOrder, settle } from "./bindings";
+import BN from "bn.js";
+import { Order } from "./types";
 
 /**
  * A Serum DEX Market object
@@ -288,12 +292,18 @@ export class Market {
    * @param owner The public key of the owner
    * @returns The public key of the open order account
    */
-  async findOpenOrdersAccountForOwner(owner: PublicKey) {
+  async findOpenOrdersAccountForOwner(
+    connection: Connection,
+    owner: PublicKey
+  ) {
     const [address] = await PublicKey.findProgramAddress(
       [this.address.toBuffer(), owner.toBuffer()],
       this.programId
     );
-    return address;
+
+    const openOrders = OpenOrders.load(connection, this.address, owner);
+
+    return openOrders;
   }
 
   async placeOrder() {}
@@ -327,10 +337,13 @@ export class Market {
     ];
   }
 
-  async makePlaceOrderTransaction() {}
-
-  makePlaceOrderInstruction() {}
-
+  /**
+   *
+   * @param connection The solana connection object to the RPC node
+   * @param transaction The transaction to sign and send
+   * @param signers The signers of the transaction
+   * @returns Returns the signature of the signed and sent transaction
+   */
   private async _sendTransaction(
     connection: Connection,
     transaction: Transaction,
@@ -349,10 +362,54 @@ export class Market {
     return signature;
   }
 
-  async cancelOrderByClientId() {}
+  /**
+   *
+   * @param connection The solana connection object to the RPC node
+   * @param orderIndex The index of the order in the open order account
+   * @param owner The owner of the order
+   * @returns The signature of the cancel transaction
+   */
+  async cancelOrderByOrderIndex(
+    connection: Connection,
+    orderIndex: BN,
+    owner: Keypair
+  ) {
+    const instruction = await cancelOrder(this, orderIndex, owner.publicKey);
+    const tx = new Transaction().add(instruction);
+    const signature = await this._sendTransaction(connection, tx, [owner]);
+    return signature;
+  }
 
-  async settleFunds() {}
+  /**
+   *
+   * @param connection The solana connection object to the RPC node
+   * @param owner The owner of the funds to settle
+   * @param destinationBaseAccount The owner base token account
+   * @param destinationQuoteAccount The owner quote token account
+   * @returns The signature of the settle transaction
+   */
+  async settleFunds(
+    connection: Connection,
+    owner: Keypair,
+    destinationBaseAccount: PublicKey,
+    destinationQuoteAccount: PublicKey
+  ) {
+    const instructions = await settle(
+      this,
+      owner.publicKey,
+      destinationBaseAccount,
+      destinationQuoteAccount
+    );
+    const tx = new Transaction().add(instructions);
+    const signature = await this._sendTransaction(connection, tx, [owner]);
+    return signature;
+  }
 
+  /**
+   *
+   * @param connection The solana connection object to the RPC node
+   * @returns The deserialized event queue of the market
+   */
   async loadEventQueue(connection: Connection) {
     const eventQueue = await EventQueue.load(
       connection,
@@ -362,5 +419,10 @@ export class Market {
     return eventQueue;
   }
 
-  async loadFills() {}
+  /**
+   *
+   * @param connection The solana connection object to the RPC node
+   * @param limit Optional limit parameters to the number of fills fetched
+   */
+  async loadFills(connection: Connection, limit = 100) {}
 }
