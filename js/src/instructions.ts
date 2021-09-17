@@ -40,6 +40,17 @@ export class createMarketInstruction {
     return serialize(createMarketInstruction.schema, this);
   }
 
+  /**
+   * Returns a TransactionInstruction to create a market
+   * @param dexId Serum DEX program ID
+   * @param market Address of the market
+   * @param orderbook Address of the AAOB
+   * @param baseVault Address of the market base vault
+   * @param quoteVault Address of the market quote vault
+   * @param aaobId AAOB program ID
+   * @param marketAdmin Address of the market admin
+   * @returns Returns a TransactionInstruction object
+   */
   getInstruction(
     dexId: PublicKey,
     market: PublicKey,
@@ -50,7 +61,6 @@ export class createMarketInstruction {
     marketAdmin: PublicKey
   ): TransactionInstruction {
     const data = Buffer.from(this.serialize());
-    // TODO check isSigner and isWritable
     const keys = [
       // Account 1
       {
@@ -155,6 +165,24 @@ export class newOrderInstruction {
     return serialize(newOrderInstruction.schema, this);
   }
 
+  /**
+   * Returns a TransactionInstruction to place a new order
+   * @param dexId Serum DEX program ID
+   * @param aaobId AAOB program ID
+   * @param market Address of the market
+   * @param marketSigner Address of the market signer
+   * @param orderbook Address of the AAOB
+   * @param eventQueue Address of the event queue
+   * @param bids Address of the bids slab
+   * @param asks Address of the asks slab
+   * @param baseVault Address of the market base vault
+   * @param quoteVault Address of the market quote vault
+   * @param user Address of the open order account
+   * @param userTokenAccount Address of the token account
+   * @param userOwner Address of the owner of the order
+   * @param discountTokenAccount Address of the (M)SRM discount token account
+   * @returns Returns a TransactionInstruction object
+   */
   getInstruction(
     dexId: PublicKey,
     aaobId: PublicKey,
@@ -309,6 +337,20 @@ export class cancelOrderInstruction {
     return serialize(cancelOrderInstruction.schema, this);
   }
 
+  /**
+   * Returns a TransactionInstruction to cancel an order
+   * @param dexId Serum DEX program ID
+   * @param aaobId AAOB program ID
+   * @param market Address of the market
+   * @param marketSigner Address of the market signer
+   * @param orderbook Address of the AAOB
+   * @param eventQueue Address of the event queue
+   * @param bids Address of the bids slab
+   * @param asks Address of the asks slab
+   * @param user Address of the open order account
+   * @param userOwner Address of the owner of the order
+   * @returns Returns a TransactionInstruction object
+   */
   getInstruction(
     dexId: PublicKey,
     aaobId: PublicKey,
@@ -413,6 +455,20 @@ export class consumeEventInstruction {
     return serialize(consumeEventInstruction.schema, this);
   }
 
+  /**
+   * Returns a TransactionInstruction to consume an event
+   * @param dexId Serum DEX program ID
+   * @param aaobId AAOB program ID
+   * @param market  Address of the market
+   * @param marketSigner Address of the market signer
+   * @param orderbook Address of the AAOB
+   * @param eventQueue Address of the event queue
+   * @param rewardTarget Address to send the cranking reward
+   * @param msrmTokenAccount Address of the MSRM token account
+   * @param msrmTokenAccountOwner Address of the MSRM token account owner
+   * @param userAccounts Address of the user accounts to crank
+   * @returns Returns a TransactionInstruction object
+   */
   getInstruction(
     dexId: PublicKey,
     aaobId: PublicKey,
@@ -514,6 +570,20 @@ export class settleInstruction {
     return serialize(settleInstruction.schema, this);
   }
 
+  /**
+   * Returns a TransactionInstruction to settle funds
+   * @param dexId Serum DEX program ID
+   * @param aaobId AAOB program ID
+   * @param market Address of the market
+   * @param baseVault Address of the market base vault
+   * @param quoteVault Address of the market quote vault
+   * @param marketSigner Address of the market signer
+   * @param user Address of the open order account
+   * @param userOwner Address of the owner of the open order account
+   * @param destinationBaseAccount Address of the destination for the base tokens settled
+   * @param destinationQuoteAccount Address of the destination for the quote tokens settled
+   * @returns Returns a TransactionInstruction object
+   */
   getInstruction(
     dexId: PublicKey,
     aaobId: PublicKey,
@@ -627,6 +697,14 @@ export class initializeAccountInstruction {
     return serialize(initializeAccountInstruction.schema, this);
   }
 
+  /**
+   * Returns a TransactionInstruction to initialize an open order account
+   * @param dexId Serum DEX program ID
+   * @param user Address of the open order account
+   * @param userOwner Address of the open order account owner
+   * @param feePayer Address of the fee payer
+   * @returns Returns a TransactionInstruction object
+   */
   getInstruction(
     dexId: PublicKey,
     user: PublicKey,
@@ -695,7 +773,16 @@ export class sweepFeesInstruction {
   serialize(): Uint8Array {
     return serialize(sweepFeesInstruction.schema, this);
   }
-
+  /**
+   * Returns a TransactionInstruction to sweep fees
+   * @param dexId Serum DEX program ID
+   * @param market Address of the market
+   * @param marketSigner Address of the market signer
+   * @param marketAdmin Address of the market admin
+   * @param quoteVault Address of the market quote vault
+   * @param destinationTokenAccount Address of the destination for the quote tokens settled
+   * @returns Returns a TransactionInstruction object
+   */
   getInstruction(
     dexId: PublicKey,
     market: PublicKey,
@@ -772,6 +859,14 @@ export class closeAccountIntruction {
     return serialize(closeAccountIntruction.schema, this);
   }
 
+  /**
+   * Returns a TransactionInstruction to close an open order account
+   * @param dexId Serum DEX program ID
+   * @param user Address of the open order account
+   * @param userOwner Address of the open order account owner
+   * @param targetLamportAccount Address of the lamport receiver
+   * @returns Returns a TransactionInstruction object
+   */
   getInstruction(
     dexId: PublicKey,
     user: PublicKey,
