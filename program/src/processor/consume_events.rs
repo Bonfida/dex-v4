@@ -24,18 +24,11 @@ use super::CALLBACK_INFO_LEN;
 
 #[derive(BorshDeserialize, BorshSerialize)]
 /**
-The required arguments for a create_market instruction.
+The required arguments for a consume_events instruction.
 */
 pub struct Params {
+    /// The maximum number of events to consume
     pub max_iterations: u64,
-}
-
-#[derive(BorshDeserialize, BorshSerialize, Debug)]
-pub enum OrderType {
-    Limit,
-    ImmediateOrCancel,
-    FillOrKill,
-    PostOnly,
 }
 
 struct Accounts<'a, 'b: 'a> {

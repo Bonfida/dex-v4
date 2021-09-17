@@ -20,19 +20,13 @@ use crate::{
 
 #[derive(BorshDeserialize, BorshSerialize)]
 /**
-The required arguments for a create_market instruction.
+The required arguments for a initialize_account instruction.
 */
 pub struct Params {
+    /// The user account's parent market
     pub market: Pubkey,
+    /// The maximum number of orders the user account may hold
     pub max_orders: u64,
-}
-
-#[derive(BorshDeserialize, BorshSerialize, Debug, PartialEq)]
-pub enum OrderType {
-    Limit,
-    ImmediateOrCancel,
-    FillOrKill,
-    PostOnly,
 }
 
 struct Accounts<'a, 'b: 'a> {

@@ -5,8 +5,6 @@ use dex_v3::instruction::create_market;
 use dex_v3::instruction::initialize_account;
 use dex_v3::instruction::new_order;
 use dex_v3::instruction::settle;
-use dex_v3::processor::consume_events;
-use dex_v3::processor::initialize_account;
 use solana_program::pubkey::Pubkey;
 use solana_program::system_instruction::create_account;
 use solana_program::system_program;
@@ -208,6 +206,7 @@ async fn test_dex() {
         user_account,
         user_base_token_account,
         user_account_owner.pubkey(),
+        None,
         new_order::Params {
             side: agnostic_orderbook::state::Side::Ask,
             limit_price: 1000,
@@ -241,6 +240,7 @@ async fn test_dex() {
         user_account,
         user_quote_token_account,
         user_account_owner.pubkey(),
+        None,
         new_order::Params {
             side: agnostic_orderbook::state::Side::Bid,
             limit_price: 1000,

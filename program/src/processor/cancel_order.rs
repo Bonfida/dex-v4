@@ -22,18 +22,11 @@ use super::CALLBACK_INFO_LEN;
 
 #[derive(BorshDeserialize, BorshSerialize)]
 /**
-The required arguments for a create_market instruction.
+The required arguments for a cancel_order instruction.
 */
 pub struct Params {
-    order_index: u64,
-}
-
-#[derive(BorshDeserialize, BorshSerialize, Debug)]
-pub enum OrderType {
-    Limit,
-    ImmediateOrCancel,
-    FillOrKill,
-    PostOnly,
+    /// The index in the user account of the order to cancel
+    pub order_index: u64,
 }
 
 struct Accounts<'a, 'b: 'a> {

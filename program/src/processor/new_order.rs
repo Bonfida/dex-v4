@@ -28,23 +28,37 @@ use super::CALLBACK_INFO_LEN;
 
 #[derive(BorshDeserialize, BorshSerialize)]
 /**
-The required arguments for a create_market instruction.
+The required arguments for a new_order instruction.
 */
 pub struct Params {
+    /// The order's side (Bid or Ask)
     pub side: Side,
+    /// The order's limit price (as a FP32)
     pub limit_price: u64,
+    /// The max quantity of base token to match and post
     pub max_base_qty: u64,
+    /// The max quantity of quote token to match and post
     pub max_quote_qty: u64,
+    /// The order type (supported types include Limit, FOK, IOC and PostOnly)
     pub order_type: OrderType,
+    /// Configures what happens when this order is at least partially matched against an order belonging to the same user account
     pub self_trade_behavior: SelfTradeBehavior,
+    /// The maximum number of orders to be matched against.
+    ///
+    /// Setting this number too high can sometimes lead to excessive resource consumption which can cause a failure.
     pub match_limit: u64,
 }
 
+/// This enum describes all supported order types
 #[derive(BorshDeserialize, BorshSerialize, Debug, PartialEq)]
 pub enum OrderType {
+    #[allow(missing_docs)]
     Limit,
+    #[allow(missing_docs)]
     ImmediateOrCancel,
+    #[allow(missing_docs)]
     FillOrKill,
+    #[allow(missing_docs)]
     PostOnly,
 }
 

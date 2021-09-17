@@ -21,17 +21,26 @@ mod msrm_token {
 pub static SRM_MINT: Pubkey = srm_token::ID;
 pub static MSRM_MINT: Pubkey = msrm_token::ID;
 
+/// The length in bytes of the callback information in the associated asset agnostic orderbook
 pub static CALLBACK_INFO_LEN: u64 = 33;
+/// The length in bytes of the callback identifer prefix in the associated asset agnostic orderbook
 pub static CALLBACK_ID_LEN: u64 = 32;
 
 ////////////////////////////////////////////////////////////
 
+#[allow(missing_docs)]
 pub mod cancel_order;
+#[allow(missing_docs)]
 pub mod consume_events;
+#[allow(missing_docs)]
 pub mod create_market;
+#[allow(missing_docs)]
 pub mod initialize_account;
+#[allow(missing_docs)]
 pub mod new_order;
+#[allow(missing_docs)]
 pub mod settle;
+#[allow(missing_docs)]
 pub mod sweep_fees;
 
 pub struct Processor {}

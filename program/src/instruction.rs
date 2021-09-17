@@ -5,19 +5,114 @@ use solana_program::{
     system_program, sysvar,
 };
 
-pub use crate::processor::{cancel_order, create_market, new_order};
-use crate::processor::{consume_events, initialize_account, settle};
+pub use crate::processor::{
+    cancel_order, consume_events, create_market, initialize_account, new_order, settle, sweep_fees,
+};
 #[derive(BorshDeserialize, BorshSerialize)]
+/// Describes all possible instructions and their required accounts
 pub enum DexInstruction {
+    /// Creates a new DEX market
+    ///
+    /// | index | writable | signer | description                                  |
+    /// |-------|----------|--------|----------------------------------------------|
+    /// | 0     | ❌        | ❌      | The sysvar clock account                     |
+    /// | 1     | ❌        | ❌      | The market account                           |
+    /// | 3     | ❌        | ✅      | The orderbook account                        |
+    /// | 4     | ❌        | ❌      | The base token vault account                 |
+    /// | 5     | ❌        | ❌      | The quote token vault account                |
+    /// | 6     | ❌        | ❌      | The Asset Agnostic Orderbook program account |
+    /// | 7     | ❌        | ❌      | The market admin account                     |
     CreateMarket(create_market::Params),
+    /// Execute a new order instruction. Supported types include Limit, IOC, FOK, or Post only.
+    ///
+    /// | index | writable | signer | description                                                                        |
+    /// |-------|----------|--------|------------------------------------------------------------------------------------|
+    /// | 0     | ❌        | ❌      | The asset agnostic orderbook program                                               |
+    /// | 1     | ❌        | ❌      | The SPL token program                                                              |
+    /// | 3     | ❌        | ❌      | The system program                                                                 |
+    /// | 4     | ❌        | ❌      | The rent sysvar                                                                    |
+    /// | 5     | ✅        | ❌      | The DEX market                                                                     |
+    /// | 6     | ❌        | ❌      | The DEX market signer                                                              |
+    /// | 7     | ✅        | ❌      | The orderbook                                                                      |
+    /// | 8     | ✅        | ❌      | The event queue                                                                    |
+    /// | 9     | ✅        | ❌      | The bids shared memory                                                             |
+    /// | 10    | ✅        | ❌      | The asks shared memory                                                             |
+    /// | 11    | ✅        | ❌      | The base token vault                                                               |
+    /// | 12    | ✅        | ❌      | The quote token vault                                                              |
+    /// | 13    | ✅        | ❌      | The DEX user account                                                               |
+    /// | 14    | ✅        | ❌      | The user's source token account                                                    |
+    /// | 15    | ✅        | ❌      | The user's wallet                                                                  |
+    /// | 16    | ✅        | ❌      | The optional SRM or MSRM discount token account (must be owned by the user wallet) |
     NewOrder(new_order::Params),
+    /// Cancel an existing order and remove it from the orderbook.
+    ///
+    /// | index | writable | signer | description                          |
+    /// |-------|----------|--------|--------------------------------------|
+    /// | 0     | ❌        | ❌      | The asset agnostic orderbook program |
+    /// | 1     | ❌        | ❌      | The DEX market                       |
+    /// | 2     | ❌        | ❌      | The DEX market signer                |
+    /// | 3     | ✅        | ❌      | The orderbook                        |
+    /// | 4     | ✅        | ❌      | The event queue                      |
+    /// | 5     | ✅        | ❌      | The bids shared memory               |
+    /// | 6     | ✅        | ❌      | The asks shared memory               |
+    /// | 7     | ✅        | ❌      | The DEX user ac count                 |
+    /// | 8     | ❌        | ✅      | The user's wallet                    |
     CancelOrder(cancel_order::Params),
+    /// Crank the processing of DEX events.
+    ///
+    /// | index | writable | signer | description                          |
+    /// |-------|----------|--------|--------------------------------------|
+    /// | 0     | ❌        | ❌      | The asset agnostic orderbook program |
+    /// | 1     | ❌        | ❌      | The DEX market                       |
+    /// | 2     | ❌        | ❌      | The DEX market signer                |
+    /// | 3     | ✅        | ❌      | The orderbook                        |
+    /// | 4     | ✅        | ❌      | The event queue                      |
+    /// | 5     | ✅        | ❌      | The reward target                    |
+    /// | 6     | ❌        | ❌      | The MSRM token account               |
+    /// | 7     | ❌        | ✅      | The MSRM token account owner         |
+    /// | 8..   | ✅        | ❌      | The relevant user account            |
     ConsumeEvents(consume_events::Params),
+    /// Extract available base and quote token assets from a user account
+    ///
+    /// | index | writable | signer | description                          |
+    /// |-------|----------|--------|--------------------------------------|
+    /// | 0     | ❌        | ❌      | The asset agnostic orderbook program |
+    /// | 1     | ❌        | ❌      | The spl token program                |
+    /// | 2     | ❌        | ❌      | The DEX market                       |
+    /// | 3     | ✅        | ❌      | The base token vault                 |
+    /// | 4     | ✅        | ❌      | The quote token vault                |
+    /// | 5     | ❌        | ❌      | The DEX market signer                |
+    /// | 6     | ✅        | ❌      | The DEX user account                 |
+    /// | 7     | ❌        | ✅      | The DEX user account owner wallet    |
+    /// | 8     | ✅        | ❌      | The destination base token account   |
+    /// | 9     | ✅        | ❌      | The destination quote token account  |
     Settle(settle::Params),
+    /// Initialize a new user account
+    ///
+    /// | index | writable | signer | description                    |
+    /// |-------|----------|--------|--------------------------------|
+    /// | 0     | ❌        | ❌      | The system program             |
+    /// | 1     | ❌        | ❌      | The rent sysvar                |
+    /// | 2     | ✅        | ❌      | The user account to initialize |
+    /// | 3     | ❌        | ✅      | The owner of the user account  |
+    /// | 4     | ✅        | ✅      | The fee payer                  |
     InitializeAccount(initialize_account::Params),
+    /// Extract accumulated fees from the market. This is an admin instruction
+    ///
+    /// | index | writable | signer | description                   |
+    /// |-------|----------|--------|-------------------------------|
+    /// | 0     | ✅        | ❌      | The DEX market                |
+    /// | 1     | ❌        | ❌      | The market signer             |
+    /// | 2     | ❌        | ✅      | The market admin              |
+    /// | 3     | ✅        | ❌      | The market quote token vault  |
+    /// | 4     | ✅        | ❌      | The destination token account |
+    /// | 5     | ❌        | ❌      | The SPL token program         |
     SweepFees,
 }
 
+/// Create a new DEX market
+///
+/// The asset agnostic orderbook must be properly initialized beforehand.
 #[allow(clippy::clippy::too_many_arguments)]
 pub fn create_market(
     dex_program_id: Pubkey,
@@ -68,12 +163,13 @@ pub fn new_order(
     user_account: Pubkey,
     user_token_account: Pubkey,
     user_account_owner: Pubkey,
+    discount_account: Option<Pubkey>,
     new_order_params: new_order::Params,
 ) -> Instruction {
     let data = DexInstruction::NewOrder(new_order_params)
         .try_to_vec()
         .unwrap();
-    let accounts = vec![
+    let mut accounts = vec![
         AccountMeta::new_readonly(agnostic_orderbook_program_id, false),
         AccountMeta::new_readonly(spl_token::id(), false),
         AccountMeta::new_readonly(system_program::id(), false),
@@ -91,6 +187,10 @@ pub fn new_order(
         AccountMeta::new(user_account_owner, true),
     ];
 
+    if let Some(a) = discount_account {
+        accounts.push(AccountMeta::new_readonly(a, false))
+    }
+
     Instruction {
         program_id: dex_program_id,
         accounts,
@@ -98,6 +198,7 @@ pub fn new_order(
     }
 }
 
+/// Cancel an existing order and remove it from the orderbook.
 #[allow(clippy::clippy::too_many_arguments)]
 pub fn cancel_order(
     dex_program_id: Pubkey,
@@ -134,6 +235,7 @@ pub fn cancel_order(
     }
 }
 
+/// Crank the processing of DEX events.
 #[allow(clippy::too_many_arguments)]
 pub fn consume_events(
     dex_program_id: Pubkey,
@@ -171,6 +273,7 @@ pub fn consume_events(
     }
 }
 
+/// Initialize a new user account
 #[allow(clippy::too_many_arguments)]
 pub fn initialize_account(
     dex_program_id: Pubkey,
@@ -197,6 +300,7 @@ pub fn initialize_account(
     }
 }
 
+/// Extract accumulated fees from the market. This is an admin instruction
 #[allow(clippy::too_many_arguments)]
 pub fn sweep_fees(
     dex_program_id: Pubkey,
@@ -223,6 +327,7 @@ pub fn sweep_fees(
     }
 }
 
+/// Extract available base and quote token assets from a user account
 #[allow(clippy::too_many_arguments)]
 pub fn settle(
     dex_program_id: Pubkey,

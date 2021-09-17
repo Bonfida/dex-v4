@@ -1,7 +1,7 @@
 use std::str::FromStr;
 
 use agnostic_orderbook::instruction::create_market;
-use dex_v3::processor::{CALLBACK_ID_LEN, CALLBACK_INFO_LEN};
+use dex_v3::{CALLBACK_ID_LEN, CALLBACK_INFO_LEN};
 use solana_program::instruction::Instruction;
 use solana_program::program_pack::Pack;
 use solana_program::pubkey::Pubkey;

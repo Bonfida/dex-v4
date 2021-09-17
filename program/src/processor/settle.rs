@@ -14,18 +14,10 @@ use crate::{
 };
 
 /**
-The required arguments for a create_market instruction.
+The required arguments for a settle instruction.
 */
 #[derive(BorshDeserialize, BorshSerialize)]
 pub struct Params {}
-
-#[derive(BorshDeserialize, BorshSerialize, Debug)]
-pub enum OrderType {
-    Limit,
-    ImmediateOrCancel,
-    FillOrKill,
-    PostOnly,
-}
 
 struct Accounts<'a, 'b: 'a> {
     aaob_program: &'a AccountInfo<'b>,

@@ -20,7 +20,9 @@ use crate::{
 The required arguments for a create_market instruction.
 */
 pub struct Params {
+    /// The market's signer nonce
     pub signer_nonce: u8,
+    /// The minimum allowed order size in base token amount
     pub min_base_order_size: u64,
 }
 

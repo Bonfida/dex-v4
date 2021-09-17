@@ -31,37 +31,49 @@ pub enum Side {
     Ask,
 }
 
-impl Side {
-    pub fn opposite(&self) -> Self {
-        match self {
-            Side::Bid => Side::Ask,
-            Side::Ask => Side::Bid,
-        }
-    }
-}
-
+/// This enum describes different supported behaviors for handling self trading scenarios
 #[derive(BorshDeserialize, BorshSerialize, Clone, PartialEq)]
 pub enum SelfTradeBehavior {
+    /// Decrement take means that both the maker and taker sides of the matched orders are decremented.
+    ///
+    /// This is equivalent to a normal order match, except for the fact that no fees are applies.
     DecrementTake,
+    /// Cancels the maker side of the order.
     CancelProvide,
+    /// Cancels the whole transaction as soon a self-matching scenario is encountered.
     AbortTransaction,
 }
 
+/// The primary market state object
 #[derive(BorshDeserialize, BorshSerialize)]
 pub struct DexState {
+    /// This byte is used to verify and version the dex state
     pub tag: AccountTag,
+    /// The signer nonce is necessary for the market to perform as a signing entity
     pub signer_nonce: u8,
+    /// The mint key of the base token
     pub base_mint: Pubkey,
+    /// The mint key of the quote token
     pub quote_mint: Pubkey,
+    /// The SPL token account holding the market's base tokens
     pub base_vault: Pubkey,
+    /// The SPL token account holding the market's quote tokens
     pub quote_vault: Pubkey,
+    /// The asset agnostic orderbook address
     pub orderbook: Pubkey,
+    /// The asset agnostic orderbook program ID
     pub aaob_program: Pubkey,
+    /// The market admin which can recuperate all transaction fees
     pub admin: Pubkey,
+    /// The market's creation timestamp on the Solana runtime clock.
     pub creation_timestamp: i64,
+    /// The market's total historical volume in base token
     pub base_volume: u64,
-    pub quote_volume: u64, //TODO metrics (volume quote, volume base)
+    /// The market's total historical volume in quote token
+    pub quote_volume: u64,
+    /// The market's fees which are available for extraction by the market admin
     pub accumulated_fees: u64,
+    /// The market's minimum allowed order size in base token amount
     pub min_base_order_size: u64,
 }
 
@@ -74,16 +86,28 @@ impl DexState {
     }
 }
 
+/// This header describes a user account's state
 #[derive(BorshDeserialize, BorshSerialize)]
 pub struct UserAccountHeader {
+    /// This byte is used to verify and version the dex state
     pub tag: AccountTag,
+    /// The user account's assocatied DEX market
     pub market: Pubkey,
+    /// The user account owner's wallet
     pub owner: Pubkey,
+    /// The amount of base token available for settlement
     pub base_token_free: u64,
+    /// The amount of base token currently locked in the orderbook
     pub base_token_locked: u64,
+    /// The amount of quote token available for settlement
     pub quote_token_free: u64,
+    /// The amount of quote token currently locked in the orderbook
     pub quote_token_locked: u64,
+    /// The all time quantity of rebates accumulated by this user account.
+    ///
+    /// The actual rebates will always be transfer to the user account's main balance. This field is just a metric.
     pub accumulated_rebates: u64,
+    /// The user account's number of active orders.
     pub number_of_orders: u32,
 }
 
@@ -107,7 +131,7 @@ impl IsInitialized for UserAccountHeader {
     }
 }
 
-pub struct UserAccount<'a> {
+pub(crate) struct UserAccount<'a> {
     pub header: UserAccountHeader,
     data: Rc<RefCell<&'a mut [u8]>>,
 }
@@ -177,7 +201,7 @@ impl<'a> UserAccount<'a> {
     }
 }
 
-pub trait Order {
+pub(crate) trait Order {
     const LEN: usize;
 }
 
@@ -186,7 +210,7 @@ impl Order for u128 {
 }
 
 #[derive(BorshDeserialize, BorshSerialize, Debug, Clone, Copy)]
-pub enum FeeTier {
+pub(crate) enum FeeTier {
     Base,
     Srm2,
     Srm3,
@@ -259,9 +283,7 @@ impl FeeTier {
 }
 
 #[derive(BorshDeserialize, BorshSerialize, Debug)]
-pub struct CallBackInfo {
+pub(crate) struct CallBackInfo {
     pub user_account: Pubkey,
     pub fee_tier: FeeTier,
 }
-
-pub const CALLBACK_INFO_LEN: usize = 33;
