@@ -7,6 +7,7 @@ import {
   initializeAccountInstruction,
   newOrderInstruction,
   settleInstruction,
+  closeAccountIntruction,
 } from "./instructions";
 import { OrderType, PrimedTransaction, Side } from "./types";
 import * as aaob from "@bonfida/aaob";
@@ -253,6 +254,22 @@ export const comsumEvents = async (
     msrmTokenAccount,
     msrmTokenAccountOwner,
     userAccounts
+  );
+
+  return instruction;
+};
+
+export const closeAccount = async (market: PublicKey, owner: PublicKey) => {
+  const [userAccount] = await PublicKey.findProgramAddress(
+    [market.toBuffer(), owner.toBuffer()],
+    DEX_ID
+  );
+
+  const instruction = new closeAccountIntruction().getInstruction(
+    DEX_ID,
+    userAccount,
+    owner,
+    owner
   );
 
   return instruction;

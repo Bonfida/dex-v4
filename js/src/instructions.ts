@@ -751,3 +751,59 @@ export class sweepFeesInstruction {
     });
   }
 }
+
+export class closeAccountIntruction {
+  tag: number;
+  constructor() {
+    this.tag = 7;
+  }
+
+  static schema: Schema = new Map([
+    [
+      closeAccountIntruction,
+      {
+        kind: "struct",
+        fields: [["tag", "u8"]],
+      },
+    ],
+  ]);
+
+  serialize(): Uint8Array {
+    return serialize(closeAccountIntruction.schema, this);
+  }
+
+  getInstruction(
+    dexId: PublicKey,
+    user: PublicKey,
+    userOwner: PublicKey,
+    targetLamportAccount: PublicKey
+  ) {
+    const data = Buffer.from(this.serialize());
+    const keys = [
+      // Account 1
+      {
+        pubkey: user,
+        isSigner: false,
+        isWritable: true,
+      },
+      // Account 2
+      {
+        pubkey: userOwner,
+        isSigner: true,
+        isWritable: false,
+      },
+      // Account 3
+      {
+        pubkey: targetLamportAccount,
+        isSigner: false,
+        isWritable: true,
+      },
+    ];
+
+    return new TransactionInstruction({
+      keys,
+      programId: dexId,
+      data,
+    });
+  }
+}

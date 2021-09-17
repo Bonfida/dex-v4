@@ -31,6 +31,27 @@ export class Orderbook {
   }
 
   /**
+   * Returns the market object associated to the orderbook
+   */
+  get market(): Market {
+    return this._market;
+  }
+
+  /**
+   * Returns the asks slab of the orderbook
+   */
+  get slabAsks(): Slab {
+    return this._slabAsks;
+  }
+
+  /**
+   * Returns the bids slab of the orderbook
+   */
+  get slabBids(): Slab {
+    return this._slabBids;
+  }
+
+  /**
    *
    * @param connection The solana connection object to the RPC node
    * @param slabAddress The address of the Slab
@@ -59,5 +80,15 @@ export class Orderbook {
     const slabBids = await Orderbook.loadSlab(connection, market.bidsAddress);
     const slabAsks = await Orderbook.loadSlab(connection, market.asksAddress);
     return new Orderbook(market, slabBids, slabAsks);
+  }
+
+  /**
+   *
+   * @param depth Depth of orders to deserialize
+   * @param asks Asks or bids boolean
+   * @returns Returns an L2 orderbook
+   */
+  getL2(depth: number, asks: boolean) {
+    return this._slabBids.getL2Depth(depth, asks);
   }
 }

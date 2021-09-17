@@ -2,7 +2,7 @@ import { Connection, PublicKey } from "@solana/web3.js";
 import BN from "bn.js";
 import { DEX_ID } from "./ids";
 import { UserAccount } from "./state";
-import { initializeAccount } from "./bindings";
+import { closeAccount, initializeAccount } from "./bindings";
 
 /**
  * Open Orders class
@@ -190,5 +190,13 @@ export class OpenOrders {
     maxOrders = 20
   ) {
     return await initializeAccount(market, owner, maxOrders);
+  }
+
+  /**
+   *
+   * @returns Returns a TransactionInstruction object to close the OpenOrder account
+   */
+  async makeCloseAccountTransaction() {
+    return await closeAccount(this.market, this.owner);
   }
 }
