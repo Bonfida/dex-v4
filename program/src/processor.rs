@@ -85,7 +85,7 @@ impl Processor {
                 initialize_account::process(program_id, accounts, params)?;
             }
             DexInstruction::SweepFees => {
-                msg!("Instruction: Initialize account");
+                msg!("Instruction: Sweep fees");
                 sweep_fees::process(program_id, accounts)?;
             }
             DexInstruction::CloseAccount => {
