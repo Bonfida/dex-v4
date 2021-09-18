@@ -89,6 +89,8 @@ export class Orderbook {
    * @returns Returns an L2 orderbook
    */
   getL2(depth: number, asks: boolean) {
-    return this._slabBids.getL2Depth(depth, asks);
+    return asks
+      ? this._slabAsks.getL2Depth(depth, asks)
+      : this._slabBids.getL2Depth(depth, asks);
   }
 }

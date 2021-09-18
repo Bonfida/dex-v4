@@ -10,16 +10,23 @@ import {
   getMintDecimals,
   findAssociatedTokenAddress,
   getTokenBalance,
+  divideBnToNumber,
 } from "./utils";
 import { MarketOptions } from "./types/market";
-import { CALLBACK_INFO_LEN, MarketState } from "./state";
+import { CALLBACK_INFO_LEN, MarketState, SelfTradeBehavior } from "./state";
 import { DEX_ID, SRM_MINT, MSRM_MINT } from "./ids";
-import { EventQueue, MarketState as AaobMarketState } from "@bonfida/aaob";
+import {
+  EventQueue,
+  getPriceFromKey,
+  MarketState as AaobMarketState,
+  Slab,
+} from "@bonfida/aaob";
 import { getFeeTier } from "./fees";
 import { OpenOrders } from "./openOrders";
-import { cancelOrder, settle } from "./bindings";
+import { cancelOrder, placeOrder, settle } from "./bindings";
 import BN from "bn.js";
-import { Order } from "./types";
+import { Order, OrderType, Side } from "./types";
+import { Orderbook } from "./orderbook";
 
 /**
  * A Serum DEX Market object
@@ -49,6 +56,17 @@ export class Market {
    * @private
    */
   private _quoteDecimals: number;
+
+  /**
+   * Quote token multiplier
+   * @private
+   */
+  private _quoteSplTokenMultiplier: BN;
+
+  /** Base token multiplier
+   * @private
+   */
+  private _baseSplTokenMultiplier: BN;
 
   /** Serum program ID of the market
    * @private
@@ -109,6 +127,8 @@ export class Market {
     this._quoteVault = quoteVault;
     this._eventQueueAddress = eventQueueAddress;
     this._orderbookAddress = orderbookAddress;
+    this._baseSplTokenMultiplier = new BN(10).pow(new BN(baseDecimals));
+    this._quoteSplTokenMultiplier = new BN(10).pow(new BN(quoteDecimals));
   }
 
   /**
@@ -237,6 +257,16 @@ export class Market {
     return this._marketState.creationTimestamp.toNumber();
   }
 
+  /** Returns the base token multiplier */
+  baseSplSizeToNumber(size: BN) {
+    return divideBnToNumber(size, this._baseSplTokenMultiplier);
+  }
+
+  /** Returns the quote token multiplier */
+  quoteSplSizeToNumber(size: BN) {
+    return divideBnToNumber(size, this._quoteSplTokenMultiplier);
+  }
+
   /**
    *
    * @param connection The solana connection object to the RPC node
@@ -257,9 +287,20 @@ export class Market {
     return asks;
   }
 
-  async loadOrdersForOwner() {}
-
-  filterForOpenOrders() {}
+  /**
+   *
+   * @param connection The solana connection object to the RPC node
+   * @param owner The owner of the orders to fetch
+   * @returns
+   */
+  async loadOrdersForOwner(connection: Connection, owner: PublicKey) {
+    const openOrders = await this.findOpenOrdersAccountForOwner(
+      connection,
+      owner
+    );
+    const orderbook = await Orderbook.load(connection, this.address);
+    return this.filterForOpenOrders(orderbook, openOrders);
+  }
 
   /**
    * Fetch the associated token account of the owner for the base token of the market
@@ -296,17 +337,82 @@ export class Market {
     connection: Connection,
     owner: PublicKey
   ) {
-    const [address] = await PublicKey.findProgramAddress(
-      [this.address.toBuffer(), owner.toBuffer()],
-      this.programId
-    );
-
     const openOrders = OpenOrders.load(connection, this.address, owner);
-
     return openOrders;
   }
 
-  async placeOrder() {}
+  /**
+   * Sign and send a place order transaction
+   * @param connection The solana connection object to the RPC node
+   * @param side The side of the order (cf Side enum)
+   * @param limitPrice The limit price of the order
+   * @param size The size of the order
+   * @param orderType The type of the order (cf OrderType enum)
+   * @param selfTradeBehavior The behavior of the order in case of self trade (cf SelfTradeBehavior enum)
+   * @param ownerTokenAccount The token account of the owner of the wallet placing the trade (owner)
+   * @param owner The owner of the order
+   * @param discountTokenAccount Optional (M)SRM token account for fee discount
+   * @returns The signature of the transaction
+   */
+  async placeOrder(
+    connection: Connection,
+    side: Side,
+    limitPrice: number,
+    size: number,
+    orderType: OrderType,
+    selfTradeBehavior: SelfTradeBehavior,
+    ownerTokenAccount: PublicKey,
+    owner: Keypair,
+    discountTokenAccount?: PublicKey
+  ) {
+    const inst = await this.makePlaceOrderTransaction(
+      side,
+      limitPrice,
+      size,
+      orderType,
+      selfTradeBehavior,
+      ownerTokenAccount,
+      owner.publicKey,
+      discountTokenAccount
+    );
+    const tx = new Transaction().add(inst);
+    return await this._sendTransaction(connection, tx, [owner]);
+  }
+
+  /**
+   * Returns a TransactionInstruction to place an order
+   * @param side The side of the order (cf Side enum)
+   * @param limitPrice The limit price of the order
+   * @param size The size of the order
+   * @param orderType The type of the order (cf OrderType enum)
+   * @param selfTradeBehavior The behavior of the order in case of self trade (cf SelfTradeBehavior enum)
+   * @param ownerTokenAccount The token account of the owner of the wallet placing the trade (owner)
+   * @param owner The owner of the order
+   * @param discountTokenAccount Optional (M)SRM token account for fee discount
+   * @returns Returns a TransactionInstruction object
+   */
+  async makePlaceOrderTransaction(
+    side: Side,
+    limitPrice: number,
+    size: number,
+    orderType: OrderType,
+    selfTradeBehavior: SelfTradeBehavior,
+    ownerTokenAccount: PublicKey,
+    owner: PublicKey,
+    discountTokenAccount?: PublicKey
+  ) {
+    return await placeOrder(
+      this,
+      side,
+      limitPrice,
+      size,
+      orderType,
+      selfTradeBehavior,
+      ownerTokenAccount,
+      owner,
+      discountTokenAccount
+    );
+  }
 
   /**
    * This method returns the fee discount keys assuming (M)SRM tokens are held in associated token account.
@@ -424,5 +530,51 @@ export class Market {
    * @param connection The solana connection object to the RPC node
    * @param limit Optional limit parameters to the number of fills fetched
    */
-  async loadFills(connection: Connection, limit = 100) {}
+  async loadFills(connection: Connection, limit = 100) {
+    const eventQueue = await this.loadEventQueue(connection);
+    return eventQueue.parseFill(limit);
+  }
+
+  /**
+   *
+   * @param slab Slab to extract open orders from
+   * @param openOrders Open orders account
+   * @returns
+   */
+  filterForOpenOrdersFromSlab(slab: Slab, openOrders: OpenOrders, side: Side) {
+    return [...slab]
+      .filter((o) =>
+        openOrders?.address.equals(new PublicKey(o.callBackInfo.slice(0, 32)))
+      )
+      .map((o) => {
+        return {
+          orderId: o.key,
+          price: getPriceFromKey(o.key).toNumber(),
+          feeTier: o.callBackInfo.slice(32)[0],
+          size: o.assetQuantity.toNumber(),
+          openOrdersAddress: new PublicKey(o.callBackInfo.slice(0, 32)),
+          side: side,
+        };
+      });
+  }
+
+  /**
+   *
+   * @param orderbook The orderbook of the market
+   * @param openOrder The openOrder that owns the orders
+   * @returns
+   */
+  filterForOpenOrders(orderbook: Orderbook, openOrder: OpenOrders) {
+    const bids = this.filterForOpenOrdersFromSlab(
+      orderbook.slabBids,
+      openOrder,
+      Side.Bid
+    );
+    const asks = this.filterForOpenOrdersFromSlab(
+      orderbook.slabAsks,
+      openOrder,
+      Side.Ask
+    );
+    return [...bids, ...asks];
+  }
 }

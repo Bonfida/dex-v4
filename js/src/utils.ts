@@ -8,10 +8,10 @@ import {
   Transaction,
 } from "@solana/web3.js";
 import {
-  Token,
   ASSOCIATED_TOKEN_PROGRAM_ID,
   TOKEN_PROGRAM_ID,
 } from "@solana/spl-token";
+import BN from "bn.js";
 
 export function throwIfNull<T>(
   value: T | null,
@@ -136,3 +136,10 @@ export async function sleep(ms: number) {
   console.log("Sleeping for ", ms, " ms");
   return await new Promise((resolve) => setTimeout(resolve, ms));
 }
+
+export const divideBnToNumber = (numerator: BN, denominator: BN): number => {
+  const quotient = numerator.div(denominator).toNumber();
+  const rem = numerator.umod(denominator);
+  const gcd = rem.gcd(denominator);
+  return quotient + rem.div(gcd).toNumber() / denominator.div(gcd).toNumber();
+};

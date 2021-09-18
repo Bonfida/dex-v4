@@ -121,9 +121,10 @@ export const placeOrder = async (
     DEX_ID
   );
 
-  if (!discountTokenAccount) {
-    discountTokenAccount = await findAssociatedTokenAddress(owner, SRM_MINT);
-  }
+  // Uncomment for mainnet
+  // if (!discountTokenAccount) {
+  //   discountTokenAccount = await findAssociatedTokenAddress(owner, SRM_MINT);
+  // }
 
   const instruction = new newOrderInstruction({
     side: side as number,
