@@ -94,7 +94,7 @@ export class OpenOrders {
    * Returns the market address of the open order account
    */
   get market(): PublicKey {
-    return this._address;
+    return this._market;
   }
 
   /**

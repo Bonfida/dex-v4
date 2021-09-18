@@ -102,6 +102,9 @@ export class Market {
    */
   private _commitment: Commitment;
 
+  private _tickSize: number;
+  private _minOrderSize: number;
+
   constructor(
     marketState: MarketState,
     orderbookState: AaobMarketState,
@@ -129,6 +132,8 @@ export class Market {
     this._orderbookAddress = orderbookAddress;
     this._baseSplTokenMultiplier = new BN(10).pow(new BN(baseDecimals));
     this._quoteSplTokenMultiplier = new BN(10).pow(new BN(quoteDecimals));
+    this._tickSize = Math.pow(10, -quoteDecimals);
+    this._minOrderSize = Math.pow(10, -baseDecimals);
   }
 
   /**
@@ -240,6 +245,16 @@ export class Market {
   /** Returns the event queue address of the market */
   get eventQueueAddress(): PublicKey {
     return this._eventQueueAddress;
+  }
+
+  /** Returns the tick size of the market */
+  get tickSize(): number {
+    return this._tickSize;
+  }
+
+  /** Returns the min order size of the market */
+  get minOrderSize(): number {
+    return this._minOrderSize;
   }
 
   /** Returns the inception base volume */
@@ -470,6 +485,18 @@ export class Market {
 
   /**
    *
+   * @param orderIndex The index of the order in the open order account
+   * @param owner The owner of the order
+   * @returns
+   */
+  async makeCancelOrderInstruction(orderIndex: BN, owner: PublicKey) {
+    const instruction = await cancelOrder(this, orderIndex, owner);
+    const tx = new Transaction().add(instruction);
+    return tx;
+  }
+
+  /**
+   *
    * @param connection The solana connection object to the RPC node
    * @param orderIndex The index of the order in the open order account
    * @param owner The owner of the order
@@ -480,10 +507,34 @@ export class Market {
     orderIndex: BN,
     owner: Keypair
   ) {
-    const instruction = await cancelOrder(this, orderIndex, owner.publicKey);
-    const tx = new Transaction().add(instruction);
+    const tx = await this.makeCancelOrderInstruction(
+      orderIndex,
+      owner.publicKey
+    );
     const signature = await this._sendTransaction(connection, tx, [owner]);
     return signature;
+  }
+
+  /**
+   *
+   * @param owner Owner of the funds to settle
+   * @param destinationBaseAccount The owner base token account
+   * @param destinationQuoteAccount The owner quote token account
+   * @returns
+   */
+  async makeSettleFundsTransaction(
+    owner: PublicKey,
+    destinationBaseAccount: PublicKey,
+    destinationQuoteAccount: PublicKey
+  ) {
+    const instructions = await settle(
+      this,
+      owner,
+      destinationBaseAccount,
+      destinationQuoteAccount
+    );
+    const tx = new Transaction().add(instructions);
+    return tx;
   }
 
   /**
@@ -500,13 +551,11 @@ export class Market {
     destinationBaseAccount: PublicKey,
     destinationQuoteAccount: PublicKey
   ) {
-    const instructions = await settle(
-      this,
+    const tx = await this.makeSettleFundsTransaction(
       owner.publicKey,
       destinationBaseAccount,
       destinationQuoteAccount
     );
-    const tx = new Transaction().add(instructions);
     const signature = await this._sendTransaction(connection, tx, [owner]);
     return signature;
   }
