@@ -420,7 +420,7 @@ export class Market {
       this,
       side,
       limitPrice,
-      size,
+      size * Math.pow(10, this.baseDecimals),
       orderType,
       selfTradeBehavior,
       ownerTokenAccount,

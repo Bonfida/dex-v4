@@ -631,7 +631,7 @@ export class settleInstruction {
       // Account 6
       {
         pubkey: marketSigner,
-        isSigner: true,
+        isSigner: false,
         isWritable: false,
       },
       // Account 7
