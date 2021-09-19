@@ -133,7 +133,7 @@ export class Market {
     this._baseSplTokenMultiplier = new BN(10).pow(new BN(baseDecimals));
     this._quoteSplTokenMultiplier = new BN(10).pow(new BN(quoteDecimals));
     this._tickSize = Math.pow(10, -quoteDecimals);
-    this._minOrderSize = Math.pow(10, -baseDecimals);
+    this._minOrderSize = marketState.minBaseOrderSize.toNumber();
   }
 
   /**

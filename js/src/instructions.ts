@@ -199,7 +199,6 @@ export class newOrderInstruction {
     userOwner: PublicKey,
     discountTokenAccount?: PublicKey
   ) {
-    // TODO check isSigner and isWritable
     const data = Buffer.from(this.serialize());
     let keys = [
       // Account 1
