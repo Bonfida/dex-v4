@@ -27,6 +27,8 @@ The required arguments for a cancel_order instruction.
 pub struct Params {
     /// The index in the user account of the order to cancel
     pub order_index: u64,
+    /// The order_id of the order to cancel. Redundancy is used here to avoid having to iterate over all
+    /// open orders on chain.
     pub order_id: u128,
 }
 
@@ -85,7 +87,10 @@ pub(crate) fn process(
 ) -> ProgramResult {
     let accounts = Accounts::parse(program_id, accounts)?;
 
-    let Params { order_index, order_id } = params;
+    let Params {
+        order_index,
+        order_id,
+    } = params;
 
     let market_state =
         DexState::deserialize(&mut (&accounts.market.data.borrow() as &[u8]))?.check()?;
