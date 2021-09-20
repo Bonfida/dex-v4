@@ -215,7 +215,7 @@ fn consume_event(
                         maker_account.header.accumulated_rebates += maker_rebate;
                         maker_account.header.base_token_locked = maker_account
                             .header
-                            .quote_token_free
+                            .base_token_locked
                             .checked_sub(base_size)
                             .unwrap();
                         market_state.accumulated_fees += taker_info
