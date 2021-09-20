@@ -313,10 +313,12 @@ export class newOrderInstruction {
 export class cancelOrderInstruction {
   tag: number;
   orderIndex: BN;
+  orderId: BN;
 
-  constructor(obj: { orderIndex: BN }) {
+  constructor(obj: { orderIndex: BN; orderId: BN }) {
     this.tag = 2;
     this.orderIndex = obj.orderIndex;
+    this.orderId = obj.orderId;
   }
 
   static schema: Schema = new Map([
@@ -327,6 +329,7 @@ export class cancelOrderInstruction {
         fields: [
           ["tag", "u8"],
           ["orderIndex", "u64"],
+          ["orderId", "u128"],
         ],
       },
     ],
