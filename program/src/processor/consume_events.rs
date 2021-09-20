@@ -181,6 +181,7 @@ fn consume_event(
                 .map_err(|_| DexError::MissingUserAccount)?];
             if taker_info.user_account == maker_info.user_account {
                 // Self trade scenario
+                // The account has already been credited at the time of matching by new_order.
                 let mut taker_account = UserAccount::parse(taker_account_info).unwrap();
                 match taker_side {
                     Side::Bid => {
@@ -234,7 +235,12 @@ fn consume_event(
                         maker_account.header.quote_token_locked = maker_account
                             .header
                             .quote_token_locked
-                            .checked_sub(quote_size - maker_rebate)
+                            .checked_sub(quote_size)
+                            .unwrap();
+                        maker_account
+                            .header
+                            .quote_token_free
+                            .checked_add(maker_rebate)
                             .unwrap();
                         maker_account.header.accumulated_rebates += maker_rebate;
                         market_state.accumulated_fees +=

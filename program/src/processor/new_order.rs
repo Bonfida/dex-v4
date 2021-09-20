@@ -222,7 +222,7 @@ pub(crate) fn process(
         *accounts.bids.key,
         *accounts.asks.key,
         agnostic_orderbook::instruction::new_order::Params {
-            max_base_qty: max_base_qty,
+            max_base_qty,
             max_quote_qty,
             limit_price,
             side,
