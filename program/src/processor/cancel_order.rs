@@ -27,6 +27,7 @@ The required arguments for a cancel_order instruction.
 pub struct Params {
     /// The index in the user account of the order to cancel
     pub order_index: u64,
+    pub order_id: u128,
 }
 
 struct Accounts<'a, 'b: 'a> {
@@ -84,7 +85,7 @@ pub(crate) fn process(
 ) -> ProgramResult {
     let accounts = Accounts::parse(program_id, accounts)?;
 
-    let Params { order_index } = params;
+    let Params { order_index, order_id } = params;
 
     let market_state =
         DexState::deserialize(&mut (&accounts.market.data.borrow() as &[u8]))?.check()?;
@@ -96,7 +97,12 @@ pub(crate) fn process(
 
     check_accounts(program_id, &market_state, &accounts).unwrap();
 
-    let order_id = user_account.read_order(order_index as usize)?;
+    let order_id_from_index = user_account.read_order(order_index as usize)?;
+
+    if order_id != order_id_from_index {
+        msg!("Order id does not match with the order at the given index!");
+        return Err(ProgramError::InvalidArgument);
+    }
 
     let cancel_order_instruction = agnostic_orderbook::instruction::cancel_order(
         *accounts.aaob_program.key,

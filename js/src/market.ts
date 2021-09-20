@@ -489,8 +489,12 @@ export class Market {
    * @param owner The owner of the order
    * @returns
    */
-  async makeCancelOrderInstruction(orderIndex: BN, owner: PublicKey) {
-    const instruction = await cancelOrder(this, orderIndex, owner);
+  async makeCancelOrderInstruction(
+    orderIndex: BN,
+    orderId: BN,
+    owner: PublicKey
+  ) {
+    const instruction = await cancelOrder(this, orderIndex, orderId, owner);
     const tx = new Transaction().add(instruction);
     return tx;
   }
@@ -504,11 +508,53 @@ export class Market {
    */
   async cancelOrderByOrderIndex(
     connection: Connection,
-    orderIndex: BN,
+    orderIndex: number,
     owner: Keypair
   ) {
+    const openOrders = await OpenOrders.load(
+      connection,
+      this.address,
+      owner.publicKey
+    );
+    const orderId = openOrders.orders[orderIndex];
+    if (!orderId) {
+      throw new Error(`Invalid order index ${orderIndex}`);
+    }
     const tx = await this.makeCancelOrderInstruction(
-      orderIndex,
+      new BN(orderIndex),
+      orderId,
+      owner.publicKey
+    );
+    const signature = await this._sendTransaction(connection, tx, [owner]);
+    return signature;
+  }
+
+  /**
+   *
+   * @param connection The solana connection object to the RPC node
+   * @param orderId The id of the order to cancel
+   * @param owner The owner of the order
+   * @returns The signature of the cancel transaction
+   */
+  async cancelOrderByOrderId(
+    connection: Connection,
+    orderId: BN,
+    owner: Keypair
+  ) {
+    const openOrders = await OpenOrders.load(
+      connection,
+      this.address,
+      owner.publicKey
+    );
+    const orderIndex = openOrders.orders
+      .map((o) => o.eq(orderId))
+      .indexOf(true);
+    if (orderIndex === -1) {
+      throw new Error("Invalid order id");
+    }
+    const tx = await this.makeCancelOrderInstruction(
+      new BN(orderIndex),
+      orderId,
       owner.publicKey
     );
     const signature = await this._sendTransaction(connection, tx, [owner]);

@@ -157,6 +157,7 @@ export const placeOrder = async (
 export const cancelOrder = async (
   market: Market,
   orderIndex: BN,
+  orderId: BN,
   owner: PublicKey
 ) => {
   const [marketSigner] = await PublicKey.findProgramAddress(
@@ -169,7 +170,10 @@ export const cancelOrder = async (
     DEX_ID
   );
 
-  const instruction = new cancelOrderInstruction({ orderIndex }).getInstruction(
+  const instruction = new cancelOrderInstruction({
+    orderIndex,
+    orderId,
+  }).getInstruction(
     DEX_ID,
     aaob.AAOB_ID,
     market.address,
