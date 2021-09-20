@@ -600,7 +600,7 @@ export class Market {
           orderId: o.key,
           price: getPriceFromKey(o.key).toNumber(),
           feeTier: o.callBackInfo.slice(32)[0],
-          size: o.assetQuantity.toNumber(),
+          size: o.baseQuantity.toNumber(),
           openOrdersAddress: new PublicKey(o.callBackInfo.slice(0, 32)),
           side: side,
         };
