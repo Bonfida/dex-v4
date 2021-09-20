@@ -176,13 +176,13 @@ fn consume_event(
                 CallBackInfo::deserialize(&mut (&taker_callback_info as &[u8])).unwrap();
             let maker_info =
                 CallBackInfo::deserialize(&mut (&maker_callback_info as &[u8])).unwrap();
-            let taker_account_info = &accounts[accounts
-                .binary_search_by_key(&taker_info.user_account, |k| *k.key)
+            let maker_account_info = &accounts[accounts
+                .binary_search_by_key(&maker_info.user_account, |k| *k.key)
                 .map_err(|_| DexError::MissingUserAccount)?];
             if taker_info.user_account == maker_info.user_account {
                 // Self trade scenario
                 // The account has already been credited at the time of matching by new_order.
-                let mut taker_account = UserAccount::parse(taker_account_info).unwrap();
+                let mut taker_account = UserAccount::parse(maker_account_info).unwrap();
                 match taker_side {
                     Side::Bid => {
                         taker_account.header.base_token_locked = taker_account
@@ -200,9 +200,6 @@ fn consume_event(
                     }
                 };
             } else {
-                let maker_account_info = &accounts[accounts
-                    .binary_search_by_key(&maker_info.user_account, |k| *k.key)
-                    .map_err(|_| DexError::MissingUserAccount)?];
                 let mut maker_account = UserAccount::parse(maker_account_info).unwrap();
                 match taker_side {
                     Side::Bid => {

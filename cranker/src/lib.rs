@@ -104,9 +104,6 @@ impl Context {
                     let maker_callback_info =
                         CallBackInfo::deserialize(&mut (&maker_callback_info as &[u8])).unwrap();
                     user_accounts.push(maker_callback_info.user_account);
-                    let taker_callback_info =
-                        CallBackInfo::deserialize(&mut (&taker_callback_info as &[u8])).unwrap();
-                    user_accounts.push(taker_callback_info.user_account);
                 }
                 Event::Out {
                     side: _,

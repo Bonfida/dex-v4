@@ -30,25 +30,27 @@ import { CALLBACK_INFO_LEN } from "./state";
 import { OpenOrders } from "./openOrders";
 import BN from "bn.js";
 
+require("source-map-support").install();
+
 const URL = "https://api.devnet.solana.com";
 
 const connection = new Connection(URL);
 
-const SECRET_KEY = process.env.SECRET_KEY;
+// const SECRET_KEY = process.env.SECRET_KEY;
 
-if (!SECRET_KEY) {
-  throw new Error("No secret key");
-}
+// if (!SECRET_KEY) {
+//   throw new Error("No secret key");
+// }
 
-const wallet = Keypair.fromSecretKey(new Uint8Array(JSON.parse(SECRET_KEY)));
+// const wallet = Keypair.fromSecretKey(new Uint8Array(JSON.parse(SECRET_KEY)));
 
-console.log(`Wallet ${wallet.publicKey.toBase58()}`);
+// console.log(`Wallet ${wallet.publicKey.toBase58()}`);
 
 const mint1 = new PublicKey("CZen4jVxdisrutQo2FeNY916uoeuEtLwfqSqJk9HHdEF");
 const mint2 = new PublicKey("Cq47UeAkQcZmnaLPFpbHF8ZLjrPu4PhjshtsoKifMmMU");
 
 const marketAddress = new PublicKey(
-  "BT7i1viSJSQBHQ1jWVs7VWPBrY3gT5PLbYm9f62F7ZhR"
+  "DAiafQnWcGub7DrQB83ShfoyAcKpMRCqWdtMNc8TRW2c"
 );
 
 const test = async () => {
@@ -100,28 +102,34 @@ const test = async () => {
   // );
   // console.log(`Tx place order ${tx}`);
   // const slotSize = Math.max(CALLBACK_INFO_LEN + 8 + 16 + 1, 32);
-  const info = await connection.getAccountInfo(market.orderbookState.asks);
-  if (!info?.data) {
-    throw new Error("Invalid data");
-  }
-  const { data } = info;
-  const slabHeader = aaob.SlabHeader.deserialize(
-    data.slice(0, aaob.SlabHeader.LEN)
-  ) as aaob.SlabHeader;
-  const slab = new aaob.Slab({
-    header: slabHeader,
-    callBackInfoLen: 33,
-    data: data,
-  });
-  console.log(slab.getMinMax(false));
+  // const info = await connection.getAccountInfo(market.orderbookState.asks);
+  // if (!info?.data) {
+  //   throw new Error("Invalid data");
+  // }
+  // const { data } = info;
+  // const slabHeader = aaob.SlabHeader.deserialize(
+  //   data.slice(0, aaob.SlabHeader.LEN)
+  // ) as aaob.SlabHeader;
+  // const slab = new aaob.Slab({
+  //   header: slabHeader,
+  //   callBackInfoLen: 33,
+  //   data: data,
+  // });
+  // console.log(slab.getMinMax(false));
 
   // User account
 
-  // const ua = await OpenOrders.load(
-  //   connection,
-  //   market.address,
-  //   wallet.publicKey
-  // );
+  let user_wallet = new PublicKey(
+    "3uf6wzMet5ZvzcfSeodTSdnNDD6xSauP3GpiBTvkLbvz"
+  );
+
+  const ua = await OpenOrders.load(connection, market.address, user_wallet);
+
+  console.log(ua.quoteTokenFree.toNumber());
+  let marketVaultBalance = await connection.getTokenAccountBalance(
+    market.quoteVault
+  );
+  console.log(marketVaultBalance);
 
   // const o = ua.orders[0];
   // const inst = await cancelOrder(market, new BN(0), wallet.publicKey);
