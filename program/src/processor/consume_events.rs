@@ -166,7 +166,7 @@ fn consume_event(
             taker_side,
             maker_order_id: _,
             quote_size,
-            asset_size,
+            base_size,
             maker_callback_info,
             taker_callback_info,
         } => {
@@ -187,7 +187,7 @@ fn consume_event(
                         taker_account.header.base_token_locked = taker_account
                             .header
                             .base_token_locked
-                            .checked_sub(asset_size)
+                            .checked_sub(base_size)
                             .unwrap();
                     }
                     Side::Ask => {
@@ -215,7 +215,7 @@ fn consume_event(
                         maker_account.header.base_token_locked = maker_account
                             .header
                             .quote_token_free
-                            .checked_sub(asset_size)
+                            .checked_sub(base_size)
                             .unwrap();
                         market_state.accumulated_fees += taker_info
                             .fee_tier
@@ -229,7 +229,7 @@ fn consume_event(
                         maker_account.header.base_token_free = maker_account
                             .header
                             .base_token_free
-                            .checked_add(asset_size)
+                            .checked_add(base_size)
                             .unwrap();
                         maker_account.header.quote_token_locked = maker_account
                             .header
@@ -243,13 +243,13 @@ fn consume_event(
                 };
                 maker_account.write();
                 market_state.quote_volume += quote_size;
-                market_state.base_volume += asset_size;
+                market_state.base_volume += base_size;
             }
         }
         Event::Out {
             side: _,
             order_id,
-            asset_size: _,
+            base_size: _,
             callback_info,
             delete,
         } => {

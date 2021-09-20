@@ -222,7 +222,7 @@ pub(crate) fn process(
         *accounts.bids.key,
         *accounts.asks.key,
         agnostic_orderbook::instruction::new_order::Params {
-            max_asset_qty: max_base_qty,
+            max_base_qty: max_base_qty,
             max_quote_qty,
             limit_price,
             side,
@@ -260,14 +260,14 @@ pub(crate) fn process(
 
     if side == Side::Bid {
         order_summary.total_quote_qty += callback_info.fee_tier.taker_fee(
-            order_summary.total_quote_qty - fp32_mul(order_summary.total_asset_qty, limit_price), //TODO check
+            order_summary.total_quote_qty - fp32_mul(order_summary.total_base_qty, limit_price), //TODO check
         )
     }
 
     let abort = match order_type {
-        OrderType::ImmediateOrCancel => order_summary.total_asset_qty == 0,
+        OrderType::ImmediateOrCancel => order_summary.total_base_qty == 0,
         OrderType::FillOrKill => {
-            (order_summary.total_asset_qty == max_base_qty)
+            (order_summary.total_base_qty == max_base_qty)
                 || (order_summary.total_quote_qty == max_quote_qty)
         }
         OrderType::PostOnly => order_summary.posted_order_id.is_none(),
@@ -291,22 +291,22 @@ pub(crate) fn process(
                 order_summary.total_quote_qty,
                 user_account.header.quote_token_free,
             );
-            let posted_quote_qty = (order_summary.total_asset_qty_posted * limit_price) >> 32;
+            let posted_quote_qty = (order_summary.total_base_qty_posted * limit_price) >> 32;
             user_account.header.quote_token_locked += posted_quote_qty;
             user_account.header.base_token_free +=
-                order_summary.total_asset_qty - order_summary.total_asset_qty_posted;
+                order_summary.total_base_qty - order_summary.total_base_qty_posted;
             (q, accounts.quote_vault)
         }
         Side::Ask => {
             let q = order_summary
-                .total_asset_qty
+                .total_base_qty
                 .saturating_sub(user_account.header.base_token_free);
             user_account.header.base_token_free -= std::cmp::min(
-                order_summary.total_asset_qty,
+                order_summary.total_base_qty,
                 user_account.header.base_token_free,
             );
-            user_account.header.base_token_locked += order_summary.total_asset_qty_posted;
-            let posted_quote_qty = (order_summary.total_asset_qty_posted * limit_price) >> 32;
+            user_account.header.base_token_locked += order_summary.total_base_qty_posted;
+            let posted_quote_qty = (order_summary.total_base_qty_posted * limit_price) >> 32;
             let taken_quote_qty = order_summary.total_quote_qty - posted_quote_qty;
             let taker_fee = callback_info.fee_tier.taker_fee(taken_quote_qty);
             user_account.header.quote_token_free += taken_quote_qty - taker_fee;

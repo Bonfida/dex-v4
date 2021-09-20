@@ -97,7 +97,7 @@ impl Context {
                     taker_side: _,
                     maker_order_id: _,
                     quote_size: _,
-                    asset_size: _,
+                    base_size: _,
                     maker_callback_info,
                     taker_callback_info,
                 } => {
@@ -111,7 +111,7 @@ impl Context {
                 Event::Out {
                     side: _,
                     order_id: _,
-                    asset_size: _,
+                    base_size: _,
                     delete: _,
                     callback_info,
                 } => {

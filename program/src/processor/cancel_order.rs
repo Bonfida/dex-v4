@@ -153,12 +153,12 @@ pub(crate) fn process(
             user_account.header.base_token_free = user_account
                 .header
                 .base_token_free
-                .checked_add(order_summary.total_asset_qty)
+                .checked_add(order_summary.total_base_qty)
                 .unwrap();
             user_account.header.base_token_locked = user_account
                 .header
                 .base_token_locked
-                .checked_sub(order_summary.total_asset_qty)
+                .checked_sub(order_summary.total_base_qty)
                 .unwrap();
         }
     };
