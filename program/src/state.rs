@@ -265,22 +265,22 @@ impl FeeTier {
         }
     }
 
-    pub fn maker_rebate(self, pc_qty: u64) -> u64 {
+    pub fn maker_rebate(self, quote_qty: u64) -> u64 {
         let rate = match self {
             FeeTier::MSrm => (5 << 32) / 10_000,
             _ => (3 << 32) / 10_000,
         };
-        fp32_mul(pc_qty, rate)
+        fp32_mul(quote_qty, rate)
     }
 
-    pub fn remove_taker_fee(self, pc_qty: u64) -> u64 {
+    pub fn remove_taker_fee(self, quote_qty: u64) -> u64 {
         let rate = self.taker_rate();
-        fp32_div(pc_qty, FP_32_ONE + rate)
+        fp32_div(quote_qty, FP_32_ONE + rate)
     }
 
-    pub fn taker_fee(self, pc_qty: u64) -> u64 {
+    pub fn taker_fee(self, quote_qty: u64) -> u64 {
         let rate = self.taker_rate();
-        fp32_mul(pc_qty, rate)
+        fp32_mul(quote_qty, rate)
     }
 }
 #[doc(hidden)]

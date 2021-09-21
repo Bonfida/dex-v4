@@ -135,6 +135,10 @@ pub(crate) fn process(
             &[market_state.signer_nonce],
         ]],
     )?;
+
+    market_state
+        .serialize(&mut (&mut accounts.market.data.borrow_mut() as &mut [u8]))
+        .unwrap();
     Ok(())
 }
 
@@ -183,6 +187,12 @@ fn consume_event(
                 // Self trade scenario
                 // The account has already been credited at the time of matching by new_order.
                 let mut taker_account = UserAccount::parse(maker_account_info).unwrap();
+                let maker_rebate = taker_info.fee_tier.maker_rebate(quote_size);
+                taker_account.header.quote_token_free = taker_account
+                    .header
+                    .quote_token_free
+                    .checked_add(maker_rebate)
+                    .unwrap();
                 match taker_side {
                     Side::Bid => {
                         taker_account.header.base_token_locked = taker_account

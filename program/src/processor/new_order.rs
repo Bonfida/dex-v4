@@ -258,11 +258,42 @@ pub(crate) fn process(
 
     let mut order_summary: OrderSummary = event_queue.read_register().unwrap().unwrap();
 
-    if side == Side::Bid {
-        order_summary.total_quote_qty += callback_info.fee_tier.taker_fee(
-            order_summary.total_quote_qty - fp32_mul(order_summary.total_base_qty, limit_price), //TODO check
-        )
-    }
+    let (qty_to_transfer, transfer_destination) = match side {
+        Side::Bid => {
+            // We update the order summary to properly handle the FOK order type
+            let posted_quote_qty = fp32_mul(order_summary.total_base_qty_posted, limit_price);
+            order_summary.total_quote_qty += callback_info
+                .fee_tier
+                .taker_fee(order_summary.total_quote_qty - posted_quote_qty);
+            let q = order_summary
+                .total_quote_qty
+                .saturating_sub(user_account.header.quote_token_free);
+            user_account.header.quote_token_free = user_account
+                .header
+                .quote_token_free
+                .saturating_sub(order_summary.total_quote_qty);
+            user_account.header.quote_token_locked += posted_quote_qty;
+            user_account.header.base_token_free +=
+                order_summary.total_base_qty - order_summary.total_base_qty_posted;
+
+            (q, accounts.quote_vault)
+        }
+        Side::Ask => {
+            let q = order_summary
+                .total_base_qty
+                .saturating_sub(user_account.header.base_token_free);
+            user_account.header.base_token_free = user_account
+                .header
+                .base_token_free
+                .saturating_sub(order_summary.total_base_qty);
+            user_account.header.base_token_locked += order_summary.total_base_qty_posted;
+            let posted_quote_qty = fp32_mul(order_summary.total_base_qty_posted, limit_price);
+            let taken_quote_qty = order_summary.total_quote_qty - posted_quote_qty;
+            let taker_fee = callback_info.fee_tier.taker_fee(taken_quote_qty);
+            user_account.header.quote_token_free += taken_quote_qty - taker_fee;
+            (q, accounts.base_vault)
+        }
+    };
 
     let abort = match order_type {
         OrderType::ImmediateOrCancel => order_summary.total_base_qty == 0,
@@ -281,38 +312,6 @@ pub(crate) fn process(
         );
         return Err(DexError::TransactionAborted.into());
     }
-
-    let (qty_to_transfer, transfer_destination) = match side {
-        Side::Bid => {
-            let q = order_summary
-                .total_quote_qty
-                .saturating_sub(user_account.header.quote_token_free);
-            user_account.header.quote_token_free -= std::cmp::min(
-                order_summary.total_quote_qty,
-                user_account.header.quote_token_free,
-            );
-            let posted_quote_qty = (order_summary.total_base_qty_posted * limit_price) >> 32;
-            user_account.header.quote_token_locked += posted_quote_qty;
-            user_account.header.base_token_free +=
-                order_summary.total_base_qty - order_summary.total_base_qty_posted;
-            (q, accounts.quote_vault)
-        }
-        Side::Ask => {
-            let q = order_summary
-                .total_base_qty
-                .saturating_sub(user_account.header.base_token_free);
-            user_account.header.base_token_free -= std::cmp::min(
-                order_summary.total_base_qty,
-                user_account.header.base_token_free,
-            );
-            user_account.header.base_token_locked += order_summary.total_base_qty_posted;
-            let posted_quote_qty = (order_summary.total_base_qty_posted * limit_price) >> 32;
-            let taken_quote_qty = order_summary.total_quote_qty - posted_quote_qty;
-            let taker_fee = callback_info.fee_tier.taker_fee(taken_quote_qty);
-            user_account.header.quote_token_free += taken_quote_qty - taker_fee;
-            (q, accounts.base_vault)
-        }
-    };
 
     let token_transfer_instruction = spl_token::instruction::transfer(
         accounts.spl_token_program.key,
