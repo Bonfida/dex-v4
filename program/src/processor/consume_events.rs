@@ -79,9 +79,6 @@ pub(crate) fn process(
     let mut market_state =
         DexState::deserialize(&mut (&accounts.market.data.borrow() as &[u8]))?.check()?;
 
-    let mut market_data: &mut [u8] = &mut accounts.market.data.borrow_mut();
-    market_state.serialize(&mut market_data).unwrap();
-
     let event_queue_header =
         EventQueueHeader::deserialize(&mut (&accounts.event_queue.data.borrow() as &[u8]))?;
     let event_queue = EventQueue::new(
@@ -136,9 +133,8 @@ pub(crate) fn process(
         ]],
     )?;
 
-    market_state
-        .serialize(&mut (&mut accounts.market.data.borrow_mut() as &mut [u8]))
-        .unwrap();
+    let mut market_data: &mut [u8] = &mut accounts.market.data.borrow_mut();
+    market_state.serialize(&mut market_data).unwrap();
     Ok(())
 }
 
