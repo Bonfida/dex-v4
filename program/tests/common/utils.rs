@@ -70,7 +70,7 @@ pub fn mint_bootstrap(
         Account {
             lamports: u32::MAX.into(),
             data: data.into(),
-            owner: spl_token::id(),
+            owner: spl_token::ID,
             executable: false,
             ..Account::default()
         },
