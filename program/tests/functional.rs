@@ -111,7 +111,7 @@ async fn test_dex() {
         &user_account_owner.pubkey(),
         1_000_000,
         0,
-        &system_program::id(),
+        &system_program::ID,
     );
     sign_send_instructions(
         &mut prg_test_ctx,
@@ -152,7 +152,7 @@ async fn test_dex() {
     .await
     .unwrap();
     let mint_to_instruction = mint_to(
-        &spl_token::id(),
+        &spl_token::ID,
         &base_mint_key,
         &user_base_token_account,
         &base_mint_auth.pubkey(),
@@ -175,7 +175,7 @@ async fn test_dex() {
     .await
     .unwrap();
     let mint_to_instruction = mint_to(
-        &spl_token::id(),
+        &spl_token::ID,
         &quote_mint_key,
         &user_quote_token_account,
         &quote_mint_auth.pubkey(),

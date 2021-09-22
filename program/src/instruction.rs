@@ -179,9 +179,9 @@ pub fn new_order(
         .unwrap();
     let mut accounts = vec![
         AccountMeta::new_readonly(agnostic_orderbook_program_id, false),
-        AccountMeta::new_readonly(spl_token::id(), false),
-        AccountMeta::new_readonly(system_program::id(), false),
-        AccountMeta::new_readonly(sysvar::rent::id(), false),
+        AccountMeta::new_readonly(spl_token::ID, false),
+        AccountMeta::new_readonly(system_program::ID, false),
+        AccountMeta::new_readonly(sysvar::rent::ID, false),
         AccountMeta::new(market_account, false),
         AccountMeta::new_readonly(market_signer, false),
         AccountMeta::new(orderbook, false),
@@ -354,7 +354,7 @@ pub fn settle(
         .unwrap();
     let accounts = vec![
         AccountMeta::new_readonly(agnostic_orderbook_program_id, false),
-        AccountMeta::new_readonly(spl_token::id(), false),
+        AccountMeta::new_readonly(spl_token::ID, false),
         AccountMeta::new_readonly(market_account, false),
         AccountMeta::new(base_vault, false),
         AccountMeta::new(quote_vault, false),

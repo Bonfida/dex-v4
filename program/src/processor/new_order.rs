@@ -106,8 +106,8 @@ impl<'a, 'b: 'a> Accounts<'a, 'b> {
             discount_token_account: next_account_info(accounts_iter).ok(),
         };
         check_signer(&a.user_owner).unwrap();
-        check_account_key(a.spl_token_program, &spl_token::id()).unwrap();
-        check_account_key(a.system_program, &system_program::id()).unwrap();
+        check_account_key(a.spl_token_program, &spl_token::ID).unwrap();
+        check_account_key(a.system_program, &spl_token::ID).unwrap();
         check_account_owner(a.user, program_id).unwrap();
 
         Ok(a)
