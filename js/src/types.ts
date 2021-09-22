@@ -1,4 +1,9 @@
-import { Keypair, TransactionInstruction, PublicKey } from "@solana/web3.js";
+import {
+  Keypair,
+  TransactionInstruction,
+  PublicKey,
+  Commitment,
+} from "@solana/web3.js";
 import BN from "bn.js";
 
 export type PrimedTransaction = [Keypair[], TransactionInstruction[]];
@@ -46,4 +51,14 @@ export interface Order {
   orderType: OrderType;
   selfTradeBehavior: SelfTradeBehavior;
   clientId?: BN;
+}
+
+export interface OrderInfo {
+  orderIndex: number;
+  orderId: BN;
+}
+
+export interface MarketOptions {
+  skipPreflight?: boolean;
+  commitment?: Commitment;
 }

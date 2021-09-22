@@ -128,7 +128,7 @@ export const signAndSendTransactionInstructions = async (
   signers.push(feePayer);
   tx.add(...txInstructions);
   return await connection.sendTransaction(tx, signers, {
-    preflightCommitment: "single",
+    skipPreflight: false,
   });
 };
 

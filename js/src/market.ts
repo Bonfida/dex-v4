@@ -5,6 +5,7 @@ import {
   Keypair,
   Transaction,
   TransactionSignature,
+  TransactionInstruction,
 } from "@solana/web3.js";
 import {
   getMintDecimals,
@@ -12,7 +13,6 @@ import {
   getTokenBalance,
   divideBnToNumber,
 } from "./utils";
-import { MarketOptions } from "./types/market";
 import { CALLBACK_INFO_LEN, MarketState, SelfTradeBehavior } from "./state";
 import { DEX_ID, SRM_MINT, MSRM_MINT } from "./ids";
 import {
@@ -25,7 +25,7 @@ import { getFeeTier } from "./fees";
 import { OpenOrders } from "./openOrders";
 import { cancelOrder, placeOrder, settle } from "./bindings";
 import BN from "bn.js";
-import { Order, OrderType, Side } from "./types";
+import { Order, OrderType, Side, OrderInfo, MarketOptions } from "./types";
 import { Orderbook } from "./orderbook";
 
 /**
@@ -557,6 +557,28 @@ export class Market {
       orderId,
       owner.publicKey
     );
+    const signature = await this._sendTransaction(connection, tx, [owner]);
+    return signature;
+  }
+
+  async cancelInBatch(
+    connection: Connection,
+    orders: OrderInfo[],
+    owner: Keypair
+  ) {
+    orders.sort((a, b) => b.orderIndex - a.orderIndex);
+    let instr: TransactionInstruction[] = [];
+    for (let o of orders) {
+      instr.push(
+        await cancelOrder(
+          this,
+          new BN(o.orderIndex),
+          o.orderId,
+          owner.publicKey
+        )
+      );
+    }
+    const tx = new Transaction().add(...instr);
     const signature = await this._sendTransaction(connection, tx, [owner]);
     return signature;
   }
