@@ -263,7 +263,7 @@ pub fn consume_events(
         .unwrap();
     let mut accounts = vec![
         AccountMeta::new_readonly(agnostic_orderbook_program_id, false),
-        AccountMeta::new_readonly(market_account, false),
+        AccountMeta::new(market_account, false),
         AccountMeta::new_readonly(market_signer, false),
         AccountMeta::new(orderbook, false),
         AccountMeta::new(event_queue, false),
