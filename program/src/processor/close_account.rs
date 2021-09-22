@@ -38,7 +38,7 @@ impl<'a, 'b: 'a> Accounts<'a, 'b> {
             target_lamports_account: next_account_info(accounts_iter)?,
         };
         check_signer(&a.user_owner).unwrap();
-        check_account_owner(a.user, &system_program::ID).unwrap();
+        check_account_owner(a.user, &_program_id).unwrap();
 
         Ok(a)
     }
