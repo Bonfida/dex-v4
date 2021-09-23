@@ -45,6 +45,8 @@ pub mod sweep_fees;
 
 #[allow(missing_docs)]
 pub mod close_account;
+#[allow(missing_docs)]
+pub mod close_market;
 
 pub struct Processor {}
 
@@ -91,6 +93,10 @@ impl Processor {
             DexInstruction::CloseAccount => {
                 msg!("Instruction: Close Account");
                 close_account::process(program_id, accounts)?;
+            }
+            DexInstruction::CloseMarket => {
+                msg!("Instruction: Close Market");
+                close_market::process(program_id, accounts)?
             }
         }
         Ok(())

@@ -6,7 +6,8 @@ use solana_program::{
 };
 
 pub use crate::processor::{
-    cancel_order, consume_events, create_market, initialize_account, new_order, settle, sweep_fees,
+    cancel_order, close_market, consume_events, create_market, initialize_account, new_order,
+    settle, sweep_fees,
 };
 #[derive(BorshDeserialize, BorshSerialize)]
 /// Describes all possible instructions and their required accounts
@@ -116,6 +117,21 @@ pub enum DexInstruction {
     /// | 1     | ❌        | ✅      | The owner of the user account to close |
     /// | 2     | ✅        | ❌      | The target lamports account            |
     CloseAccount,
+    // Close an existing market
+    ///
+    //     | index | writable | signer | description                    |
+    // |-------|----------|--------|--------------------------------|
+    // | 0     | ✅        | ❌      | The market account             |
+    // | 1     | ✅        | ❌      | The market base vault account  |
+    // | 2     | ✅        | ❌      | The market quote vault account |
+    // | 3     | ✅        | ❌      | The orderbook account          |
+    // | 4     | ✅        | ❌      | The event queue account        |
+    // | 5     | ✅        | ❌      | The bids account               |
+    // | 6     | ✅        | ❌      | The asks account               |
+    // | 7     | ❌        | ❌      | The AAOB program account       |
+    // | 8     | ❌        | ✅      | The market admin account       |
+    // | 9     | ✅        | ❌      | The target lamports account    |
+    CloseMarket,
 }
 
 /// Create a new DEX market
