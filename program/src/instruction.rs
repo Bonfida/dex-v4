@@ -119,7 +119,7 @@ pub enum DexInstruction {
     CloseAccount,
     // Close an existing market
     ///
-    //     | index | writable | signer | description                    |
+    // | index | writable | signer | description                    |
     // |-------|----------|--------|--------------------------------|
     // | 0     | ✅        | ❌      | The market account             |
     // | 1     | ✅        | ❌      | The market base vault account  |
@@ -399,6 +399,43 @@ pub fn close_account(
     let accounts = vec![
         AccountMeta::new(user_account, false),
         AccountMeta::new_readonly(user_account_owner, true),
+        AccountMeta::new(target_lamports_account, false),
+    ];
+
+    Instruction {
+        program_id: dex_program_id,
+        accounts,
+        data,
+    }
+}
+
+/// Close an existing market
+pub fn close_market(
+    dex_program_id: Pubkey,
+    market: Pubkey,
+    base_vault: Pubkey,
+    quote_vault: Pubkey,
+    market_signer: Pubkey,
+    orderbook: Pubkey,
+    event_queue: Pubkey,
+    bids: Pubkey,
+    asks: Pubkey,
+    aaob_program: Pubkey,
+    market_admin: Pubkey,
+    target_lamports_account: Pubkey,
+) -> Instruction {
+    let data = DexInstruction::CloseAccount.try_to_vec().unwrap();
+    let accounts = vec![
+        AccountMeta::new(market, false),
+        AccountMeta::new(base_vault, false),
+        AccountMeta::new(quote_vault, false),
+        AccountMeta::new(market_signer, false),
+        AccountMeta::new(orderbook, false),
+        AccountMeta::new(event_queue, false),
+        AccountMeta::new(bids, false),
+        AccountMeta::new(asks, false),
+        AccountMeta::new_readonly(aaob_program, false),
+        AccountMeta::new_readonly(market_admin, true),
         AccountMeta::new(target_lamports_account, false),
     ];
 
