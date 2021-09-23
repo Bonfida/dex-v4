@@ -12,7 +12,7 @@ use spl_token::state::Account;
 
 use crate::{
     error::DexError,
-    state::DexState,
+    state::{AccountTag, DexState},
     utils::{check_account_key, check_signer},
 };
 
@@ -109,6 +109,10 @@ pub(crate) fn process(program_id: &Pubkey, accounts: &[AccountInfo]) -> ProgramR
             &[market_state.signer_nonce],
         ]],
     )?;
+
+    market_state.tag = AccountTag::Uninitialized;
+    let mut market_state_data: &mut [u8] = &mut accounts.market.data.borrow_mut();
+    market_state.serialize(&mut market_state_data).unwrap();
 
     let mut market_lamports = accounts.market.lamports.borrow_mut();
     let mut base_vault_lamports = accounts.base_vault.lamports.borrow_mut();
