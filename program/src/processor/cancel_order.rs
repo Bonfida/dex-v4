@@ -94,11 +94,7 @@ pub(crate) fn process(
 
     let market_state =
         DexState::deserialize(&mut (&accounts.market.data.borrow() as &[u8]))?.check()?;
-
     let mut user_account = accounts.load_user_account()?;
-
-    let mut market_data: &mut [u8] = &mut accounts.market.data.borrow_mut();
-    market_state.serialize(&mut market_data).unwrap();
 
     check_accounts(program_id, &market_state, &accounts).unwrap();
 

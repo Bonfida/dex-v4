@@ -107,7 +107,7 @@ impl<'a, 'b: 'a> Accounts<'a, 'b> {
         };
         check_signer(&a.user_owner).unwrap();
         check_account_key(a.spl_token_program, &spl_token::ID).unwrap();
-        check_account_key(a.system_program, &spl_token::ID).unwrap();
+        check_account_key(a.system_program, &system_program::ID).unwrap();
         check_account_owner(a.user, program_id).unwrap();
 
         Ok(a)
@@ -165,8 +165,6 @@ pub(crate) fn process(
     let market_state =
         DexState::deserialize(&mut (&accounts.market.data.borrow() as &[u8]))?.check()?;
     let mut user_account = accounts.load_user_account()?;
-    let mut market_data: &mut [u8] = &mut accounts.market.data.borrow_mut();
-    market_state.serialize(&mut market_data).unwrap();
 
     // Check the order size
     if max_base_qty < market_state.min_base_order_size {
