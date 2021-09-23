@@ -5,7 +5,6 @@ use solana_program::{
     msg,
     program_error::ProgramError,
     pubkey::Pubkey,
-    system_program,
 };
 
 use crate::{
