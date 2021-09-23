@@ -14,7 +14,6 @@ use crate::{
     error::DexError,
     state::DexState,
     utils::{check_account_key, check_signer},
-    CALLBACK_ID_LEN, CALLBACK_INFO_LEN,
 };
 
 #[derive(BorshDeserialize, BorshSerialize)]
@@ -93,10 +92,6 @@ pub(crate) fn process(program_id: &Pubkey, accounts: &[AccountInfo]) -> ProgramR
         *accounts.asks.key,
         *accounts.market_signer.key,
         *accounts.target_lamports_account.key,
-        agnostic_orderbook::instruction::close_market::Params {
-            callback_id_len: CALLBACK_ID_LEN as usize,
-            callback_info_len: CALLBACK_INFO_LEN,
-        },
     );
 
     invoke_signed(
