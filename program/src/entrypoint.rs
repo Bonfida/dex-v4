@@ -42,6 +42,6 @@ impl PrintProgramError for DexError {
             DexError::NoOp => msg!("Error: The operation is a no-op"),
             DexError::OutofFunds => msg!("Error: The user does not own enough lamports"),
             DexError::UserAccountStillActive => msg!("Error: The user account is still active"),
-        }
+            DexError::MarketStillActive => msg!("Error: Market is still active"),
     }
 }

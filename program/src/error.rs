@@ -24,6 +24,8 @@ pub enum DexError {
     OutofFunds,
     #[error("The user account is still active")]
     UserAccountStillActive,
+    #[error("Market is still active")]
+    MarketStillActive,
 }
 
 impl From<DexError> for ProgramError {
