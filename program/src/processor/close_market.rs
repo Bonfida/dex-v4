@@ -63,7 +63,7 @@ impl<'a, 'b: 'a> Accounts<'a, 'b> {
 pub(crate) fn process(program_id: &Pubkey, accounts: &[AccountInfo]) -> ProgramResult {
     let accounts = Accounts::parse(accounts)?;
 
-    let market_state =
+    let mut market_state =
         DexState::deserialize(&mut (&accounts.market.data.borrow_mut() as &[u8]))?.check()?;
 
     check_accounts(program_id, &market_state, &accounts).unwrap();
