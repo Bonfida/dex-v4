@@ -262,7 +262,7 @@ fn consume_event(
             callback_info,
             delete,
         } => {
-            if !delete || base_size == 0 {
+            if !delete && base_size == 0 {
                 return Ok(());
             }
 
