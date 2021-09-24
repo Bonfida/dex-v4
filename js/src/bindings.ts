@@ -63,6 +63,7 @@ export const createMarket = async (
     new BN(32),
     EVENT_CAPACITY,
     NODE_CAPACITY,
+    new BN(minBaseOrderSize),
     feePayer
   );
 
