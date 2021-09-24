@@ -904,3 +904,115 @@ export class closeAccountIntruction {
     });
   }
 }
+
+export class closeMarketInstruction {
+  tag: number;
+  constructor() {
+    this.tag = 8;
+  }
+
+  static schema: Schema = new Map([
+    [
+      closeMarketInstruction,
+      {
+        kind: "struct",
+        fields: [["tag", "u8"]],
+      },
+    ],
+  ]);
+
+  serialize(): Uint8Array {
+    return serialize(closeMarketInstruction.schema, this);
+  }
+
+  getInstruction(
+    dexId: PublicKey,
+    market: PublicKey,
+    baseVault: PublicKey,
+    quoteVault: PublicKey,
+    marketSigner: PublicKey,
+    orderbook: PublicKey,
+    eventQueue: PublicKey,
+    bids: PublicKey,
+    asks: PublicKey,
+    aaobId: PublicKey,
+    marketAdmin: PublicKey,
+    targetLamportAccount: PublicKey
+  ) {
+    const data = Buffer.from(this.serialize());
+    const keys = [
+      // Account 1
+      {
+        pubkey: market,
+        isSigner: false,
+        isWritable: true,
+      },
+      // Account 2
+      {
+        pubkey: baseVault,
+        isSigner: false,
+        isWritable: true,
+      },
+      // Account 3
+      {
+        pubkey: quoteVault,
+        isSigner: false,
+        isWritable: true,
+      },
+      // Account 4
+      {
+        pubkey: marketSigner,
+        isSigner: false,
+        isWritable: true,
+      },
+      // Account 5
+      {
+        pubkey: orderbook,
+        isSigner: false,
+        isWritable: true,
+      },
+      // Account 6
+      {
+        pubkey: eventQueue,
+        isSigner: false,
+        isWritable: true,
+      },
+      // Account 7
+      {
+        pubkey: bids,
+        isSigner: false,
+        isWritable: true,
+      },
+      // Account 8
+      {
+        pubkey: asks,
+        isSigner: false,
+        isWritable: true,
+      },
+      // Account 9
+      {
+        pubkey: aaobId,
+        isSigner: false,
+        isWritable: true,
+      },
+      // Account 10
+      {
+        pubkey: marketAdmin,
+        isSigner: false,
+        isWritable: true,
+      },
+      // Account 11
+      {
+        pubkey: targetLamportAccount,
+        isSigner: false,
+        isWritable: true,
+      },
+    ];
+
+    return new TransactionInstruction({
+      keys,
+      programId: dexId,
+      data,
+    });
+  }
+}

@@ -124,13 +124,14 @@ pub enum DexInstruction {
     // | 0     | ✅        | ❌      | The market account             |
     // | 1     | ✅        | ❌      | The market base vault account  |
     // | 2     | ✅        | ❌      | The market quote vault account |
-    // | 3     | ✅        | ❌      | The orderbook account          |
-    // | 4     | ✅        | ❌      | The event queue account        |
-    // | 5     | ✅        | ❌      | The bids account               |
-    // | 6     | ✅        | ❌      | The asks account               |
-    // | 7     | ❌        | ❌      | The AAOB program account       |
-    // | 8     | ❌        | ✅      | The market admin account       |
-    // | 9     | ✅        | ❌      | The target lamports account    |
+    // | 3     | ✅        | ❌      | The DEX market signer          |
+    // | 4     | ✅        | ❌      | The orderbook account          |
+    // | 5     | ✅        | ❌      | The event queue account        |
+    // | 6     | ✅        | ❌      | The bids account               |
+    // | 7     | ✅        | ❌      | The asks account               |
+    // | 8     | ❌        | ❌      | The AAOB program account       |
+    // | 9     | ❌        | ✅      | The market admin account       |
+    // | 10    | ✅        | ❌      | The target lamports account    |
     CloseMarket,
 }
 
