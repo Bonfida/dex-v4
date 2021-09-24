@@ -17,7 +17,7 @@ use solana_program::{
 use crate::{
     error::DexError,
     state::{CallBackInfo, DexState, UserAccount},
-    utils::{check_account_key, check_signer},
+    utils::{check_account_key, check_signer, fp32_mul},
 };
 
 use super::CALLBACK_INFO_LEN;
@@ -256,23 +256,48 @@ fn consume_event(
             }
         }
         Event::Out {
-            side: _,
+            side,
             order_id,
-            base_size: _,
+            base_size,
             callback_info,
             delete,
         } => {
+            if !delete || base_size == 0 {
+                return Ok(());
+            }
+
+            let user_callback_info =
+                CallBackInfo::deserialize(&mut (&callback_info as &[u8])).unwrap();
+            let user_account_info = &accounts[accounts
+                .binary_search_by_key(&user_callback_info.user_account, |k| *k.key)
+                .map_err(|_| DexError::MissingUserAccount)?];
+            let mut user_account = UserAccount::parse(user_account_info).unwrap();
+
+            if base_size != 0 {
+                match side {
+                    Side::Ask => {
+                        user_account.header.base_token_free = user_account
+                            .header
+                            .base_token_free
+                            .checked_add(base_size)
+                            .unwrap()
+                    }
+                    Side::Bid => {
+                        let price = (order_id >> 64) as u64;
+                        let qty_to_transfer = fp32_mul(base_size, price);
+                        user_account.header.quote_token_free = user_account
+                            .header
+                            .quote_token_free
+                            .checked_add(qty_to_transfer)
+                            .unwrap();
+                    }
+                }
+            }
             if delete {
-                let user_callback_info =
-                    CallBackInfo::deserialize(&mut (&callback_info as &[u8])).unwrap();
-                let user_account_info = &accounts[accounts
-                    .binary_search_by_key(&user_callback_info.user_account, |k| *k.key)
-                    .map_err(|_| DexError::MissingUserAccount)?];
-                let mut user_account = UserAccount::parse(user_account_info).unwrap();
                 let order_index = user_account.find_order_index(order_id).unwrap();
                 user_account.remove_order(order_index).unwrap();
-                user_account.write();
             }
+            user_account.write();
         }
     };
     Ok(())

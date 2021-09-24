@@ -164,6 +164,7 @@ pub async fn create_market_and_accounts(
             caller_authority,
             callback_info_len: CALLBACK_INFO_LEN,
             callback_id_len: CALLBACK_ID_LEN,
+            min_base_order_size: 0,
         },
     );
     sign_send_instructions(&mut prg_test_ctx, vec![create_market_instruction], vec![])
