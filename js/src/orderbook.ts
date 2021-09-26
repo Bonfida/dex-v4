@@ -105,4 +105,21 @@ export class Orderbook {
       ? this._slabAsks.getL2Depth(depth, asks)
       : this._slabBids.getL2Depth(depth, asks);
   }
+
+  getL2JS(depth: number, asks: boolean, uiAmount?: boolean) {
+    const convert = (p: aaob.Price) => {
+      return {
+        price: p.price,
+        size: p.size / Math.pow(10, this.market.baseDecimals),
+      };
+    };
+    if (uiAmount) {
+      return asks
+        ? this._slabAsks.getL2DepthJS(depth, asks).map(convert)
+        : this._slabBids.getL2DepthJS(depth, asks).map(convert);
+    }
+    return asks
+      ? this._slabAsks.getL2DepthJS(depth, asks)
+      : this._slabBids.getL2DepthJS(depth, asks);
+  }
 }
