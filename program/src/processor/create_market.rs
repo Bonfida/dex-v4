@@ -77,6 +77,11 @@ pub(crate) fn process(
 
     let current_timestamp = Clock::get()?.unix_timestamp;
 
+    if accounts.market.data.borrow()[0] != AccountTag::Uninitialized as u8 {
+        msg!("The market account contains initialized state!");
+        return Err(ProgramError::InvalidArgument);
+    }
+
     let market_state = DexState {
         tag: AccountTag::DexState,
         signer_nonce,
