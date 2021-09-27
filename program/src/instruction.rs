@@ -3,7 +3,7 @@ use borsh::{BorshDeserialize, BorshSerialize};
 use solana_program::{
     instruction::{AccountMeta, Instruction},
     pubkey::Pubkey,
-    system_program, sysvar,
+    system_program,
 };
 
 pub use crate::processor::{
@@ -17,12 +17,11 @@ pub enum DexInstruction {
     ///
     /// | index | writable | signer | description                                  |
     /// |-------|----------|--------|----------------------------------------------|
-    /// | 0     | ❌        | ❌      | The sysvar clock account                     |
-    /// | 1     | ✅        | ❌      | The market account                           |
-    /// | 2     | ❌        | ❌      | The orderbook account                        |
-    /// | 4     | ❌        | ❌      | The base token vault account                 |
-    /// | 5     | ❌        | ❌      | The quote token vault account                |
-    /// | 6     | ❌        | ❌      | The Asset Agnostic Orderbook program account |
+    /// | 0     | ✅        | ❌      | The market account                           |
+    /// | 1     | ❌        | ❌      | The orderbook account                        |
+    /// | 2     | ❌        | ❌      | The base token vault account                 |
+    /// | 4     | ❌        | ❌      | The quote token vault account                |
+    /// | 5     | ❌        | ❌      | The Asset Agnostic Orderbook program account |
     /// | 6     | ❌        | ❌      | The market admin account                     |
     CreateMarket(create_market::Params),
     /// Execute a new order instruction. Supported types include Limit, IOC, FOK, or Post only.
@@ -32,19 +31,18 @@ pub enum DexInstruction {
     /// | 0     | ❌        | ❌      | The asset agnostic orderbook program                                               |
     /// | 1     | ❌        | ❌      | The SPL token program                                                              |
     /// | 3     | ❌        | ❌      | The system program                                                                 |
-    /// | 4     | ❌        | ❌      | The rent sysvar                                                                    |
-    /// | 5     | ✅        | ❌      | The DEX market                                                                     |
-    /// | 6     | ❌        | ❌      | The DEX market signer                                                              |
-    /// | 7     | ✅        | ❌      | The orderbook                                                                      |
-    /// | 8     | ✅        | ❌      | The event queue                                                                    |
-    /// | 9     | ✅        | ❌      | The bids shared memory                                                             |
-    /// | 10    | ✅        | ❌      | The asks shared memory                                                             |
-    /// | 11    | ✅        | ❌      | The base token vault                                                               |
-    /// | 12    | ✅        | ❌      | The quote token vault                                                              |
-    /// | 13    | ✅        | ❌      | The DEX user account                                                               |
-    /// | 14    | ✅        | ❌      | The user's source token account                                                    |
-    /// | 15    | ✅        | ❌      | The user's wallet                                                                  |
-    /// | 16    | ✅        | ❌      | The optional SRM or MSRM discount token account (must be owned by the user wallet) |
+    /// | 4     | ✅        | ❌      | The DEX market                                                                     |
+    /// | 5     | ❌        | ❌      | The DEX market signer                                                              |
+    /// | 6     | ✅        | ❌      | The orderbook                                                                      |
+    /// | 7     | ✅        | ❌      | The event queue                                                                    |
+    /// | 8     | ✅        | ❌      | The bids shared memory                                                             |
+    /// | 9     | ✅        | ❌      | The asks shared memory                                                             |
+    /// | 10    | ✅        | ❌      | The base token vault                                                               |
+    /// | 11    | ✅        | ❌      | The quote token vault                                                              |
+    /// | 12    | ✅        | ❌      | The DEX user account                                                               |
+    /// | 13    | ✅        | ❌      | The user's source token account                                                    |
+    /// | 14    | ✅        | ❌      | The user's wallet                                                                  |
+    /// | 15    | ✅        | ❌      | The optional SRM or MSRM discount token account (must be owned by the user wallet) |
     NewOrder(new_order::Params),
     /// Cancel an existing order and remove it from the orderbook.
     ///
@@ -94,10 +92,9 @@ pub enum DexInstruction {
     /// | index | writable | signer | description                    |
     /// |-------|----------|--------|--------------------------------|
     /// | 0     | ❌        | ❌      | The system program             |
-    /// | 1     | ❌        | ❌      | The rent sysvar                |
-    /// | 2     | ✅        | ❌      | The user account to initialize |
-    /// | 3     | ❌        | ✅      | The owner of the user account  |
-    /// | 4     | ✅        | ✅      | The fee payer                  |
+    /// | 1     | ✅        | ❌      | The user account to initialize |
+    /// | 2     | ❌        | ✅      | The owner of the user account  |
+    /// | 3     | ✅        | ✅      | The fee payer                  |
     InitializeAccount(initialize_account::Params),
     /// Extract accumulated fees from the market. This is an admin instruction
     ///
@@ -153,7 +150,6 @@ pub fn create_market(
     let instruction_data = DexInstruction::CreateMarket(create_market_params);
     let data = instruction_data.try_to_vec().unwrap();
     let accounts = vec![
-        AccountMeta::new_readonly(sysvar::clock::ID, false),
         AccountMeta::new(market_account, false),
         AccountMeta::new_readonly(orderbook, false),
         AccountMeta::new_readonly(base_vault, false),
@@ -199,7 +195,6 @@ pub fn new_order(
         AccountMeta::new_readonly(agnostic_orderbook_program_id, false),
         AccountMeta::new_readonly(spl_token::ID, false),
         AccountMeta::new_readonly(system_program::ID, false),
-        AccountMeta::new_readonly(sysvar::rent::ID, false),
         AccountMeta::new(market_account, false),
         AccountMeta::new_readonly(market_signer, false),
         AccountMeta::new(orderbook, false),
@@ -313,7 +308,6 @@ pub fn initialize_account(
         .unwrap();
     let accounts = vec![
         AccountMeta::new_readonly(system_program::ID, false),
-        AccountMeta::new_readonly(sysvar::rent::ID, false),
         AccountMeta::new(user_account, false),
         AccountMeta::new_readonly(user_account_owner, true),
         AccountMeta::new(fee_payer, true),

@@ -31,7 +31,6 @@ pub struct Params {
 
 struct Accounts<'a, 'b: 'a> {
     system_program: &'a AccountInfo<'b>,
-    rent_sysvar: &'a AccountInfo<'b>,
     user: &'a AccountInfo<'b>,
     user_owner: &'a AccountInfo<'b>,
     fee_payer: &'a AccountInfo<'b>,
@@ -45,7 +44,6 @@ impl<'a, 'b: 'a> Accounts<'a, 'b> {
         let accounts_iter = &mut accounts.iter();
         let a = Self {
             system_program: next_account_info(accounts_iter)?,
-            rent_sysvar: next_account_info(accounts_iter)?,
             user: next_account_info(accounts_iter)?,
             user_owner: next_account_info(accounts_iter)?,
             fee_payer: next_account_info(accounts_iter)?,
@@ -83,7 +81,7 @@ pub(crate) fn process(
     }
     let space = (UserAccountHeader::LEN as u64) + max_orders * (u128::LEN as u64);
 
-    let lamports = Rent::from_account_info(accounts.rent_sysvar)?.minimum_balance(space as usize);
+    let lamports = Rent::get()?.minimum_balance(space as usize);
 
     let allocate_account = create_account(
         accounts.fee_payer.key,
