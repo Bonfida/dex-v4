@@ -150,9 +150,21 @@ fn check_accounts(
         ],
         program_id,
     )?;
-    check_account_key(accounts.market_signer, &market_signer).unwrap();
-    check_account_key(accounts.orderbook, &market_state.orderbook).unwrap();
-    check_account_key(accounts.aaob_program, &market_state.aaob_program).unwrap();
+    check_account_key(
+        accounts.market_signer,
+        &market_signer,
+        DexError::InvalidMarketSignerAccount,
+    )?;
+    check_account_key(
+        accounts.orderbook,
+        &market_state.orderbook,
+        DexError::InvalidOrderbookAccount,
+    )?;
+    check_account_key(
+        accounts.aaob_program,
+        &market_state.aaob_program,
+        DexError::InvalidAobProgramAccount,
+    )?;
     Ok(())
 }
 

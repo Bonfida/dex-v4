@@ -45,8 +45,15 @@ impl<'a, 'b: 'a> Accounts<'a, 'b> {
             spl_token_program: next_account_info(accounts_iter)?,
         };
 
-        check_signer(a.market_admin).unwrap();
-        check_account_key(a.spl_token_program, &spl_token::ID).unwrap();
+        check_signer(a.market_admin).map_err(|e| {
+            msg!("The market admin should be a signer for this instruction!");
+            e
+        })?;
+        check_account_key(
+            a.spl_token_program,
+            &spl_token::ID,
+            DexError::InvalidSplTokenProgram,
+        )?;
 
         Ok(a)
     }
@@ -106,8 +113,20 @@ fn check_accounts(
         ],
         program_id,
     )?;
-    check_account_key(accounts.market_signer, &market_signer).unwrap();
-    check_account_key(accounts.quote_vault, &market_state.quote_vault).unwrap();
-    check_account_key(accounts.market_admin, &market_state.admin).unwrap();
+    check_account_key(
+        accounts.market_signer,
+        &market_signer,
+        DexError::InvalidMarketSignerAccount,
+    )?;
+    check_account_key(
+        accounts.quote_vault,
+        &market_state.quote_vault,
+        DexError::InvalidQuoteVaultAccount,
+    )?;
+    check_account_key(
+        accounts.market_admin,
+        &market_state.admin,
+        DexError::InvalidMarketAdminAccount,
+    )?;
     Ok(())
 }

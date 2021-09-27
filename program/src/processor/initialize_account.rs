@@ -14,6 +14,7 @@ use solana_program::{
 };
 
 use crate::{
+    error::DexError,
     state::{AccountTag, Order, UserAccount, UserAccountHeader},
     utils::{check_account_key, check_account_owner, check_signer},
 };
@@ -49,8 +50,15 @@ impl<'a, 'b: 'a> Accounts<'a, 'b> {
             fee_payer: next_account_info(accounts_iter)?,
         };
         check_signer(&a.user_owner).unwrap();
-        check_account_key(a.system_program, &system_program::ID).unwrap();
-        check_account_owner(a.user, &system_program::ID).unwrap();
+        check_account_key(
+            a.system_program,
+            &system_program::ID,
+            DexError::InvalidSystemProgramAccount,
+        )?;
+        check_account_owner(a.user, &system_program::ID).map_err(|op| {
+            msg!("The unitialized user account should be owned by the system program!");
+            op
+        })?;
 
         Ok(a)
     }

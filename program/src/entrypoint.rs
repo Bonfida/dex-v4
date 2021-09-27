@@ -43,6 +43,24 @@ impl PrintProgramError for DexError {
             DexError::OutofFunds => msg!("Error: The user does not own enough lamports"),
             DexError::UserAccountStillActive => msg!("Error: The user account is still active"),
             DexError::MarketStillActive => msg!("Error: Market is still active"),
+            DexError::InvalidMarketSignerAccount => msg!("Error: Invalid market signer provided"),
+            DexError::InvalidOrderbookAccount => msg!("Error: Invalid orderbook account provided"),
+            DexError::InvalidAobProgramAccount => {
+                msg!("Error: Invalid AOB program account provided")
+            }
+            DexError::InvalidMarketAdminAccount => {
+                msg!("Error: Invalid market admin account provided")
+            }
+            DexError::InvalidBaseVaultAccount => msg!("Error: Invalid base vault account provided"),
+            DexError::InvalidQuoteVaultAccount => {
+                msg!("Error: Invalid quote vault account provided")
+            }
+            DexError::InvalidSystemProgramAccount => {
+                msg!("Error: Invalid system program account provided")
+            }
+            DexError::InvalidSplTokenProgram => {
+                msg!("Error: Invalid spl token program account provided")
+            }
         }
     }
 }

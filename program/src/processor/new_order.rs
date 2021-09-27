@@ -103,10 +103,21 @@ impl<'a, 'b: 'a> Accounts<'a, 'b> {
             user_owner: next_account_info(accounts_iter)?,
             discount_token_account: next_account_info(accounts_iter).ok(),
         };
-        check_signer(&a.user_owner).unwrap();
-        check_account_key(a.spl_token_program, &spl_token::ID).unwrap();
-        check_account_key(a.system_program, &system_program::ID).unwrap();
-        check_account_owner(a.user, program_id).unwrap();
+        check_signer(&a.user_owner)?;
+        check_account_key(
+            a.spl_token_program,
+            &spl_token::ID,
+            DexError::InvalidSplTokenProgram,
+        )?;
+        check_account_key(
+            a.system_program,
+            &system_program::ID,
+            DexError::InvalidSystemProgramAccount,
+        )?;
+        check_account_owner(a.user, program_id).map_err(|e| {
+            msg!("The user account should be owned by the current program!");
+            e
+        })?;
 
         Ok(a)
     }
@@ -350,11 +361,31 @@ fn check_accounts(
         ],
         program_id,
     )?;
-    check_account_key(accounts.market_signer, &market_signer).unwrap();
-    check_account_key(accounts.orderbook, &market_state.orderbook).unwrap();
-    check_account_key(accounts.base_vault, &market_state.base_vault).unwrap();
-    check_account_key(accounts.quote_vault, &market_state.quote_vault).unwrap();
-    check_account_key(accounts.aaob_program, &market_state.aaob_program).unwrap();
+    check_account_key(
+        accounts.market_signer,
+        &market_signer,
+        DexError::InvalidMarketSignerAccount,
+    )?;
+    check_account_key(
+        accounts.orderbook,
+        &market_state.orderbook,
+        DexError::InvalidOrderbookAccount,
+    )?;
+    check_account_key(
+        accounts.base_vault,
+        &market_state.base_vault,
+        DexError::InvalidBaseVaultAccount,
+    )?;
+    check_account_key(
+        accounts.quote_vault,
+        &market_state.quote_vault,
+        DexError::InvalidQuoteVaultAccount,
+    )?;
+    check_account_key(
+        accounts.aaob_program,
+        &market_state.aaob_program,
+        DexError::InvalidAobProgramAccount,
+    )?;
 
     Ok(())
 }

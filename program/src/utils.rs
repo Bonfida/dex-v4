@@ -3,10 +3,16 @@ use solana_program::{
     pubkey::Pubkey,
 };
 
+use crate::error::DexError;
+
 // Safety verification functions
-pub fn check_account_key(account: &AccountInfo, key: &Pubkey) -> ProgramResult {
+pub fn check_account_key(
+    account: &AccountInfo,
+    key: &Pubkey,
+    error: DexError,
+) -> Result<(), DexError> {
     if account.key != key {
-        return Err(ProgramError::InvalidArgument);
+        return Err(error);
     }
     Ok(())
 }

@@ -9,6 +9,7 @@ use solana_program::{
 };
 
 use crate::{
+    error::DexError,
     state::{DexState, UserAccount},
     utils::{check_account_key, check_signer},
 };
@@ -50,8 +51,15 @@ impl<'a, 'b: 'a> Accounts<'a, 'b> {
             destination_base_account: next_account_info(accounts_iter)?,
             destination_quote_account: next_account_info(accounts_iter)?,
         };
-        check_signer(&a.user_owner).unwrap();
-        check_account_key(&a.spl_token_program, &spl_token::ID).unwrap();
+        check_signer(&a.user_owner).map_err(|e| {
+            msg!("The owner of the provided user account should be a signer!");
+            e
+        })?;
+        check_account_key(
+            &a.spl_token_program,
+            &spl_token::ID,
+            DexError::InvalidSplTokenProgram,
+        )?;
 
         Ok(a)
     }
@@ -152,10 +160,30 @@ fn check_accounts(
         ],
         program_id,
     )?;
-    check_account_key(accounts.market_signer, &market_signer).unwrap();
-    check_account_key(accounts.base_vault, &market_state.base_vault).unwrap();
-    check_account_key(accounts.quote_vault, &market_state.quote_vault).unwrap();
-    check_account_key(accounts.aaob_program, &market_state.aaob_program).unwrap();
+    check_account_key(
+        accounts.market_signer,
+        &market_signer,
+        DexError::InvalidMarketSignerAccount,
+    )
+    .unwrap();
+    check_account_key(
+        accounts.base_vault,
+        &market_state.base_vault,
+        DexError::InvalidBaseVaultAccount,
+    )
+    .unwrap();
+    check_account_key(
+        accounts.quote_vault,
+        &market_state.quote_vault,
+        DexError::InvalidQuoteVaultAccount,
+    )
+    .unwrap();
+    check_account_key(
+        accounts.aaob_program,
+        &market_state.aaob_program,
+        DexError::InvalidAobProgramAccount,
+    )
+    .unwrap();
 
     Ok(())
 }

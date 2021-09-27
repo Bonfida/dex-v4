@@ -26,6 +26,22 @@ pub enum DexError {
     UserAccountStillActive,
     #[error("Market is still active")]
     MarketStillActive,
+    #[error("Invalid market signer provided")]
+    InvalidMarketSignerAccount,
+    #[error("Invalid orderbook account provided")]
+    InvalidOrderbookAccount,
+    #[error("Invalid AOB program account provided")]
+    InvalidAobProgramAccount,
+    #[error("Invalid market admin account provided")]
+    InvalidMarketAdminAccount,
+    #[error("Invalid base vault account provided")]
+    InvalidBaseVaultAccount,
+    #[error("Invalid quote vault account provided")]
+    InvalidQuoteVaultAccount,
+    #[error("Invalid system program account provided")]
+    InvalidSystemProgramAccount,
+    #[error("Invalid spl token program account provided")]
+    InvalidSplTokenProgram,
 }
 
 impl From<DexError> for ProgramError {
