@@ -25,6 +25,7 @@ agnostic-orderbook = {path = "../../agnostic-orderbook/program", features = ["no
 solana-sdk = "1.7.10"
 solana-client = "1.7.10"
 rand = "0.8.3"
+serum_dex = {git = "https://github.com/project-serum/serum-dex.git", features = ["no-entrypoint"]}
 solana-program-test = "1.7.10"
 tokio = {version="1.10.0", features = ["macros"]}
 futures = "0.3.15"
