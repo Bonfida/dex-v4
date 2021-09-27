@@ -110,7 +110,7 @@ pub(crate) fn process(program_id: &Pubkey, accounts: &[AccountInfo]) -> ProgramR
         ]],
     )?;
 
-    market_state.tag = AccountTag::Uninitialized;
+    market_state.tag = AccountTag::Closed;
     let mut market_state_data: &mut [u8] = &mut accounts.market.data.borrow_mut();
     market_state.serialize(&mut market_state_data).unwrap();
 

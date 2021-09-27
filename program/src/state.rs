@@ -21,6 +21,7 @@ pub enum AccountTag {
     Uninitialized,
     DexState,
     UserAccount,
+    Closed,
 }
 
 #[derive(BorshDeserialize, BorshSerialize, Clone, Copy, PartialEq, FromPrimitive, ToPrimitive)]
