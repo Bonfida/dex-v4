@@ -1,19 +1,16 @@
 use borsh::{BorshDeserialize, BorshSerialize};
 use solana_program::{
     account_info::{next_account_info, AccountInfo},
-    clock::{self, Clock},
+    clock::Clock,
     entrypoint::ProgramResult,
     msg,
     program_error::ProgramError,
     program_pack::Pack,
     pubkey::Pubkey,
-    sysvar::{Sysvar, SysvarId},
+    sysvar::Sysvar,
 };
 
-use crate::{
-    state::{AccountTag, DexState},
-    utils::check_account_key,
-};
+use crate::state::{AccountTag, DexState};
 
 #[derive(BorshDeserialize, BorshSerialize)]
 /**
@@ -27,7 +24,6 @@ pub struct Params {
 }
 
 struct Accounts<'a, 'b: 'a> {
-    sysvar_clock: &'a AccountInfo<'b>,
     market: &'a AccountInfo<'b>,
     orderbook: &'a AccountInfo<'b>,
     base_vault: &'a AccountInfo<'b>,
@@ -44,7 +40,6 @@ impl<'a, 'b: 'a> Accounts<'a, 'b> {
         let accounts_iter = &mut accounts.iter();
 
         let a = Self {
-            sysvar_clock: next_account_info(accounts_iter)?,
             market: next_account_info(accounts_iter)?,
             orderbook: next_account_info(accounts_iter)?,
             base_vault: next_account_info(accounts_iter)?,
@@ -52,8 +47,6 @@ impl<'a, 'b: 'a> Accounts<'a, 'b> {
             aaob_program: next_account_info(accounts_iter)?,
             market_admin: next_account_info(accounts_iter)?,
         };
-
-        check_account_key(a.sysvar_clock, &clock::Clock::id()).unwrap();
 
         Ok(a)
     }
@@ -82,7 +75,7 @@ pub(crate) fn process(
 
     //TODO create the aaob market?
 
-    let current_timestamp = Clock::from_account_info(accounts.sysvar_clock)?.unix_timestamp;
+    let current_timestamp = Clock::get()?.unix_timestamp;
 
     let market_state = DexState {
         tag: AccountTag::DexState,

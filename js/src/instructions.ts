@@ -64,41 +64,35 @@ export class createMarketInstruction {
     const keys = [
       // Account 1
       {
-        pubkey: SYSVAR_CLOCK_PUBKEY,
-        isSigner: false,
-        isWritable: false,
-      },
-      // Account 2
-      {
         pubkey: market,
         isSigner: false,
         isWritable: true,
       },
-      // Account 3
+      // Account 2
       {
         pubkey: orderbook,
         isSigner: false,
         isWritable: false,
       },
-      // Account 4
+      // Account 3
       {
         pubkey: baseVault,
         isSigner: false,
         isWritable: false,
       },
-      // Account 5
+      // Account 4
       {
         pubkey: quoteVault,
         isSigner: false,
         isWritable: false,
       },
-      // Account 6
+      // Account 5
       {
         pubkey: aaobId,
         isSigner: false,
         isWritable: false,
       },
-      // Account 7
+      // Account 6
       {
         pubkey: marketAdmin,
         isSigner: false,
@@ -221,71 +215,65 @@ export class newOrderInstruction {
       },
       // Account 4
       {
-        pubkey: SYSVAR_RENT_PUBKEY,
-        isSigner: false,
-        isWritable: false,
-      },
-      // Account 5
-      {
         pubkey: market,
         isSigner: false,
         isWritable: true,
       },
-      // Account 6
+      // Account 5
       {
         pubkey: marketSigner,
         isSigner: false,
         isWritable: false,
       },
-      // Account 7
+      // Account 6
       {
         pubkey: orderbook,
         isSigner: false,
         isWritable: true,
       },
-      // Account 8
+      // Account 7
       {
         pubkey: eventQueue,
         isSigner: false,
         isWritable: true,
       },
-      // Account 9
+      // Account 8
       {
         pubkey: bids,
         isSigner: false,
         isWritable: true,
       },
-      // Account 10
+      // Account 9
       {
         pubkey: asks,
         isSigner: false,
         isWritable: true,
       },
-      // Account 11
+      // Account 10
       {
         pubkey: baseVault,
         isSigner: false,
         isWritable: true,
       },
-      // Account 12
+      // Account 11
       {
         pubkey: quoteVault,
         isSigner: false,
         isWritable: true,
       },
-      // Account 13
+      // Account 12
       {
         pubkey: user,
         isSigner: false,
         isWritable: true,
       },
-      // Account 14
+      // Account 13
       {
         pubkey: userTokenAccount,
         isSigner: false,
         isWritable: true,
       },
-      // Account 15
+      // Account 14
       {
         pubkey: userOwner,
         isSigner: true,
@@ -294,7 +282,7 @@ export class newOrderInstruction {
     ];
     if (discountTokenAccount) {
       keys.push(
-        // Account 16
+        // Account 15
         {
           pubkey: discountTokenAccount,
           isSigner: false,
@@ -723,23 +711,17 @@ export class initializeAccountInstruction {
       },
       // Account 2
       {
-        pubkey: SYSVAR_RENT_PUBKEY,
-        isSigner: false,
-        isWritable: false,
-      },
-      // Account 3
-      {
         pubkey: user,
         isSigner: false,
         isWritable: true,
       },
-      // Account 4
+      // Account 3
       {
         pubkey: userOwner,
         isSigner: true,
         isWritable: false,
       },
-      // Account 5
+      // Account 4
       {
         pubkey: feePayer,
         isSigner: true,

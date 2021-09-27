@@ -66,7 +66,6 @@ struct Accounts<'a, 'b: 'a> {
     aaob_program: &'a AccountInfo<'b>,
     spl_token_program: &'a AccountInfo<'b>,
     system_program: &'a AccountInfo<'b>,
-    rent_sysvar: &'a AccountInfo<'b>,
     market: &'a AccountInfo<'b>,
     market_signer: &'a AccountInfo<'b>,
     orderbook: &'a AccountInfo<'b>,
@@ -91,7 +90,6 @@ impl<'a, 'b: 'a> Accounts<'a, 'b> {
             aaob_program: next_account_info(accounts_iter)?,
             spl_token_program: next_account_info(accounts_iter)?,
             system_program: next_account_info(accounts_iter)?,
-            rent_sysvar: next_account_info(accounts_iter)?,
             market: next_account_info(accounts_iter)?,
             market_signer: next_account_info(accounts_iter)?,
             orderbook: next_account_info(accounts_iter)?,
@@ -191,7 +189,7 @@ pub(crate) fn process(
     }
 
     //Transfer the cranking fee to the AAOB program
-    let rent = Rent::from_account_info(accounts.rent_sysvar)?;
+    let rent = Rent::get()?;
     if accounts.user_owner.lamports()
         < rent.minimum_balance(accounts.user_owner.data_len()) + CRANKER_REWARD
     {
