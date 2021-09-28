@@ -62,10 +62,7 @@ impl<'a, 'b: 'a> Accounts<'a, 'b> {
         };
 
         check_signer(a.msrm_token_account_owner).unwrap();
-        check_account_owner(a.market, program_id).map_err(|e| {
-            msg!("The market account should be owned by the current program!");
-            e
-        })?;
+        check_account_owner(a.market, program_id, DexError::InvalidStateAccountOwner)?;
 
         Ok(a)
     }
@@ -163,11 +160,6 @@ fn check_accounts(
         accounts.orderbook,
         &market_state.orderbook,
         DexError::InvalidOrderbookAccount,
-    )?;
-    check_account_key(
-        accounts.aaob_program,
-        &market_state.aaob_program,
-        DexError::InvalidAobProgramAccount,
     )?;
     Ok(())
 }

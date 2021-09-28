@@ -28,7 +28,6 @@ struct Accounts<'a, 'b: 'a> {
     orderbook: &'a AccountInfo<'b>,
     base_vault: &'a AccountInfo<'b>,
     quote_vault: &'a AccountInfo<'b>,
-    aaob_program: &'a AccountInfo<'b>,
     market_admin: &'a AccountInfo<'b>,
 }
 
@@ -44,7 +43,6 @@ impl<'a, 'b: 'a> Accounts<'a, 'b> {
             orderbook: next_account_info(accounts_iter)?,
             base_vault: next_account_info(accounts_iter)?,
             quote_vault: next_account_info(accounts_iter)?,
-            aaob_program: next_account_info(accounts_iter)?,
             market_admin: next_account_info(accounts_iter)?,
         };
 
@@ -90,7 +88,6 @@ pub(crate) fn process(
         base_vault: *accounts.base_vault.key,
         quote_vault: *accounts.quote_vault.key,
         orderbook: *accounts.orderbook.key,
-        aaob_program: *accounts.aaob_program.key,
         admin: *accounts.market_admin.key,
         creation_timestamp: current_timestamp,
         base_volume: 0,

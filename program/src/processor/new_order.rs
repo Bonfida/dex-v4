@@ -114,10 +114,13 @@ impl<'a, 'b: 'a> Accounts<'a, 'b> {
             &system_program::ID,
             DexError::InvalidSystemProgramAccount,
         )?;
-        check_account_owner(a.user, program_id).map_err(|e| {
-            msg!("The user account should be owned by the current program!");
-            e
-        })?;
+        check_account_key(
+            a.aaob_program,
+            &agnostic_orderbook::ID,
+            DexError::InvalidAobProgramAccount,
+        )?;
+        check_account_owner(a.user, program_id, DexError::InvalidStateAccountOwner)?;
+        check_account_owner(a.market, program_id, DexError::InvalidStateAccountOwner)?;
 
         Ok(a)
     }
@@ -380,11 +383,6 @@ fn check_accounts(
         accounts.quote_vault,
         &market_state.quote_vault,
         DexError::InvalidQuoteVaultAccount,
-    )?;
-    check_account_key(
-        accounts.aaob_program,
-        &market_state.aaob_program,
-        DexError::InvalidAobProgramAccount,
     )?;
 
     Ok(())

@@ -61,6 +61,9 @@ impl PrintProgramError for DexError {
             DexError::InvalidSplTokenProgram => {
                 msg!("Error: Invalid spl token program account provided")
             }
+            DexError::InvalidStateAccountOwner => {
+                msg!("Error: A provided state account was not owned by the current program")
+            }
         }
     }
 }

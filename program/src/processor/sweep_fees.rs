@@ -11,7 +11,7 @@ use solana_program::{
 use crate::{
     error::DexError,
     state::DexState,
-    utils::{check_account_key, check_signer},
+    utils::{check_account_key, check_account_owner, check_signer},
 };
 
 #[derive(BorshDeserialize, BorshSerialize)]
@@ -31,7 +31,7 @@ struct Accounts<'a, 'b: 'a> {
 
 impl<'a, 'b: 'a> Accounts<'a, 'b> {
     pub fn parse(
-        _program_id: &Pubkey,
+        program_id: &Pubkey,
         accounts: &'a [AccountInfo<'b>],
     ) -> Result<Self, ProgramError> {
         let accounts_iter = &mut accounts.iter();
@@ -54,6 +54,7 @@ impl<'a, 'b: 'a> Accounts<'a, 'b> {
             &spl_token::ID,
             DexError::InvalidSplTokenProgram,
         )?;
+        check_account_owner(a.market, program_id, DexError::InvalidStateAccountOwner)?;
 
         Ok(a)
     }

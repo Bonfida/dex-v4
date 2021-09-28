@@ -20,8 +20,8 @@ use crate::common::utils::{create_market_and_accounts, sign_send_instructions};
 #[tokio::test]
 async fn test_dex() {
     // Create program and test environment
-    let dex_program_id = Pubkey::new_unique();
-    let aaob_program_id = Pubkey::new_unique();
+    let dex_program_id = dex_v3::ID;
+    let aaob_program_id = agnostic_orderbook::ID;
 
     let mut program_test = ProgramTest::new(
         "dex_v3",

@@ -17,9 +17,13 @@ pub fn check_account_key(
     Ok(())
 }
 
-pub fn check_account_owner(account: &AccountInfo, owner: &Pubkey) -> ProgramResult {
+pub fn check_account_owner(
+    account: &AccountInfo,
+    owner: &Pubkey,
+    error: DexError,
+) -> Result<(), DexError> {
     if account.owner != owner {
-        return Err(ProgramError::InvalidArgument);
+        return Err(error);
     }
     Ok(())
 }

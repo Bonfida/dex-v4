@@ -55,10 +55,11 @@ impl<'a, 'b: 'a> Accounts<'a, 'b> {
             &system_program::ID,
             DexError::InvalidSystemProgramAccount,
         )?;
-        check_account_owner(a.user, &system_program::ID).map_err(|op| {
-            msg!("The unitialized user account should be owned by the system program!");
-            op
-        })?;
+        check_account_owner(
+            a.user,
+            &system_program::ID,
+            DexError::InvalidStateAccountOwner,
+        )?;
 
         Ok(a)
     }
