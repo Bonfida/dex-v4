@@ -103,7 +103,10 @@ impl<'a, 'b: 'a> Accounts<'a, 'b> {
             user_owner: next_account_info(accounts_iter)?,
             discount_token_account: next_account_info(accounts_iter).ok(),
         };
-        check_signer(&a.user_owner)?;
+        check_signer(&a.user_owner).map_err(|e| {
+            msg!("The user account owner should be a signer for this transaction!");
+            e
+        })?;
         check_account_key(
             a.spl_token_program,
             &spl_token::ID,

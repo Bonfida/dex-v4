@@ -61,7 +61,10 @@ impl<'a, 'b: 'a> Accounts<'a, 'b> {
             user_accounts: accounts_iter.as_slice(),
         };
 
-        check_signer(a.msrm_token_account_owner).unwrap();
+        check_signer(a.msrm_token_account_owner).map_err(|e| {
+            msg!("The msrm token account owner should be a signer for this transaction!");
+            e
+        })?;
         check_account_owner(a.market, program_id, DexError::InvalidStateAccountOwner)?;
 
         Ok(a)

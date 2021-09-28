@@ -49,7 +49,10 @@ impl<'a, 'b: 'a> Accounts<'a, 'b> {
             user_owner: next_account_info(accounts_iter)?,
             fee_payer: next_account_info(accounts_iter)?,
         };
-        check_signer(&a.user_owner).unwrap();
+        check_signer(&a.user_owner).map_err(|e| {
+            msg!("The user account owner should be a signer for this transaction!");
+            e
+        })?;
         check_account_key(
             a.system_program,
             &system_program::ID,
