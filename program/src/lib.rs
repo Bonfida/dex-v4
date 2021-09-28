@@ -18,3 +18,6 @@ pub(crate) mod processor;
 pub(crate) mod utils;
 
 pub use processor::{CALLBACK_ID_LEN, CALLBACK_INFO_LEN};
+use solana_program::declare_id;
+
+declare_id!("SerumSqm3PWpKcHva3sxfUPXsYaE53czAbWtgAaisCf");

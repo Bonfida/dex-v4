@@ -11,7 +11,7 @@ use solana_program::{
 use crate::{
     error::DexError,
     state::{DexState, UserAccount},
-    utils::{check_account_key, check_signer},
+    utils::{check_account_key, check_account_owner, check_signer},
 };
 
 /**
@@ -34,7 +34,7 @@ struct Accounts<'a, 'b: 'a> {
 
 impl<'a, 'b: 'a> Accounts<'a, 'b> {
     pub fn parse(
-        _program_id: &Pubkey,
+        program_id: &Pubkey,
         accounts: &'a [AccountInfo<'b>],
     ) -> Result<Self, ProgramError> {
         let accounts_iter = &mut accounts.iter();
@@ -58,6 +58,10 @@ impl<'a, 'b: 'a> Accounts<'a, 'b> {
             &spl_token::ID,
             DexError::InvalidSplTokenProgram,
         )?;
+        check_account_owner(&a.user, program_id).map_err(|e| {
+            msg!("The user account should be owned by the current program!");
+            e
+        })?;
 
         Ok(a)
     }

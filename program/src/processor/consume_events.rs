@@ -17,7 +17,7 @@ use solana_program::{
 use crate::{
     error::DexError,
     state::{CallBackInfo, DexState, UserAccount},
-    utils::{check_account_key, check_signer, fp32_mul},
+    utils::{check_account_key, check_account_owner, check_signer, fp32_mul},
 };
 
 use super::CALLBACK_INFO_LEN;
@@ -45,7 +45,7 @@ struct Accounts<'a, 'b: 'a> {
 
 impl<'a, 'b: 'a> Accounts<'a, 'b> {
     pub fn parse(
-        _program_id: &Pubkey,
+        program_id: &Pubkey,
         accounts: &'a [AccountInfo<'b>],
     ) -> Result<Self, ProgramError> {
         let accounts_iter = &mut accounts.iter();
@@ -62,6 +62,10 @@ impl<'a, 'b: 'a> Accounts<'a, 'b> {
         };
 
         check_signer(a.msrm_token_account_owner).unwrap();
+        check_account_owner(a.market, program_id).map_err(|e| {
+            msg!("The market account should be owned by the current program!");
+            e
+        })?;
 
         Ok(a)
     }
