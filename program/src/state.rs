@@ -62,8 +62,6 @@ pub struct DexState {
     pub quote_vault: Pubkey,
     /// The asset agnostic orderbook address
     pub orderbook: Pubkey,
-    /// The asset agnostic orderbook program ID
-    pub aaob_program: Pubkey,
     /// The market admin which can recuperate all transaction fees
     pub admin: Pubkey,
     /// The market's creation timestamp on the Solana runtime clock.

@@ -13,7 +13,7 @@ use spl_token::state::Account;
 use crate::{
     error::DexError,
     state::{AccountTag, DexState},
-    utils::{check_account_key, check_signer},
+    utils::{check_account_key, check_account_owner, check_signer},
 };
 
 #[derive(BorshDeserialize, BorshSerialize)]
@@ -37,7 +37,10 @@ struct Accounts<'a, 'b: 'a> {
 }
 
 impl<'a, 'b: 'a> Accounts<'a, 'b> {
-    pub fn parse(accounts: &'a [AccountInfo<'b>]) -> Result<Self, ProgramError> {
+    pub fn parse(
+        program_id: &Pubkey,
+        accounts: &'a [AccountInfo<'b>],
+    ) -> Result<Self, ProgramError> {
         let accounts_iter = &mut accounts.iter();
 
         let a = Self {
@@ -54,14 +57,20 @@ impl<'a, 'b: 'a> Accounts<'a, 'b> {
             target_lamports_account: next_account_info(accounts_iter)?,
         };
 
-        check_signer(&a.market_admin).unwrap();
+        check_signer(a.market_admin).unwrap();
+        check_account_owner(a.market, program_id, DexError::InvalidStateAccountOwner)?;
+        check_account_key(
+            a.aaob_program,
+            &agnostic_orderbook::ID,
+            DexError::InvalidAobProgramAccount,
+        )?;
 
         Ok(a)
     }
 }
 
 pub(crate) fn process(program_id: &Pubkey, accounts: &[AccountInfo]) -> ProgramResult {
-    let accounts = Accounts::parse(accounts)?;
+    let accounts = Accounts::parse(program_id, accounts)?;
 
     let mut market_state =
         DexState::deserialize(&mut (&accounts.market.data.borrow_mut() as &[u8]))?.check()?;
@@ -150,11 +159,6 @@ fn check_accounts(
         accounts.orderbook,
         &market_state.orderbook,
         DexError::InvalidOrderbookAccount,
-    )?;
-    check_account_key(
-        accounts.aaob_program,
-        &market_state.aaob_program,
-        DexError::InvalidAobProgramAccount,
     )?;
     check_account_key(
         accounts.market_admin,

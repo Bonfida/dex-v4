@@ -16,7 +16,7 @@ use solana_program::{
 use crate::{
     error::DexError,
     state::{DexState, UserAccount},
-    utils::{check_account_key, check_signer},
+    utils::{check_account_key, check_account_owner, check_signer},
 };
 
 use super::CALLBACK_INFO_LEN;
@@ -47,7 +47,7 @@ struct Accounts<'a, 'b: 'a> {
 
 impl<'a, 'b: 'a> Accounts<'a, 'b> {
     pub fn parse(
-        _program_id: &Pubkey,
+        program_id: &Pubkey,
         accounts: &'a [AccountInfo<'b>],
     ) -> Result<Self, ProgramError> {
         let accounts_iter = &mut accounts.iter();
@@ -63,6 +63,13 @@ impl<'a, 'b: 'a> Accounts<'a, 'b> {
             user_owner: next_account_info(accounts_iter)?,
         };
         check_signer(&a.user_owner).unwrap();
+        check_account_key(
+            &a.aaob_program,
+            &agnostic_orderbook::ID,
+            DexError::InvalidAobProgramAccount,
+        )?;
+        check_account_owner(a.market, program_id, DexError::InvalidStateAccountOwner)?;
+        check_account_owner(a.user, program_id, DexError::InvalidStateAccountOwner)?;
 
         Ok(a)
     }
@@ -198,11 +205,6 @@ fn check_accounts(
     check_account_key(
         accounts.orderbook,
         &market_state.orderbook,
-        DexError::InvalidOrderbookAccount,
-    )?;
-    check_account_key(
-        accounts.aaob_program,
-        &market_state.aaob_program,
         DexError::InvalidOrderbookAccount,
     )?;
 

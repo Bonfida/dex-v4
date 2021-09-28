@@ -42,6 +42,8 @@ pub enum DexError {
     InvalidSystemProgramAccount,
     #[error("Invalid spl token program account provided")]
     InvalidSplTokenProgram,
+    #[error("A provided state account was not owned by the current program")]
+    InvalidStateAccountOwner,
 }
 
 impl From<DexError> for ProgramError {

@@ -395,7 +395,7 @@ pub async fn aob_dex_new_order(
     // New Order on AOB DEX
     let new_order_instruction = new_order(
         dex_test_ctx.dex_program_id,
-        dex_test_ctx.dex_market.aaob_program,
+        agnostic_orderbook::ID,
         dex_test_ctx.dex_market_key,
         dex_test_ctx.aob_market.caller_authority,
         dex_test_ctx.dex_market.orderbook,

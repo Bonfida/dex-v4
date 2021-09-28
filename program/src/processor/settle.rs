@@ -58,10 +58,8 @@ impl<'a, 'b: 'a> Accounts<'a, 'b> {
             &spl_token::ID,
             DexError::InvalidSplTokenProgram,
         )?;
-        check_account_owner(&a.user, program_id).map_err(|e| {
-            msg!("The user account should be owned by the current program!");
-            e
-        })?;
+        check_account_owner(&a.market, program_id, DexError::InvalidStateAccountOwner)?;
+        check_account_owner(&a.user, program_id, DexError::InvalidStateAccountOwner)?;
 
         Ok(a)
     }
