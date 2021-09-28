@@ -164,26 +164,22 @@ fn check_accounts(
         accounts.market_signer,
         &market_signer,
         DexError::InvalidMarketSignerAccount,
-    )
-    .unwrap();
+    )?;
     check_account_key(
         accounts.base_vault,
         &market_state.base_vault,
         DexError::InvalidBaseVaultAccount,
-    )
-    .unwrap();
+    )?;
     check_account_key(
         accounts.quote_vault,
         &market_state.quote_vault,
         DexError::InvalidQuoteVaultAccount,
-    )
-    .unwrap();
+    )?;
     check_account_key(
         accounts.aaob_program,
         &market_state.aaob_program,
         DexError::InvalidAobProgramAccount,
-    )
-    .unwrap();
+    )?;
 
     Ok(())
 }
