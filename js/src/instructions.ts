@@ -576,7 +576,6 @@ export class settleInstruction {
    */
   getInstruction(
     dexId: PublicKey,
-    aaobId: PublicKey,
     market: PublicKey,
     baseVault: PublicKey,
     quoteVault: PublicKey,
@@ -590,59 +589,53 @@ export class settleInstruction {
     let keys = [
       // Account 1
       {
-        pubkey: aaobId,
+        pubkey: TOKEN_PROGRAM_ID,
         isSigner: false,
         isWritable: false,
       },
       // Account 2
       {
-        pubkey: TOKEN_PROGRAM_ID,
+        pubkey: market,
         isSigner: false,
         isWritable: false,
       },
       // Account 3
       {
-        pubkey: market,
-        isSigner: false,
-        isWritable: false,
-      },
-      // Account 4
-      {
         pubkey: baseVault,
         isSigner: false,
         isWritable: true,
       },
-      // Account 5
+      // Account 4
       {
         pubkey: quoteVault,
         isSigner: false,
         isWritable: true,
       },
-      // Account 6
+      // Account 5
       {
         pubkey: marketSigner,
         isSigner: false,
         isWritable: false,
       },
-      // Account 7
+      // Account 6
       {
         pubkey: user,
         isSigner: false,
         isWritable: true,
       },
-      // Account 8
+      // Account 7
       {
         pubkey: userOwner,
         isSigner: true,
         isWritable: false,
       },
-      // Account 9
+      // Account 8
       {
         pubkey: destinationBaseAccount,
         isSigner: false,
         isWritable: true,
       },
-      // Account 10
+      // Account 9
       {
         pubkey: destinationQuoteAccount,
         isSigner: false,

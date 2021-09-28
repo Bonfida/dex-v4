@@ -21,7 +21,6 @@ The required arguments for a settle instruction.
 pub struct Params {}
 
 struct Accounts<'a, 'b: 'a> {
-    aaob_program: &'a AccountInfo<'b>,
     spl_token_program: &'a AccountInfo<'b>,
     market: &'a AccountInfo<'b>,
     base_vault: &'a AccountInfo<'b>,
@@ -40,7 +39,6 @@ impl<'a, 'b: 'a> Accounts<'a, 'b> {
     ) -> Result<Self, ProgramError> {
         let accounts_iter = &mut accounts.iter();
         let a = Self {
-            aaob_program: next_account_info(accounts_iter)?,
             spl_token_program: next_account_info(accounts_iter)?,
             market: next_account_info(accounts_iter)?,
             base_vault: next_account_info(accounts_iter)?,
@@ -174,11 +172,6 @@ fn check_accounts(
         accounts.quote_vault,
         &market_state.quote_vault,
         DexError::InvalidQuoteVaultAccount,
-    )?;
-    check_account_key(
-        accounts.aaob_program,
-        &market_state.aaob_program,
-        DexError::InvalidAobProgramAccount,
     )?;
 
     Ok(())

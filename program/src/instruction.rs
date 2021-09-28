@@ -55,7 +55,7 @@ pub enum DexInstruction {
     /// | 4     | ✅        | ❌      | The event queue                      |
     /// | 5     | ✅        | ❌      | The bids shared memory               |
     /// | 6     | ✅        | ❌      | The asks shared memory               |
-    /// | 7     | ✅        | ❌      | The DEX user ac count                 |
+    /// | 7     | ✅        | ❌      | The DEX user account                 |
     /// | 8     | ❌        | ✅      | The user's wallet                    |
     CancelOrder(cancel_order::Params),
     /// Crank the processing of DEX events.
@@ -76,16 +76,15 @@ pub enum DexInstruction {
     ///
     /// | index | writable | signer | description                          |
     /// |-------|----------|--------|--------------------------------------|
-    /// | 0     | ❌        | ❌      | The asset agnostic orderbook program |
-    /// | 1     | ❌        | ❌      | The spl token program                |
-    /// | 2     | ❌        | ❌      | The DEX market                       |
-    /// | 3     | ✅        | ❌      | The base token vault                 |
-    /// | 4     | ✅        | ❌      | The quote token vault                |
-    /// | 5     | ❌        | ❌      | The DEX market signer                |
-    /// | 6     | ✅        | ❌      | The DEX user account                 |
-    /// | 7     | ❌        | ✅      | The DEX user account owner wallet    |
-    /// | 8     | ✅        | ❌      | The destination base token account   |
-    /// | 9     | ✅        | ❌      | The destination quote token account  |
+    /// | 0     | ❌        | ❌      | The spl token program                |
+    /// | 1     | ❌        | ❌      | The DEX market                       |
+    /// | 2     | ✅        | ❌      | The base token vault                 |
+    /// | 3     | ✅        | ❌      | The quote token vault                |
+    /// | 4     | ❌        | ❌      | The DEX market signer                |
+    /// | 5     | ✅        | ❌      | The DEX user account                 |
+    /// | 6     | ❌        | ✅      | The DEX user account owner wallet    |
+    /// | 7     | ✅        | ❌      | The destination base token account   |
+    /// | 8     | ✅        | ❌      | The destination quote token account  |
     Settle(settle::Params),
     /// Initialize a new user account
     ///
@@ -351,7 +350,6 @@ pub fn sweep_fees(
 #[allow(clippy::too_many_arguments)]
 pub fn settle(
     dex_program_id: Pubkey,
-    agnostic_orderbook_program_id: Pubkey,
     market_account: Pubkey,
     market_signer: Pubkey,
     base_vault: Pubkey,
@@ -365,7 +363,6 @@ pub fn settle(
         .try_to_vec()
         .unwrap();
     let accounts = vec![
-        AccountMeta::new_readonly(agnostic_orderbook_program_id, false),
         AccountMeta::new_readonly(spl_token::ID, false),
         AccountMeta::new_readonly(market_account, false),
         AccountMeta::new(base_vault, false),

@@ -226,7 +226,6 @@ export const settle = async (
 
   const instruction = new settleInstruction().getInstruction(
     DEX_ID,
-    aaob.AAOB_ID,
     market.address,
     market.baseVault,
     market.quoteVault,

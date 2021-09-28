@@ -282,7 +282,6 @@ async fn test_dex() {
     // Settle
     let settle_instruction = settle(
         dex_program_id,
-        aaob_program_id,
         market_account.pubkey(),
         market_signer,
         base_vault,
