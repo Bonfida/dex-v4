@@ -199,4 +199,32 @@ export class OpenOrders {
   async makeCloseAccountTransaction() {
     return await closeAccount(this.market, this.owner);
   }
+
+  /**
+   * Checks if an open order account exists for the owner on the given market
+   * @param connection The solana connection object to the RPC node
+   * @param market The market address of the open orders account
+   * @param owner The owner of the open orders account
+   * @returns A boolean
+   */
+  static async exists(
+    connection: Connection,
+    market: PublicKey,
+    owner: PublicKey
+  ) {
+    const [address] = await PublicKey.findProgramAddress(
+      [market.toBuffer(), owner.toBuffer()],
+      DEX_ID
+    );
+    const info = await connection.getAccountInfo(address);
+    return !!info?.data;
+  }
+
+  static async addressForOwner(market: PublicKey, owner: PublicKey) {
+    const [address] = await PublicKey.findProgramAddress(
+      [market.toBuffer(), owner.toBuffer()],
+      DEX_ID
+    );
+    return address;
+  }
 }
