@@ -36,7 +36,10 @@ impl<'a, 'b: 'a> Accounts<'a, 'b> {
             user_owner: next_account_info(accounts_iter)?,
             target_lamports_account: next_account_info(accounts_iter)?,
         };
-        check_signer(&a.user_owner).unwrap();
+        check_signer(&a.user_owner).map_err(|e| {
+            msg!("The user account owner should be a signer for this transaction!");
+            e
+        })?;
         check_account_owner(a.user, &_program_id, DexError::InvalidStateAccountOwner)?;
 
         Ok(a)

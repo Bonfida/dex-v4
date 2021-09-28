@@ -50,7 +50,7 @@ impl<'a, 'b: 'a> Accounts<'a, 'b> {
             destination_quote_account: next_account_info(accounts_iter)?,
         };
         check_signer(&a.user_owner).map_err(|e| {
-            msg!("The owner of the provided user account should be a signer!");
+            msg!("The user account owner should be a signer for this transaction!");
             e
         })?;
         check_account_key(

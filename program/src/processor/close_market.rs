@@ -57,7 +57,10 @@ impl<'a, 'b: 'a> Accounts<'a, 'b> {
             target_lamports_account: next_account_info(accounts_iter)?,
         };
 
-        check_signer(a.market_admin).unwrap();
+        check_signer(a.market_admin).map_err(|e| {
+            msg!("The market admin should be a signer for this transaction!");
+            e
+        })?;
         check_account_owner(a.market, program_id, DexError::InvalidStateAccountOwner)?;
         check_account_key(
             a.aaob_program,
