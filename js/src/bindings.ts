@@ -23,7 +23,7 @@ import { Market } from "./market";
  * Constants
  */
 const MARKET_STATE_SPACE =
-  1 + 1 + 32 + 32 + 32 + 32 + 32 + 32 + 32 + 8 + 8 + 8 + 8 + 8;
+  1 + 1 + 32 + 32 + 32 + 32 + 32 + 32 + 8 + 8 + 8 + 8 + 8;
 const NODE_CAPACITY = 100;
 const EVENT_CAPACITY = 100;
 
