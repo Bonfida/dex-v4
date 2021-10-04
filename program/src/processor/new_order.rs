@@ -1,7 +1,12 @@
-use std::rc::Rc;
-
+use crate::{
+    error::DexError,
+    state::{AccountTag, CallBackInfo, DexState, FeeTier, UserAccount},
+    utils::{check_account_key, check_signer},
+    utils::{check_account_owner, fp32_mul},
+};
+use agnostic_orderbook::state::read_register;
 use agnostic_orderbook::{
-    state::{EventQueue, EventQueueHeader, OrderSummary, SelfTradeBehavior, Side},
+    state::{OrderSummary, SelfTradeBehavior, Side},
     CRANKER_REWARD,
 };
 use borsh::{BorshDeserialize, BorshSerialize};
@@ -16,15 +21,6 @@ use solana_program::{
     system_instruction, system_program,
     sysvar::Sysvar,
 };
-
-use crate::{
-    error::DexError,
-    state::{AccountTag, CallBackInfo, DexState, FeeTier, UserAccount},
-    utils::{check_account_key, check_signer},
-    utils::{check_account_owner, fp32_mul},
-};
-
-use super::CALLBACK_INFO_LEN;
 
 #[derive(BorshDeserialize, BorshSerialize)]
 /**
@@ -261,15 +257,7 @@ pub(crate) fn process(
             &[market_state.signer_nonce],
         ]],
     )?;
-    let event_queue_header =
-        EventQueueHeader::deserialize(&mut (&accounts.event_queue.data.borrow() as &[u8]))?;
-    let event_queue = EventQueue::new(
-        event_queue_header,
-        Rc::clone(&accounts.event_queue.data),
-        CALLBACK_INFO_LEN as usize,
-    );
-
-    let mut order_summary: OrderSummary = event_queue.read_register().unwrap().unwrap();
+    let mut order_summary: OrderSummary = read_register(accounts.event_queue).unwrap().unwrap();
 
     let (qty_to_transfer, transfer_destination) = match side {
         Side::Bid => {

@@ -181,8 +181,6 @@ fn consume_event(
             maker_callback_info,
             taker_callback_info,
         } => {
-            msg!("T {:?}", taker_callback_info);
-            msg!("M {:?}", maker_callback_info);
             let taker_info =
                 CallBackInfo::deserialize(&mut (&taker_callback_info as &[u8])).unwrap();
             let maker_info =
