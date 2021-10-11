@@ -68,7 +68,7 @@ impl<'a, 'b: 'a> Accounts<'a, 'b> {
         })?;
         check_account_key(
             &a.aaob_program,
-            &agnostic_orderbook::ID,
+            &agnostic_orderbook::ID.to_bytes(),
             DexError::InvalidAobProgramAccount,
         )?;
         check_account_owner(a.market, program_id, DexError::InvalidStateAccountOwner)?;
@@ -103,8 +103,7 @@ pub(crate) fn process(
         order_id,
     } = params;
 
-    let market_state =
-        DexState::deserialize(&mut (&accounts.market.data.borrow() as &[u8]))?.check()?;
+    let market_state = DexState::get(accounts.market)?;
     let mut user_account = accounts.load_user_account()?;
 
     check_accounts(program_id, &market_state, &accounts).unwrap();
@@ -138,7 +137,7 @@ pub(crate) fn process(
         ],
         &[&[
             &accounts.market.key.to_bytes(),
-            &[market_state.signer_nonce],
+            &[market_state.signer_nonce as u8],
         ]],
     )?;
 
@@ -196,13 +195,13 @@ fn check_accounts(
     let market_signer = Pubkey::create_program_address(
         &[
             &accounts.market.key.to_bytes(),
-            &[market_state.signer_nonce],
+            &[market_state.signer_nonce as u8],
         ],
         program_id,
     )?;
     check_account_key(
         accounts.market_signer,
-        &market_signer,
+        &market_signer.to_bytes(),
         DexError::InvalidMarketSignerAccount,
     )?;
     check_account_key(

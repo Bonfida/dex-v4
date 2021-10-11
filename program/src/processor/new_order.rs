@@ -13,8 +13,9 @@ use borsh::{BorshDeserialize, BorshSerialize};
 use solana_program::{
     account_info::{next_account_info, AccountInfo},
     entrypoint::ProgramResult,
+    log::sol_log_compute_units,
     msg,
-    program::{invoke, invoke_signed},
+    program::{invoke, invoke_signed_unchecked},
     program_error::ProgramError,
     pubkey::Pubkey,
     rent::Rent,
@@ -105,17 +106,17 @@ impl<'a, 'b: 'a> Accounts<'a, 'b> {
         })?;
         check_account_key(
             a.spl_token_program,
-            &spl_token::ID,
+            &spl_token::ID.to_bytes(),
             DexError::InvalidSplTokenProgram,
         )?;
         check_account_key(
             a.system_program,
-            &system_program::ID,
+            &system_program::ID.to_bytes(),
             DexError::InvalidSystemProgramAccount,
         )?;
         check_account_key(
             a.aaob_program,
-            &agnostic_orderbook::ID,
+            &agnostic_orderbook::ID.to_bytes(),
             DexError::InvalidAobProgramAccount,
         )?;
         check_account_owner(a.user, program_id, DexError::InvalidStateAccountOwner)?;
@@ -173,8 +174,7 @@ pub(crate) fn process(
         self_trade_behavior,
         match_limit,
     } = params;
-    let market_state =
-        DexState::deserialize(&mut (&accounts.market.data.borrow() as &[u8]))?.check()?;
+    let market_state = DexState::get(accounts.market)?;
     let mut user_account = accounts.load_user_account()?;
 
     // Check the order size
@@ -242,7 +242,8 @@ pub(crate) fn process(
             self_trade_behavior,
         },
     );
-    invoke_signed(
+    sol_log_compute_units();
+    invoke_signed_unchecked(
         &new_order_instruction,
         &[
             accounts.aaob_program.clone(),
@@ -254,7 +255,7 @@ pub(crate) fn process(
         ],
         &[&[
             &accounts.market.key.to_bytes(),
-            &[market_state.signer_nonce],
+            &[market_state.signer_nonce as u8],
         ]],
     )?;
     let mut order_summary: OrderSummary = read_register(accounts.event_queue).unwrap().unwrap();
@@ -351,13 +352,13 @@ fn check_accounts(
     let market_signer = Pubkey::create_program_address(
         &[
             &accounts.market.key.to_bytes(),
-            &[market_state.signer_nonce],
+            &[market_state.signer_nonce as u8],
         ],
         program_id,
     )?;
     check_account_key(
         accounts.market_signer,
-        &market_signer,
+        &market_signer.to_bytes(),
         DexError::InvalidMarketSignerAccount,
     )?;
     check_account_key(

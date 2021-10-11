@@ -64,7 +64,7 @@ impl<'a, 'b: 'a> Accounts<'a, 'b> {
         check_account_owner(a.market, program_id, DexError::InvalidStateAccountOwner)?;
         check_account_key(
             a.aaob_program,
-            &agnostic_orderbook::ID,
+            &agnostic_orderbook::ID.to_bytes(),
             DexError::InvalidAobProgramAccount,
         )?;
 
@@ -75,8 +75,7 @@ impl<'a, 'b: 'a> Accounts<'a, 'b> {
 pub(crate) fn process(program_id: &Pubkey, accounts: &[AccountInfo]) -> ProgramResult {
     let accounts = Accounts::parse(program_id, accounts)?;
 
-    let mut market_state =
-        DexState::deserialize(&mut (&accounts.market.data.borrow_mut() as &[u8]))?.check()?;
+    let mut market_state = DexState::get(accounts.market)?;
 
     check_accounts(program_id, &market_state, &accounts).unwrap();
 
@@ -118,13 +117,11 @@ pub(crate) fn process(program_id: &Pubkey, accounts: &[AccountInfo]) -> ProgramR
         ],
         &[&[
             &accounts.market.key.to_bytes(),
-            &[market_state.signer_nonce],
+            &[market_state.signer_nonce as u8],
         ]],
     )?;
 
-    market_state.tag = AccountTag::Closed;
-    let mut market_state_data: &mut [u8] = &mut accounts.market.data.borrow_mut();
-    market_state.serialize(&mut market_state_data).unwrap();
+    market_state.tag = AccountTag::Closed as u64;
 
     let mut market_lamports = accounts.market.lamports.borrow_mut();
     let mut base_vault_lamports = accounts.base_vault.lamports.borrow_mut();
@@ -149,13 +146,13 @@ fn check_accounts(
     let market_signer = Pubkey::create_program_address(
         &[
             &accounts.market.key.to_bytes(),
-            &[market_state.signer_nonce],
+            &[market_state.signer_nonce as u8],
         ],
         program_id,
     )?;
     check_account_key(
         accounts.market_signer,
-        &market_signer,
+        &market_signer.to_bytes(),
         DexError::InvalidMarketSignerAccount,
     )?;
     check_account_key(

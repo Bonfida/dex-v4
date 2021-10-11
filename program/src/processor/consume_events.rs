@@ -80,8 +80,7 @@ pub(crate) fn process(
 
     let Params { max_iterations } = params;
 
-    let mut market_state =
-        DexState::deserialize(&mut (&accounts.market.data.borrow() as &[u8]))?.check()?;
+    let mut market_state = DexState::get(accounts.market)?;
 
     let event_queue_header =
         EventQueueHeader::deserialize(&mut (&accounts.event_queue.data.borrow() as &[u8]))?;
@@ -133,12 +132,9 @@ pub(crate) fn process(
         ],
         &[&[
             &accounts.market.key.to_bytes(),
-            &[market_state.signer_nonce],
+            &[market_state.signer_nonce as u8],
         ]],
     )?;
-
-    let mut market_data: &mut [u8] = &mut accounts.market.data.borrow_mut();
-    market_state.serialize(&mut market_data).unwrap();
     Ok(())
 }
 
@@ -150,13 +146,13 @@ fn check_accounts(
     let market_signer = Pubkey::create_program_address(
         &[
             &accounts.market.key.to_bytes(),
-            &[market_state.signer_nonce],
+            &[market_state.signer_nonce as u8],
         ],
         program_id,
     )?;
     check_account_key(
         accounts.market_signer,
-        &market_signer,
+        &market_signer.to_bytes(),
         DexError::InvalidMarketSignerAccount,
     )?;
     check_account_key(

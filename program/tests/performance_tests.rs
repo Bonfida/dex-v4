@@ -13,7 +13,6 @@ const NB_INSTRUCTIONS: usize = 1_000;
 fn test_dex_perf() {
     // Create program and test environment
     let dex_program_id = Pubkey::new_unique();
-    let aaob_program_id = Pubkey::new_unique();
     let serum_dex_program_id = Pubkey::new_unique(); // The old serum version
 
     println!("Serum_dex_key {:?}", serum_dex_program_id);
@@ -26,7 +25,7 @@ fn test_dex_perf() {
     );
     program_test.add_program(
         "agnostic_orderbook",
-        aaob_program_id,
+        agnostic_orderbook::ID,
         processor!(agnostic_orderbook::entrypoint::process_instruction),
     );
     program_test.add_program("serum_dex", serum_dex_program_id, None);
@@ -35,7 +34,7 @@ fn test_dex_perf() {
 
     let (aob_dex_test_ctx, mut pgr_test_ctx) = rt.block_on(create_aob_dex(
         program_test,
-        aaob_program_id,
+        agnostic_orderbook::ID,
         dex_program_id,
     ));
 

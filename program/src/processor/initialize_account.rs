@@ -55,7 +55,7 @@ impl<'a, 'b: 'a> Accounts<'a, 'b> {
         })?;
         check_account_key(
             a.system_program,
-            &system_program::ID,
+            &system_program::ID.to_bytes(),
             DexError::InvalidSystemProgramAccount,
         )?;
         check_account_owner(

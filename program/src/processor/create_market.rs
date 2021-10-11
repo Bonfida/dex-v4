@@ -80,23 +80,23 @@ pub(crate) fn process(
         return Err(ProgramError::InvalidArgument);
     }
 
-    let market_state = DexState {
-        tag: AccountTag::DexState,
-        signer_nonce,
-        base_mint,
-        quote_mint,
-        base_vault: *accounts.base_vault.key,
-        quote_vault: *accounts.quote_vault.key,
-        orderbook: *accounts.orderbook.key,
-        admin: *accounts.market_admin.key,
+    let mut market_state = DexState::get_unchecked(accounts.market);
+
+    *market_state = DexState {
+        tag: AccountTag::DexState as u64,
+        signer_nonce: signer_nonce as u64,
+        base_mint: base_mint.to_bytes(),
+        quote_mint: quote_mint.to_bytes(),
+        base_vault: accounts.base_vault.key.to_bytes(),
+        quote_vault: accounts.quote_vault.key.to_bytes(),
+        orderbook: accounts.orderbook.key.to_bytes(),
+        admin: accounts.market_admin.key.to_bytes(),
         creation_timestamp: current_timestamp,
         base_volume: 0,
         quote_volume: 0,
         accumulated_fees: 0,
         min_base_order_size,
     };
-    let mut market_data: &mut [u8] = &mut accounts.market.data.borrow_mut();
-    market_state.serialize(&mut market_data).unwrap();
 
     Ok(())
 }

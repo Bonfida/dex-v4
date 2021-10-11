@@ -55,7 +55,7 @@ impl<'a, 'b: 'a> Accounts<'a, 'b> {
         })?;
         check_account_key(
             &a.spl_token_program,
-            &spl_token::ID,
+            &spl_token::ID.to_bytes(),
             DexError::InvalidSplTokenProgram,
         )?;
         check_account_owner(&a.market, program_id, DexError::InvalidStateAccountOwner)?;
@@ -87,8 +87,7 @@ pub(crate) fn process(
 
     let Params {} = params;
 
-    let market_state =
-        DexState::deserialize(&mut (&accounts.market.data.borrow() as &[u8]))?.check()?;
+    let market_state = DexState::get(accounts.market)?;
 
     let mut user_account = accounts.load_user_account()?;
 
@@ -96,7 +95,7 @@ pub(crate) fn process(
 
     let transfer_quote_instruction = spl_token::instruction::transfer(
         &spl_token::ID,
-        &market_state.quote_vault,
+        &Pubkey::new(&market_state.quote_vault),
         &accounts.destination_quote_account.key,
         &accounts.market_signer.key,
         &[],
@@ -113,13 +112,13 @@ pub(crate) fn process(
         ],
         &[&[
             &accounts.market.key.to_bytes(),
-            &[market_state.signer_nonce],
+            &[market_state.signer_nonce as u8],
         ]],
     )?;
 
     let transfer_base_instruction = spl_token::instruction::transfer(
         &spl_token::ID,
-        &market_state.base_vault,
+        &Pubkey::new(&market_state.base_vault),
         &accounts.destination_base_account.key,
         &accounts.market_signer.key,
         &[],
@@ -136,7 +135,7 @@ pub(crate) fn process(
         ],
         &[&[
             &accounts.market.key.to_bytes(),
-            &[market_state.signer_nonce],
+            &[market_state.signer_nonce as u8],
         ]],
     )?;
 
@@ -156,13 +155,13 @@ fn check_accounts(
     let market_signer = Pubkey::create_program_address(
         &[
             &accounts.market.key.to_bytes(),
-            &[market_state.signer_nonce],
+            &[market_state.signer_nonce as u8],
         ],
         program_id,
     )?;
     check_account_key(
         accounts.market_signer,
-        &market_signer,
+        &market_signer.to_bytes(),
         DexError::InvalidMarketSignerAccount,
     )?;
     check_account_key(

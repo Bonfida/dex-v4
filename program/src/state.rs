@@ -1,4 +1,5 @@
 use borsh::{BorshDeserialize, BorshSerialize};
+use bytemuck::{try_from_bytes_mut, Pod, Zeroable};
 use num_derive::{FromPrimitive, ToPrimitive};
 use solana_program::{
     account_info::AccountInfo,
@@ -7,7 +8,11 @@ use solana_program::{
     program_pack::{IsInitialized, Pack, Sealed},
     pubkey::Pubkey,
 };
-use std::{cell::RefCell, convert::TryInto, rc::Rc};
+use std::{
+    cell::{RefCell, RefMut},
+    convert::TryInto,
+    rc::Rc,
+};
 
 use crate::{
     error::DexError,
@@ -15,8 +20,9 @@ use crate::{
     utils::{fp32_div, fp32_mul, FP_32_ONE},
 };
 
-#[derive(BorshDeserialize, BorshSerialize, Clone, Debug, PartialEq)]
+#[derive(BorshDeserialize, BorshSerialize, Clone, Debug, PartialEq, Copy)]
 #[allow(missing_docs)]
+#[repr(u64)]
 pub enum AccountTag {
     Uninitialized,
     DexState,
@@ -33,7 +39,8 @@ pub enum Side {
 }
 
 /// This enum describes different supported behaviors for handling self trading scenarios
-#[derive(BorshDeserialize, BorshSerialize, Clone, PartialEq)]
+#[derive(BorshDeserialize, BorshSerialize, PartialEq, Clone, Copy)]
+#[repr(u64)]
 pub enum SelfTradeBehavior {
     /// Decrement take means that both the maker and taker sides of the matched orders are decremented.
     ///
@@ -46,24 +53,23 @@ pub enum SelfTradeBehavior {
 }
 
 /// The primary market state object
-#[derive(BorshDeserialize, BorshSerialize)]
+#[derive(Copy, Clone, Pod, Zeroable)]
+#[repr(C)]
 pub struct DexState {
-    /// This byte is used to verify and version the dex state
-    pub tag: AccountTag,
-    /// The signer nonce is necessary for the market to perform as a signing entity
-    pub signer_nonce: u8,
+    /// This u64 is used to verify and version the dex state
+    pub tag: u64,
     /// The mint key of the base token
-    pub base_mint: Pubkey,
+    pub base_mint: [u8; 32],
     /// The mint key of the quote token
-    pub quote_mint: Pubkey,
+    pub quote_mint: [u8; 32],
     /// The SPL token account holding the market's base tokens
-    pub base_vault: Pubkey,
+    pub base_vault: [u8; 32],
     /// The SPL token account holding the market's quote tokens
-    pub quote_vault: Pubkey,
+    pub quote_vault: [u8; 32],
     /// The asset agnostic orderbook address
-    pub orderbook: Pubkey,
+    pub orderbook: [u8; 32],
     /// The market admin which can recuperate all transaction fees
-    pub admin: Pubkey,
+    pub admin: [u8; 32],
     /// The market's creation timestamp on the Solana runtime clock.
     pub creation_timestamp: i64,
     /// The market's total historical volume in base token
@@ -74,14 +80,29 @@ pub struct DexState {
     pub accumulated_fees: u64,
     /// The market's minimum allowed order size in base token amount
     pub min_base_order_size: u64,
+    /// The signer nonce is necessary for the market to perform as a signing entity
+    pub signer_nonce: u64,
 }
 
+/// Size in bytes of the dex state object
+pub const DEX_STATE_LEN: usize = 248;
+
 impl DexState {
-    pub(crate) fn check(self) -> Result<Self, ProgramError> {
-        if self.tag != AccountTag::DexState {
+    pub(crate) fn get<'a, 'b: 'a>(
+        account_info: &'a AccountInfo<'b>,
+    ) -> Result<RefMut<'a, Self>, ProgramError> {
+        let a = Self::get_unchecked(account_info);
+        if a.tag != AccountTag::DexState as u64 {
             return Err(ProgramError::InvalidAccountData);
         };
-        Ok(self)
+        Ok(a)
+    }
+
+    pub(crate) fn get_unchecked<'a, 'b: 'a>(account_info: &'a AccountInfo<'b>) -> RefMut<'a, Self> {
+        let a = RefMut::map(account_info.data.borrow_mut(), |s| {
+            try_from_bytes_mut::<Self>(&mut s[0..DEX_STATE_LEN]).unwrap()
+        });
+        a
     }
 }
 

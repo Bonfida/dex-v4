@@ -8,10 +8,10 @@ use crate::error::DexError;
 // Safety verification functions
 pub fn check_account_key(
     account: &AccountInfo,
-    key: &Pubkey,
+    key: &[u8; 32],
     error: DexError,
 ) -> Result<(), DexError> {
-    if account.key != key {
+    if &account.key.to_bytes() != key {
         return Err(error);
     }
     Ok(())

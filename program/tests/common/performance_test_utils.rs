@@ -2,10 +2,11 @@ use std::convert::TryInto;
 
 use agnostic_orderbook::state::MarketState;
 use borsh::BorshDeserialize;
+use bytemuck::try_from_bytes;
 use dex_v3::instruction::initialize_account;
 use dex_v3::instruction::new_order;
-use dex_v3::state::DexState;
 use dex_v3::state::UserAccountHeader;
+use dex_v3::state::{DexState, DEX_STATE_LEN};
 use serum_dex::state::gen_vault_signer_key;
 use solana_program::instruction::Instruction;
 use solana_program::pubkey::Pubkey;
@@ -219,7 +220,7 @@ pub async fn create_aob_dex(
         .unwrap()
         .unwrap()
         .data;
-    let dex_market = DexState::deserialize(&mut (&dex_market_data as &[u8])).unwrap();
+    let dex_market: &DexState = try_from_bytes(&dex_market_data[..DEX_STATE_LEN] as &[u8]).unwrap();
     let aob_market_data = pgr_test_ctx
         .banks_client
         .get_account(aaob_market_account)
@@ -237,16 +238,20 @@ pub async fn create_aob_dex(
         .data;
     let user_account_header =
         dex_v3::state::UserAccountHeader::deserialize(&mut (&user_data as &[u8])).unwrap();
-    let user_base_token_account =
-        get_associated_token_address(&user_account_header.owner, &dex_market.base_mint);
-    let user_quote_token_account =
-        get_associated_token_address(&user_account_header.owner, &dex_market.quote_mint);
+    let user_base_token_account = get_associated_token_address(
+        &user_account_header.owner,
+        &Pubkey::new(&dex_market.base_mint),
+    );
+    let user_quote_token_account = get_associated_token_address(
+        &user_account_header.owner,
+        &Pubkey::new(&dex_market.quote_mint),
+    );
 
     (
         AobDexTestContext {
             dex_program_id,
             dex_market_key: market_account.pubkey(),
-            dex_market,
+            dex_market: *dex_market,
             aob_market,
             user_account_key: user_account,
             user_account: user_account_header,
@@ -298,14 +303,14 @@ pub async fn initialize_serum_market_accounts(
     // Create Vaults
     let coin_vault = create_associated_token(
         &mut pgr_test_ctx,
-        &aob_dex_test_ctx.dex_market.base_mint,
+        &Pubkey::new(&aob_dex_test_ctx.dex_market.base_mint),
         &vault_signer_pk,
     )
     .await
     .unwrap();
     let pc_vault = create_associated_token(
         &mut pgr_test_ctx,
-        &aob_dex_test_ctx.dex_market.quote_mint,
+        &Pubkey::new(&aob_dex_test_ctx.dex_market.quote_mint),
         &vault_signer_pk,
     )
     .await
@@ -314,8 +319,8 @@ pub async fn initialize_serum_market_accounts(
     let init_market_instruction = serum_dex::instruction::initialize_market(
         &market_key.pubkey(),
         &serum_dex_program_id,
-        &aob_dex_test_ctx.dex_market.base_mint,
-        &aob_dex_test_ctx.dex_market.quote_mint,
+        &Pubkey::new(&aob_dex_test_ctx.dex_market.base_mint),
+        &Pubkey::new(&aob_dex_test_ctx.dex_market.quote_mint),
         &coin_vault,
         &pc_vault,
         None,
@@ -341,10 +346,10 @@ pub async fn initialize_serum_market_accounts(
         pc_lot_size: 1,
         vault_signer_pk,
         vault_signer_nonce,
-        coin_vault: coin_vault,
-        pc_vault: pc_vault,
-        coin_mint: aob_dex_test_ctx.dex_market.base_mint,
-        pc_mint: aob_dex_test_ctx.dex_market.quote_mint,
+        coin_vault,
+        pc_vault,
+        coin_mint: Pubkey::new(&aob_dex_test_ctx.dex_market.base_mint),
+        pc_mint: Pubkey::new(&aob_dex_test_ctx.dex_market.quote_mint),
     };
     sign_send_instructions(&mut pgr_test_ctx, vec![init_market_instruction], vec![])
         .await
@@ -398,12 +403,12 @@ pub async fn aob_dex_new_order(
         agnostic_orderbook::ID,
         dex_test_ctx.dex_market_key,
         dex_test_ctx.aob_market.caller_authority,
-        dex_test_ctx.dex_market.orderbook,
+        Pubkey::new(&dex_test_ctx.dex_market.orderbook),
         dex_test_ctx.aob_market.event_queue,
         dex_test_ctx.aob_market.bids,
         dex_test_ctx.aob_market.asks,
-        dex_test_ctx.dex_market.base_vault,
-        dex_test_ctx.dex_market.quote_vault,
+        Pubkey::new(&dex_test_ctx.dex_market.base_vault),
+        Pubkey::new(&dex_test_ctx.dex_market.quote_vault),
         dex_test_ctx.user_account_key,
         dex_test_ctx.user_base,
         dex_test_ctx.user_owner.pubkey(),
@@ -427,6 +432,7 @@ pub async fn aob_dex_new_order(
     .unwrap();
 }
 
+#[allow(clippy::too_many_arguments)]
 pub async fn serum_dex_new_order(
     mut pgr_test_ctx: &mut ProgramTestContext,
     aob_dex_test_ctx: &AobDexTestContext,
