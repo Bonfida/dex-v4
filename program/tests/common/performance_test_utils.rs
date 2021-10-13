@@ -17,7 +17,6 @@ use solana_program::sysvar;
 use solana_program_test::{ProgramTest, ProgramTestContext};
 use solana_sdk::signature::Signer;
 use solana_sdk::{signature::Keypair, transport::TransportError};
-use spl_associated_token_account::get_associated_token_address;
 use spl_token::instruction::mint_to;
 
 use crate::common::utils::create_associated_token;
@@ -25,21 +24,24 @@ use crate::common::utils::create_market_and_accounts;
 use crate::common::utils::mint_bootstrap;
 use crate::common::utils::sign_send_instructions;
 
+pub(crate) const NB_USER_ACCS: u32 = 10;
+
 pub struct AobDexTestContext {
+    pub aaob_program_id: Pubkey,
     pub dex_program_id: Pubkey,
     pub dex_market_key: Pubkey,
     pub dex_market: DexState,
     pub aob_market: MarketState,
-    pub user_account_key: Pubkey,
-    pub user_account: UserAccountHeader,
-    pub user_owner: Keypair,
-    pub user_base: Pubkey,
-    pub user_quote: Pubkey,
+    pub user_account_keys: Vec<Pubkey>,
+    // pub user_accounts: Vec<UserAccountHeader>,
+    pub user_owners: Vec<Keypair>,
+    pub user_bases: Vec<Pubkey>,
+    pub user_quotes: Vec<Pubkey>,
 }
 
 pub struct SerumTestContext {
     serum_market: SerumMarket,
-    open_order: Pubkey,
+    open_orders: Vec<Pubkey>,
 }
 
 pub struct SerumMarket {
@@ -127,91 +129,103 @@ pub async fn create_aob_dex(
         .unwrap();
 
     // Create User accounts
-    let user_account_owner = Keypair::new();
-    let create_user_account_owner_instruction = create_account(
-        &pgr_test_ctx.payer.pubkey(),
-        &user_account_owner.pubkey(),
-        1_000_000,
-        0,
-        &system_program::ID,
-    );
-    sign_send_instructions(
-        &mut pgr_test_ctx,
-        vec![create_user_account_owner_instruction],
-        vec![&user_account_owner],
-    )
-    .await
-    .unwrap();
-    let (user_account, _) = Pubkey::find_program_address(
-        &[
-            &market_account.pubkey().to_bytes(),
-            &user_account_owner.pubkey().to_bytes(),
-        ],
-        &dex_program_id,
-    );
-    let create_user_account_instruction = initialize_account(
-        dex_program_id,
-        user_account,
-        user_account_owner.pubkey(),
-        pgr_test_ctx.payer.pubkey(),
-        initialize_account::Params {
-            market: market_account.pubkey(),
-            max_orders: 10,
-        },
-    );
-    sign_send_instructions(
-        &mut pgr_test_ctx,
-        vec![create_user_account_instruction],
-        vec![&user_account_owner],
-    )
-    .await
-    .unwrap();
-    let user_base_token_account = create_associated_token(
-        &mut pgr_test_ctx,
-        &base_mint_key,
-        &user_account_owner.pubkey(),
-    )
-    .await
-    .unwrap();
-    let mint_to_instruction = mint_to(
-        &spl_token::ID,
-        &base_mint_key,
-        &user_base_token_account,
-        &base_mint_auth.pubkey(),
-        &[],
-        1 << 25,
-    )
-    .unwrap();
-    sign_send_instructions(
-        &mut pgr_test_ctx,
-        vec![mint_to_instruction],
-        vec![&base_mint_auth],
-    )
-    .await
-    .unwrap();
-    let user_quote_token_account = create_associated_token(
-        &mut pgr_test_ctx,
-        &quote_mint_key,
-        &user_account_owner.pubkey(),
-    )
-    .await
-    .unwrap();
-    let mint_to_instruction = mint_to(
-        &spl_token::ID,
-        &quote_mint_key,
-        &user_quote_token_account,
-        &quote_mint_auth.pubkey(),
-        &[],
-        1 << 25,
-    )
-    .unwrap();
-    sign_send_instructions(
-        &mut pgr_test_ctx,
-        vec![mint_to_instruction],
-        vec![&quote_mint_auth],
-    )
-    .await
-    .unwrap();
+    let mut user_account_keys = Vec::with_capacity(NB_USER_ACCS as usize);
+    let mut user_owners = Vec::with_capacity(NB_USER_ACCS as usize);
+    let mut user_quotes = Vec::with_capacity(NB_USER_ACCS as usize);
+    let mut user_bases = Vec::with_capacity(NB_USER_ACCS as usize);
+    for _ in 0..NB_USER_ACCS {
+        let user_account_owner = Keypair::new();
+        let create_user_account_owner_instruction = create_account(
+            &pgr_test_ctx.payer.pubkey(),
+            &user_account_owner.pubkey(),
+            1_000_000_000_000,
+            0,
+            &system_program::ID,
+        );
+        sign_send_instructions(
+            &mut pgr_test_ctx,
+            vec![create_user_account_owner_instruction],
+            vec![&user_account_owner],
+        )
+        .await
+        .unwrap();
+
+        let (user_account, _) = Pubkey::find_program_address(
+            &[
+                &market_account.pubkey().to_bytes(),
+                &user_account_owner.pubkey().to_bytes(),
+            ],
+            &dex_program_id,
+        );
+        let create_user_account_instruction = initialize_account(
+            dex_program_id,
+            user_account,
+            user_account_owner.pubkey(),
+            pgr_test_ctx.payer.pubkey(),
+            initialize_account::Params {
+                market: market_account.pubkey(),
+                max_orders: 100,
+            },
+        );
+        sign_send_instructions(
+            &mut pgr_test_ctx,
+            vec![create_user_account_instruction],
+            vec![&user_account_owner],
+        )
+        .await
+        .unwrap();
+        user_account_keys.push(user_account);
+        let user_base_token_account = create_associated_token(
+            &mut pgr_test_ctx,
+            &base_mint_key,
+            &user_account_owner.pubkey(),
+        )
+        .await
+        .unwrap();
+        user_bases.push(user_base_token_account);
+        let mint_to_instruction = mint_to(
+            &spl_token::ID,
+            &base_mint_key,
+            &user_base_token_account,
+            &base_mint_auth.pubkey(),
+            &[],
+            1 << 25,
+        )
+        .unwrap();
+        sign_send_instructions(
+            &mut pgr_test_ctx,
+            vec![mint_to_instruction],
+            vec![&base_mint_auth],
+        )
+        .await
+        .unwrap();
+
+        let user_quote_token_account = create_associated_token(
+            &mut pgr_test_ctx,
+            &quote_mint_key,
+            &user_account_owner.pubkey(),
+        )
+        .await
+        .unwrap();
+        user_quotes.push(user_quote_token_account);
+        let mint_to_instruction = mint_to(
+            &spl_token::ID,
+            &quote_mint_key,
+            &user_quote_token_account,
+            &quote_mint_auth.pubkey(),
+            &[],
+            1 << 25,
+        )
+        .unwrap();
+        sign_send_instructions(
+            &mut pgr_test_ctx,
+            vec![mint_to_instruction],
+            vec![&quote_mint_auth],
+        )
+        .await
+        .unwrap();
+        user_owners.push(user_account_owner);
+    }
 
     let dex_market_data = pgr_test_ctx
         .banks_client
@@ -229,35 +243,19 @@ pub async fn create_aob_dex(
         .unwrap()
         .data;
     let aob_market = MarketState::deserialize(&mut (&aob_market_data as &[u8])).unwrap();
-    let user_data = pgr_test_ctx
-        .banks_client
-        .get_account(user_account)
-        .await
-        .unwrap()
-        .unwrap()
-        .data;
-    let user_account_header =
-        dex_v3::state::UserAccountHeader::deserialize(&mut (&user_data as &[u8])).unwrap();
-    let user_base_token_account = get_associated_token_address(
-        &user_account_header.owner,
-        &Pubkey::new(&dex_market.base_mint),
-    );
-    let user_quote_token_account = get_associated_token_address(
-        &user_account_header.owner,
-        &Pubkey::new(&dex_market.quote_mint),
-    );
 
     (
         AobDexTestContext {
+            aaob_program_id,
             dex_program_id,
             dex_market_key: market_account.pubkey(),
             dex_market: *dex_market,
             aob_market,
-            user_account_key: user_account,
-            user_account: user_account_header,
-            user_owner: user_account_owner,
-            user_base: user_base_token_account,
-            user_quote: user_quote_token_account,
+            user_account_keys,
+            // user_account: user_account_header,
+            user_owners,
+            user_bases,
+            user_quotes,
         },
         pgr_test_ctx,
     )
@@ -355,20 +353,24 @@ pub async fn initialize_serum_market_accounts(
         .await
         .unwrap();
 
-    // Create user open orders account
-    let (open_order, create_open_order_instruction) =
-        create_serum_dex_account(&pgr_test_ctx, serum_dex_program_id, 3216).unwrap();
-    sign_send_instructions(
-        &mut pgr_test_ctx,
-        vec![create_open_order_instruction],
-        vec![&open_order],
-    )
-    .await
-    .unwrap();
+    let mut open_orders = Vec::with_capacity(NB_USER_ACCS.try_into().unwrap());
+    for _ in 0..NB_USER_ACCS {
+        // Create user open orders account
+        let (open_order, create_open_order_instruction) =
+            create_serum_dex_account(&pgr_test_ctx, serum_dex_program_id, 3216).unwrap();
+        sign_send_instructions(
+            &mut pgr_test_ctx,
+            vec![create_open_order_instruction],
+            vec![&open_order],
+        )
+        .await
+        .unwrap();
+        open_orders.push(open_order.pubkey());
+    }
 
     Ok(SerumTestContext {
         serum_market,
-        open_order: open_order.pubkey(),
+        open_orders,
     })
 }
 
@@ -396,22 +398,26 @@ pub async fn aob_dex_new_order(
     limit_price: u64,
     max_base_qty: u64,
     max_quote_qty: u64,
+    user_account_index: usize,
 ) {
     // New Order on AOB DEX
     let new_order_instruction = new_order(
         dex_test_ctx.dex_program_id,
-        agnostic_orderbook::ID,
+        dex_test_ctx.aaob_program_id,
         dex_test_ctx.dex_market_key,
         dex_test_ctx.aob_market.caller_authority,
         Pubkey::new(&dex_test_ctx.dex_market.orderbook),
         dex_test_ctx.aob_market.event_queue,
         dex_test_ctx.aob_market.bids,
         dex_test_ctx.aob_market.asks,
-        Pubkey::new(&dex_test_ctx.dex_market.base_vault),
-        Pubkey::new(&dex_test_ctx.dex_market.quote_vault),
-        dex_test_ctx.user_account_key,
-        dex_test_ctx.user_base,
-        dex_test_ctx.user_owner.pubkey(),
+        dex_test_ctx.dex_market.base_vault,
+        dex_test_ctx.dex_market.quote_vault,
+        dex_test_ctx.user_account_keys[user_account_index],
+        match side {
+            agnostic_orderbook::state::Side::Ask => dex_test_ctx.user_bases[user_account_index],
+            agnostic_orderbook::state::Side::Bid => dex_test_ctx.user_quotes[user_account_index],
+        },
+        dex_test_ctx.user_owners[user_account_index].pubkey(),
         None,
         new_order::Params {
             side,
@@ -426,7 +432,7 @@ pub async fn aob_dex_new_order(
     sign_send_instructions(
         &mut pgr_test_ctx,
         vec![new_order_instruction],
-        vec![&dex_test_ctx.user_owner],
+        vec![&dex_test_ctx.user_owners[user_account_index]],
     )
     .await
     .unwrap();
@@ -442,20 +448,21 @@ pub async fn serum_dex_new_order(
     limit_price: u64,
     max_coin_qty: u64,
     max_native_pc_qty_including_fees: u64,
+    open_orders_index: usize,
 ) {
     // New order on old Serum Dex
     let new_order_instruction = serum_dex::instruction::new_order(
         &serum_test_ctx.serum_market.market_key.pubkey(),
-        &serum_test_ctx.open_order,
+        &serum_test_ctx.open_orders[open_orders_index],
         &serum_test_ctx.serum_market.req_q_key.pubkey(),
         &serum_test_ctx.serum_market.event_q_key.pubkey(),
         &serum_test_ctx.serum_market.bids_key.pubkey(),
         &serum_test_ctx.serum_market.asks_key.pubkey(),
         &match side {
-            serum_dex::matching::Side::Bid => aob_dex_test_ctx.user_quote,
-            serum_dex::matching::Side::Ask => aob_dex_test_ctx.user_base,
+            serum_dex::matching::Side::Bid => aob_dex_test_ctx.user_quotes[open_orders_index],
+            serum_dex::matching::Side::Ask => aob_dex_test_ctx.user_bases[open_orders_index],
         },
-        &aob_dex_test_ctx.user_owner.pubkey(),
+        &aob_dex_test_ctx.user_owners[open_orders_index].pubkey(),
         &serum_test_ctx.serum_market.coin_vault,
         &serum_test_ctx.serum_market.pc_vault,
         &spl_token::ID,
@@ -475,7 +482,7 @@ pub async fn serum_dex_new_order(
     sign_send_instructions(
         &mut pgr_test_ctx,
         vec![new_order_instruction],
-        vec![&aob_dex_test_ctx.user_owner],
+        vec![&aob_dex_test_ctx.user_owners[open_orders_index]],
     )
     .await
     .unwrap();

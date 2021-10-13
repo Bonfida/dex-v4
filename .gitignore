@@ -4,3 +4,4 @@ node_modules/
 docs/
 .env
 wallet.json
+out.log

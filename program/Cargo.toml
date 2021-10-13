@@ -27,10 +27,11 @@ solana-client = "1.8.0"
 rand = "0.8.3"
 serum_dex = {git = "https://github.com/project-serum/serum-dex.git", features = ["no-entrypoint"]}
 solana-program-test = "1.7.10"
-tokio = {version="1.10.0", features = ["macros"]}
+tokio = {version="1.12.0", features = ["macros", "rt"]}
 futures = "0.3.15"
 futures-util = "0.3.15"
 rand_distr = "0.4.0"
+log4rs = "1.0.0"
 spl-associated-token-account = {version = "1.0.2", features = ["no-entrypoint"]}
 
 [lib]

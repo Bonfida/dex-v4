@@ -1,10 +1,15 @@
+use std::convert::TryInto;
+
 use agnostic_orderbook::state::MarketState;
 use borsh::BorshDeserialize;
+use dex_v3::instruction::cancel_order;
 use dex_v3::instruction::consume_events;
 use dex_v3::instruction::create_market;
 use dex_v3::instruction::initialize_account;
 use dex_v3::instruction::new_order;
 use dex_v3::instruction::settle;
+use dex_v3::state::UserAccountHeader;
+use solana_program::program_pack::Pack;
 use solana_program::pubkey::Pubkey;
 use solana_program::system_instruction::create_account;
 use solana_program::system_program;
@@ -26,12 +31,13 @@ async fn test_dex() {
     let mut program_test = ProgramTest::new(
         "dex_v3",
         dex_program_id,
-        processor!(dex_v3::entrypoint::process_instruction),
+        None,
+        // processor!(dex_v3::entrypoint::process_instruction),
     );
     program_test.add_program(
         "agnostic_orderbook",
         aaob_program_id,
-        processor!(agnostic_orderbook::entrypoint::process_instruction),
+        None, // processor!(agnostic_orderbook::entrypoint::process_instruction),
     );
 
     // Create the market mints
@@ -49,7 +55,7 @@ async fn test_dex() {
         &prg_test_ctx.payer.pubkey(),
         &market_account.pubkey(),
         1_000_000,
-        1_000_000,
+        250,
         &dex_program_id,
     );
     sign_send_instructions(
@@ -191,7 +197,7 @@ async fn test_dex() {
     .await
     .unwrap();
 
-    // New Order
+    // New Order, to be cancelled
     let new_order_instruction = new_order(
         dex_program_id,
         aaob_program_id,
@@ -225,7 +231,77 @@ async fn test_dex() {
     .await
     .unwrap();
 
-    // New Order
+    let user_acc_data = prg_test_ctx
+        .banks_client
+        .get_account(user_account)
+        .await
+        .unwrap()
+        .unwrap()
+        .data;
+
+    // Cancel Order
+    let new_order_instruction = cancel_order(
+        dex_program_id,
+        aaob_program_id,
+        market_account.pubkey(),
+        market_signer,
+        aaob_market_account,
+        aaob_market_state.event_queue,
+        aaob_market_state.bids,
+        aaob_market_state.asks,
+        user_account,
+        user_account_owner.pubkey(),
+        cancel_order::Params {
+            order_index: 0,
+            order_id: {
+                let offset = UserAccountHeader::LEN;
+                u128::from_le_bytes(user_acc_data[offset..offset + 16].try_into().unwrap())
+            },
+        },
+    );
+    sign_send_instructions(
+        &mut prg_test_ctx,
+        vec![new_order_instruction],
+        vec![&user_account_owner],
+    )
+    .await
+    .unwrap();
+
+    // New Order, to be matched
+    let new_order_instruction = new_order(
+        dex_program_id,
+        aaob_program_id,
+        market_account.pubkey(),
+        market_signer,
+        aaob_market_account,
+        aaob_market_state.event_queue,
+        aaob_market_state.bids,
+        aaob_market_state.asks,
+        base_vault,
+        quote_vault,
+        user_account,
+        user_base_token_account,
+        user_account_owner.pubkey(),
+        None,
+        new_order::Params {
+            side: agnostic_orderbook::state::Side::Ask,
+            limit_price: 1000,
+            max_base_qty: 1100,
+            max_quote_qty: 1000,
+            order_type: new_order::OrderType::Limit,
+            self_trade_behavior: agnostic_orderbook::state::SelfTradeBehavior::DecrementTake,
+            match_limit: 10,
+        },
+    );
+    sign_send_instructions(
+        &mut prg_test_ctx,
+        vec![new_order_instruction],
+        vec![&user_account_owner],
+    )
+    .await
+    .unwrap();
+
+    // New Order, matching
     let new_order_instruction = new_order(
         dex_program_id,
         aaob_program_id,

@@ -91,7 +91,7 @@ pub async fn create_market_and_accounts(
         &prg_test_ctx.payer.pubkey(),
         &market_account.pubkey(),
         1_000_000,
-        1_000_000,
+        250,
         &agnostic_orderbook_program_id,
     );
     sign_send_instructions(
@@ -108,7 +108,7 @@ pub async fn create_market_and_accounts(
         &prg_test_ctx.payer.pubkey(),
         &event_queue_account.pubkey(),
         1_000_000,
-        1_000_000,
+        1_000,
         &agnostic_orderbook_program_id,
     );
     sign_send_instructions(

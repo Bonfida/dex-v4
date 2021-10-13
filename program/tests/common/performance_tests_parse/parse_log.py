@@ -1,4 +1,5 @@
 import os
+import matplotlib.pyplot as plt
 
 log_file = open("out.log", "r")
 serum_dex_program_id = ""
@@ -22,3 +23,6 @@ for line in log_file:
         if (aob_dex_program_id + " consumed") in line:
             aob_nb_instr.append(int(line.split(" ")[6]))
 print(serum_nb_instr, aob_nb_instr)
+plt.plot(serum_nb_instr, label=("Serum dex"))
+plt.plot(aob_nb_instr, label=("Aob dex"))
+plt.show()
