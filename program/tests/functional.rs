@@ -1,7 +1,7 @@
 use std::convert::TryInto;
 
 use agnostic_orderbook::state::MarketState;
-use borsh::BorshDeserialize;
+use bytemuck::try_from_bytes;
 use dex_v3::instruction::cancel_order;
 use dex_v3::instruction::consume_events;
 use dex_v3::instruction::create_market;
@@ -79,8 +79,8 @@ async fn test_dex() {
         .await
         .unwrap()
         .unwrap();
-    let aaob_market_state =
-        MarketState::deserialize(&mut &aaob_market_state_data.data[..]).unwrap();
+    let aaob_market_state: &MarketState =
+        try_from_bytes(&aaob_market_state_data.data[..std::mem::size_of::<MarketState>()]).unwrap();
 
     // Create the vault accounts
     let base_vault = create_associated_token(&mut prg_test_ctx, &base_mint_key, &market_signer)
@@ -203,9 +203,9 @@ async fn test_dex() {
         market_account.pubkey(),
         market_signer,
         aaob_market_account,
-        aaob_market_state.event_queue,
-        aaob_market_state.bids,
-        aaob_market_state.asks,
+        Pubkey::new(&aaob_market_state.event_queue),
+        Pubkey::new(&aaob_market_state.bids),
+        Pubkey::new(&aaob_market_state.asks),
         base_vault,
         quote_vault,
         user_account,
@@ -246,9 +246,9 @@ async fn test_dex() {
         market_account.pubkey(),
         market_signer,
         aaob_market_account,
-        aaob_market_state.event_queue,
-        aaob_market_state.bids,
-        aaob_market_state.asks,
+        Pubkey::new(&aaob_market_state.event_queue),
+        Pubkey::new(&aaob_market_state.bids),
+        Pubkey::new(&aaob_market_state.asks),
         user_account,
         user_account_owner.pubkey(),
         cancel_order::Params {
@@ -274,9 +274,9 @@ async fn test_dex() {
         market_account.pubkey(),
         market_signer,
         aaob_market_account,
-        aaob_market_state.event_queue,
-        aaob_market_state.bids,
-        aaob_market_state.asks,
+        Pubkey::new(&aaob_market_state.event_queue),
+        Pubkey::new(&aaob_market_state.bids),
+        Pubkey::new(&aaob_market_state.asks),
         base_vault,
         quote_vault,
         user_account,
@@ -309,9 +309,9 @@ async fn test_dex() {
         market_account.pubkey(),
         market_signer,
         aaob_market_account,
-        aaob_market_state.event_queue,
-        aaob_market_state.bids,
-        aaob_market_state.asks,
+        Pubkey::new(&aaob_market_state.event_queue),
+        Pubkey::new(&aaob_market_state.bids),
+        Pubkey::new(&aaob_market_state.asks),
         base_vault,
         quote_vault,
         user_account,
@@ -346,7 +346,7 @@ async fn test_dex() {
         market_account.pubkey(),
         market_signer,
         aaob_market_account,
-        aaob_market_state.event_queue,
+        Pubkey::new(&aaob_market_state.event_queue),
         reward_target.pubkey(),
         base_vault,
         prg_test_ctx.payer.pubkey(),

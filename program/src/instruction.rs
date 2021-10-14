@@ -141,7 +141,6 @@ impl DexInstruction {
         let mut result: Vec<u8> = Vec::with_capacity(size_of::<T>() + INSTRUCTION_TAG_OFFSET);
         result.extend_from_slice(bytes_of(&(*self as u64)));
         result.extend_from_slice(bytes_of(&params));
-        println!("{:?}", result);
         result
     }
 }
