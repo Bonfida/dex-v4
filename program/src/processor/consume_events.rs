@@ -187,7 +187,7 @@ fn consume_event(
             if taker_info.user_account == maker_info.user_account {
                 // Self trade scenario
                 // The account has already been credited at the time of matching by new_order.
-                let mut taker_account = UserAccount::parse(maker_account_info).unwrap();
+                let mut taker_account = UserAccount::get(maker_account_info).unwrap();
                 let maker_rebate = taker_info.fee_tier.maker_rebate(quote_size);
                 taker_account.header.quote_token_free = taker_account
                     .header
@@ -218,8 +218,7 @@ fn consume_event(
                 taker_account.header.accumulated_taker_quote_volume += quote_size;
                 taker_account.header.accumulated_taker_base_volume += base_size;
             } else {
-                let mut maker_account = UserAccount::parse(maker_account_info).unwrap();
-
+                let mut maker_account = UserAccount::get(maker_account_info).unwrap();
                 match taker_side {
                     Side::Bid => {
                         let maker_rebate = maker_info.fee_tier.maker_rebate(quote_size);
@@ -289,7 +288,7 @@ fn consume_event(
             let user_account_info = &accounts[accounts
                 .binary_search_by_key(&user_callback_info.user_account, |k| *k.key)
                 .map_err(|_| DexError::MissingUserAccount)?];
-            let mut user_account = UserAccount::parse(user_account_info).unwrap();
+            let mut user_account = UserAccount::get(user_account_info).unwrap();
 
             if base_size != 0 {
                 match side {
@@ -315,7 +314,6 @@ fn consume_event(
                 let order_index = user_account.find_order_index(order_id).unwrap();
                 user_account.remove_order(order_index).unwrap();
             }
-            user_account.write();
         }
     };
     Ok(())

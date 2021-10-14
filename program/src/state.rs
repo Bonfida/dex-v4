@@ -1,18 +1,10 @@
 use borsh::{BorshDeserialize, BorshSerialize};
-use bytemuck::{try_from_bytes_mut, Pod, Zeroable};
+use bytemuck::{try_cast_slice_mut, try_from_bytes_mut, Pod, Zeroable};
 use num_derive::{FromPrimitive, ToPrimitive};
 use solana_program::{
-    account_info::AccountInfo,
-    msg,
-    program_error::ProgramError,
-    program_pack::{IsInitialized, Pack, Sealed},
-    pubkey::Pubkey,
+    account_info::AccountInfo, msg, program_error::ProgramError, program_pack::Pack, pubkey::Pubkey,
 };
-use std::{
-    cell::{RefCell, RefMut},
-    convert::TryInto,
-    rc::Rc,
-};
+use std::cell::RefMut;
 
 use crate::{
     error::DexError,
@@ -107,14 +99,15 @@ impl DexState {
 }
 
 /// This header describes a user account's state
-#[derive(BorshDeserialize, BorshSerialize)]
+#[derive(Copy, Clone, Pod, Zeroable)]
+#[repr(C)]
 pub struct UserAccountHeader {
     /// This byte is used to verify and version the dex state
-    pub tag: AccountTag,
+    pub tag: u64,
     /// The user account's assocatied DEX market
-    pub market: Pubkey,
+    pub market: [u8; 32],
     /// The user account owner's wallet
-    pub owner: Pubkey,
+    pub owner: [u8; 32],
     /// The amount of base token available for settlement
     pub base_token_free: u64,
     /// The amount of base token currently locked in the orderbook
@@ -135,61 +128,67 @@ pub struct UserAccountHeader {
     pub accumulated_taker_quote_volume: u64,
     /// The accumulated taker quote volume of the user. This field is just a metric.
     pub accumulated_taker_base_volume: u64,
+    /// We are forced to add padding here to keep the subsequent field as a u32 which maintains Borsh compatibility while respecting alignment constraints
+    _padding: u32,
     /// The user account's number of active orders.
     pub number_of_orders: u32,
 }
 
-impl Sealed for UserAccountHeader {}
-
-impl Pack for UserAccountHeader {
-    const LEN: usize = 109;
-
-    fn pack_into_slice(&self, mut dst: &mut [u8]) {
-        self.serialize(&mut dst).unwrap()
-    }
-
-    fn unpack_from_slice(mut src: &[u8]) -> Result<Self, ProgramError> {
-        UserAccountHeader::deserialize(&mut src).map_err(|_| ProgramError::InvalidAccountData)
-    }
-}
-
-impl IsInitialized for UserAccountHeader {
-    fn is_initialized(&self) -> bool {
-        self.tag == AccountTag::UserAccount
-    }
-}
-
 pub(crate) struct UserAccount<'a> {
-    pub header: UserAccountHeader,
-    data: Rc<RefCell<&'a mut [u8]>>,
+    pub header: RefMut<'a, UserAccountHeader>,
+    orders: RefMut<'a, [u128]>,
+}
+
+/// Size in bytes of the user account header object
+pub const USER_ACCOUNT_HEADER_LEN: usize = 120;
+
+impl UserAccountHeader {
+    pub(crate) fn new(market: &Pubkey, owner: &Pubkey) -> Self {
+        Self {
+            tag: AccountTag::UserAccount as u64,
+            market: market.to_bytes(),
+            owner: owner.to_bytes(),
+            base_token_free: 0,
+            base_token_locked: 0,
+            quote_token_free: 0,
+            quote_token_locked: 0,
+            number_of_orders: 0,
+            accumulated_rebates: 0,
+            _padding: 0,
+        }
+    }
 }
 
 impl<'a> UserAccount<'a> {
-    pub fn new(account: &AccountInfo<'a>, header: UserAccountHeader) -> Self {
+    pub(crate) fn get<'b: 'a>(account_info: &'a AccountInfo<'b>) -> Result<Self, ProgramError> {
+        let a = Self::get_unchecked(account_info);
+        if a.header.tag != AccountTag::UserAccount as u64 {
+            return Err(ProgramError::InvalidAccountData);
+        };
+        Ok(a)
+    }
+
+    pub(crate) fn get_unchecked<'b: 'a>(account_info: &'a AccountInfo<'b>) -> Self {
+        let a = RefMut::map_split(account_info.data.borrow_mut(), |s| {
+            let (hd, tl) = s.split_at_mut(USER_ACCOUNT_HEADER_LEN);
+            (
+                try_from_bytes_mut(hd).unwrap(),
+                try_cast_slice_mut(tl).unwrap(),
+            )
+        });
         Self {
-            header,
-            data: Rc::clone(&account.data),
+            header: a.0,
+            orders: a.1,
         }
     }
-    pub fn parse(account: &AccountInfo<'a>) -> Result<Self, ProgramError> {
-        Ok(Self {
-            header: UserAccountHeader::unpack(&account.data.borrow()[..UserAccountHeader::LEN])?,
-            data: Rc::clone(&account.data),
-        })
-    }
+}
 
-    pub fn write(&self) {
-        self.header.pack_into_slice(&mut self.data.borrow_mut());
-    }
-
+impl<'a> UserAccount<'a> {
     pub fn read_order(&self, order_index: usize) -> Result<u128, DexError> {
         if order_index >= self.header.number_of_orders as usize {
             return Err(DexError::InvalidOrderIndex);
         }
-        let offset = UserAccountHeader::LEN + order_index * 16;
-        Ok(u128::from_le_bytes(
-            self.data.borrow()[offset..offset + 16].try_into().unwrap(),
-        ))
+        Ok(self.orders[order_index])
     }
 
     pub fn remove_order(&mut self, order_index: usize) -> Result<(), DexError> {
@@ -197,35 +196,31 @@ impl<'a> UserAccount<'a> {
             return Err(DexError::InvalidOrderIndex);
         }
         if self.header.number_of_orders - order_index as u32 != 1 {
-            let last_order = self.read_order((self.header.number_of_orders - 1) as usize)?;
-            let offset = UserAccountHeader::LEN + order_index * 16;
-            self.data.borrow_mut()[offset..offset + 16].copy_from_slice(&last_order.to_le_bytes());
+            self.orders[order_index] = self.orders[self.header.number_of_orders as usize - 1];
         }
         self.header.number_of_orders -= 1;
         Ok(())
     }
 
     pub fn add_order(&mut self, order: u128) -> Result<(), DexError> {
-        let offset = UserAccountHeader::LEN + (self.header.number_of_orders * 16) as usize;
-        self.data
-            .borrow_mut()
-            .get_mut(offset..offset + 16)
-            .map(|b| b.copy_from_slice(&order.to_le_bytes()))
+        let slot = self
+            .orders
+            .get_mut(self.header.number_of_orders as usize)
             .ok_or(DexError::UserAccountFull)?;
+        *slot = order;
         self.header.number_of_orders += 1;
         Ok(())
     }
 
     pub fn find_order_index(&self, order_id: u128) -> Result<usize, DexError> {
-        let data: &[u8] = &self.data.borrow();
-        Ok((UserAccountHeader::LEN..)
-            .step_by(16)
-            .take(self.header.number_of_orders as usize)
-            .map(|offset| u128::from_le_bytes(data[offset..offset + 16].try_into().unwrap()))
+        let res = self
+            .orders
+            .iter()
             .enumerate()
-            .find(|(_, b)| b == &order_id)
+            .find(|(_, b)| b == &&order_id)
             .ok_or(DexError::OrderNotFound)?
-            .0)
+            .0;
+        Ok(res)
     }
 }
 

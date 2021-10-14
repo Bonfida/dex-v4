@@ -5,7 +5,6 @@ use solana_program::{
     msg,
     program::invoke_signed,
     program_error::ProgramError,
-    program_pack::Pack,
     pubkey::Pubkey,
     rent::Rent,
     system_instruction::create_account,
@@ -15,7 +14,7 @@ use solana_program::{
 
 use crate::{
     error::DexError,
-    state::{AccountTag, Order, UserAccount, UserAccountHeader},
+    state::{Order, UserAccount, UserAccountHeader, USER_ACCOUNT_HEADER_LEN},
     utils::{check_account_key, check_account_owner, check_signer},
 };
 
@@ -91,7 +90,7 @@ pub(crate) fn process(
         msg!("The minimum number of orders an account should be able to hold is 1");
         return Err(ProgramError::InvalidArgument);
     }
-    let space = (UserAccountHeader::LEN as u64) + max_orders * (u128::LEN as u64);
+    let space = (USER_ACCOUNT_HEADER_LEN as u64) + max_orders * (u128::LEN as u64);
 
     let lamports = Rent::get()?.minimum_balance(space as usize);
 
@@ -116,27 +115,9 @@ pub(crate) fn process(
             &[user_account_nonce],
         ]],
     )?;
+    let mut u = UserAccount::get_unchecked(accounts.user);
 
-    let u = UserAccount::new(
-        accounts.user,
-        UserAccountHeader {
-            tag: AccountTag::UserAccount,
-            market,
-            owner: *accounts.user_owner.key,
-            base_token_free: 0,
-            base_token_locked: 0,
-            quote_token_free: 0,
-            quote_token_locked: 0,
-            number_of_orders: 0,
-            accumulated_rebates: 0,
-            accumulated_maker_quote_volume: 0,
-            accumulated_maker_base_volume: 0,
-            accumulated_taker_quote_volume: 0,
-            accumulated_taker_base_volume: 0,
-        },
-    );
-
-    u.write();
+    *(u.header) = UserAccountHeader::new(&market, accounts.user_owner.key);
 
     Ok(())
 }
