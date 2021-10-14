@@ -77,13 +77,13 @@ impl<'a, 'b: 'a> Accounts<'a, 'b> {
         Ok(a)
     }
 
-    pub fn load_user_account(&self) -> Result<UserAccount<'b>, ProgramError> {
-        let user_account = UserAccount::parse(&self.user)?;
-        if &user_account.header.owner != self.user_owner.key {
+    pub fn load_user_account(&self) -> Result<UserAccount<'a>, ProgramError> {
+        let user_account = UserAccount::get(&self.user)?;
+        if user_account.header.owner != self.user_owner.key.to_bytes() {
             msg!("Invalid user account owner provided!");
             return Err(ProgramError::InvalidArgument);
         }
-        if &user_account.header.market != self.market.key {
+        if user_account.header.market != self.market.key.to_bytes() {
             msg!("The provided user account doesn't match the current market");
             return Err(ProgramError::InvalidArgument);
         };
@@ -181,8 +181,6 @@ pub(crate) fn process(
     };
 
     user_account.remove_order(order_index as usize)?;
-
-    user_account.write();
 
     Ok(())
 }

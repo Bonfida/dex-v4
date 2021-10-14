@@ -8,12 +8,11 @@ use dex_v3::instruction::create_market;
 use dex_v3::instruction::initialize_account;
 use dex_v3::instruction::new_order;
 use dex_v3::instruction::settle;
-use dex_v3::state::UserAccountHeader;
-use solana_program::program_pack::Pack;
+use dex_v3::state::USER_ACCOUNT_HEADER_LEN;
 use solana_program::pubkey::Pubkey;
 use solana_program::system_instruction::create_account;
 use solana_program::system_program;
-use solana_program_test::{processor, ProgramTest};
+use solana_program_test::ProgramTest;
 use solana_sdk::signature::Keypair;
 use solana_sdk::signature::Signer;
 use spl_token::instruction::mint_to;
@@ -254,7 +253,7 @@ async fn test_dex() {
         cancel_order::Params {
             order_index: 0,
             order_id: {
-                let offset = UserAccountHeader::LEN;
+                let offset = USER_ACCOUNT_HEADER_LEN;
                 u128::from_le_bytes(user_acc_data[offset..offset + 16].try_into().unwrap())
             },
         },

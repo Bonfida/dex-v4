@@ -62,7 +62,7 @@ async fn test_dex_perf() {
     // Order params:
     let rng = &mut rand::thread_rng();
     let uniform = Uniform::new(800, 1200);
-    let mut side = agnostic_orderbook::state::Side::Ask;
+    let mut side;
     let max_base_qty = 1000;
     let max_quote_qty = 1000;
 

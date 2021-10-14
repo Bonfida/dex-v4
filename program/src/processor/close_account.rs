@@ -9,7 +9,7 @@ use solana_program::{
 
 use crate::{
     error::DexError,
-    state::{AccountTag, UserAccount},
+    state::UserAccount,
     utils::{check_account_owner, check_signer},
 };
 
@@ -45,23 +45,12 @@ impl<'a, 'b: 'a> Accounts<'a, 'b> {
         Ok(a)
     }
 
-    pub fn load_user_account(&self) -> Result<UserAccount<'b>, ProgramError> {
-        let user_account =
-            match AccountTag::deserialize(&mut (&self.user.data.borrow() as &[u8])).unwrap() {
-                AccountTag::UserAccount => {
-                    let u = UserAccount::parse(&self.user)?;
-                    if &u.header.owner != self.user_owner.key {
-                        msg!("Invalid user account owner provided!");
-                        return Err(ProgramError::InvalidArgument);
-                    }
-                    u
-                }
-                AccountTag::Uninitialized => {
-                    msg!("Invalid user account!");
-                    return Err(ProgramError::InvalidArgument);
-                }
-                _ => return Err(ProgramError::InvalidArgument),
-            };
+    pub fn load_user_account(&self) -> Result<UserAccount<'a>, ProgramError> {
+        let user_account = UserAccount::get(&self.user)?;
+        if user_account.header.owner != self.user_owner.key.to_bytes() {
+            msg!("Invalid user account owner provided!");
+            return Err(ProgramError::InvalidArgument);
+        };
         Ok(user_account)
     }
 }

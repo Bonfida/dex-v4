@@ -5,7 +5,6 @@ use borsh::BorshDeserialize;
 use bytemuck::try_from_bytes;
 use dex_v3::instruction::initialize_account;
 use dex_v3::instruction::new_order;
-use dex_v3::state::UserAccountHeader;
 use dex_v3::state::{DexState, DEX_STATE_LEN};
 use serum_dex::state::gen_vault_signer_key;
 use solana_program::instruction::Instruction;
@@ -410,8 +409,8 @@ pub async fn aob_dex_new_order(
         dex_test_ctx.aob_market.event_queue,
         dex_test_ctx.aob_market.bids,
         dex_test_ctx.aob_market.asks,
-        dex_test_ctx.dex_market.base_vault,
-        dex_test_ctx.dex_market.quote_vault,
+        Pubkey::new(&dex_test_ctx.dex_market.base_vault),
+        Pubkey::new(&dex_test_ctx.dex_market.quote_vault),
         dex_test_ctx.user_account_keys[user_account_index],
         match side {
             agnostic_orderbook::state::Side::Ask => dex_test_ctx.user_bases[user_account_index],
