@@ -119,7 +119,7 @@ pub async fn create_aob_dex(
         aaob_program_id,
         market_admin.pubkey(),
         dex_v3::instruction::create_market::Params {
-            signer_nonce,
+            signer_nonce: signer_nonce as u64,
             min_base_order_size: 1000,
         },
     );
@@ -162,7 +162,7 @@ pub async fn create_aob_dex(
             user_account_owner.pubkey(),
             pgr_test_ctx.payer.pubkey(),
             initialize_account::Params {
-                market: market_account.pubkey(),
+                market: market_account.pubkey().to_bytes(),
                 max_orders: 100,
             },
         );
@@ -419,13 +419,14 @@ pub async fn aob_dex_new_order(
         dex_test_ctx.user_owners[user_account_index].pubkey(),
         None,
         new_order::Params {
-            side,
+            side: side as u8,
             limit_price,
             max_base_qty,
             max_quote_qty,
-            order_type: new_order::OrderType::Limit,
-            self_trade_behavior: agnostic_orderbook::state::SelfTradeBehavior::DecrementTake,
+            order_type: new_order::OrderType::Limit as u8,
+            self_trade_behavior: agnostic_orderbook::state::SelfTradeBehavior::DecrementTake as u8,
             match_limit: 10,
+            _padding: [0; 5],
         },
     );
     sign_send_instructions(

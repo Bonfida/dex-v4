@@ -6,10 +6,13 @@ use crate::{
 };
 use agnostic_orderbook::state::read_register;
 use agnostic_orderbook::{
-    state::{OrderSummary, SelfTradeBehavior, Side},
+    state::{OrderSummary, Side},
     CRANKER_REWARD,
 };
 use borsh::{BorshDeserialize, BorshSerialize};
+use bytemuck::{try_from_bytes, Pod, Zeroable};
+use num_derive::FromPrimitive;
+use num_traits::FromPrimitive;
 use solana_program::{
     account_info::{next_account_info, AccountInfo},
     entrypoint::ProgramResult,
@@ -23,31 +26,34 @@ use solana_program::{
     sysvar::Sysvar,
 };
 
-#[derive(BorshDeserialize, BorshSerialize)]
+#[derive(Copy, Clone, Zeroable, Pod)]
+#[repr(C)]
 /**
 The required arguments for a new_order instruction.
 */
 pub struct Params {
-    /// The order's side (Bid or Ask)
-    pub side: Side,
     /// The order's limit price (as a FP32)
     pub limit_price: u64,
     /// The max quantity of base token to match and post
     pub max_base_qty: u64,
     /// The max quantity of quote token to match and post
     pub max_quote_qty: u64,
-    /// The order type (supported types include Limit, FOK, IOC and PostOnly)
-    pub order_type: OrderType,
-    /// Configures what happens when this order is at least partially matched against an order belonging to the same user account
-    pub self_trade_behavior: SelfTradeBehavior,
     /// The maximum number of orders to be matched against.
     ///
     /// Setting this number too high can sometimes lead to excessive resource consumption which can cause a failure.
     pub match_limit: u64,
+    /// The order's side (Bid or Ask)
+    pub side: u8,
+    /// The order type (supported types include Limit, FOK, IOC and PostOnly)
+    pub order_type: u8,
+    /// Configures what happens when this order is at least partially matched against an order belonging to the same user account
+    pub self_trade_behavior: u8,
+    /// To eliminate implicit padding
+    pub _padding: [u8; 5],
 }
 
 /// This enum describes all supported order types
-#[derive(BorshDeserialize, BorshSerialize, Debug, PartialEq)]
+#[derive(BorshDeserialize, BorshSerialize, Debug, PartialEq, FromPrimitive)]
 pub enum OrderType {
     #[allow(missing_docs)]
     Limit,
@@ -150,7 +156,7 @@ impl<'a, 'b: 'a> Accounts<'a, 'b> {
 pub(crate) fn process(
     program_id: &Pubkey,
     accounts: &[AccountInfo],
-    params: Params,
+    instruction_data: &[u8],
 ) -> ProgramResult {
     let accounts = Accounts::parse(program_id, accounts)?;
 
@@ -162,18 +168,19 @@ pub(crate) fn process(
         order_type,
         self_trade_behavior,
         match_limit,
-    } = params;
+        _padding: _,
+    } = try_from_bytes(instruction_data).map_err(|_| ProgramError::InvalidInstructionData)?;
     let market_state = DexState::get(accounts.market)?;
     let mut user_account = accounts.load_user_account()?;
 
     // Check the order size
-    if max_base_qty < market_state.min_base_order_size {
+    if max_base_qty < &market_state.min_base_order_size {
         msg!("The base order size is too small.");
         return Err(ProgramError::InvalidArgument);
     }
 
     check_accounts(program_id, &market_state, &accounts).unwrap();
-    let (post_only, post_allowed) = match order_type {
+    let (post_only, post_allowed) = match FromPrimitive::from_u8(*order_type).unwrap() {
         OrderType::Limit => (false, true),
         OrderType::ImmediateOrCancel | OrderType::FillOrKill => (false, false),
         OrderType::PostOnly => (true, true),
@@ -185,7 +192,7 @@ pub(crate) fn process(
             .map(|a| FeeTier::get(a, accounts.user_owner.key))
             .unwrap_or(Ok(FeeTier::Base))?,
     };
-    if side == Side::Bid && order_type != OrderType::PostOnly {
+    if *side == Side::Bid as u8 && *order_type != OrderType::PostOnly as u8 {
         // We make sure to leave enough quote quantity to pay for taker fees in the worst case
         max_quote_qty = callback_info.fee_tier.remove_taker_fee(max_quote_qty);
     }
@@ -220,15 +227,15 @@ pub(crate) fn process(
         *accounts.bids.key,
         *accounts.asks.key,
         agnostic_orderbook::instruction::new_order::Params {
-            max_base_qty,
+            max_base_qty: *max_base_qty,
             max_quote_qty,
-            limit_price,
-            side,
-            match_limit,
+            limit_price: *limit_price,
+            side: FromPrimitive::from_u8(*side).unwrap(),
+            match_limit: *match_limit,
             callback_info: callback_info.try_to_vec()?,
             post_only,
             post_allowed,
-            self_trade_behavior,
+            self_trade_behavior: FromPrimitive::from_u8(*self_trade_behavior).unwrap(),
         },
     );
     sol_log_compute_units();
@@ -249,10 +256,10 @@ pub(crate) fn process(
     )?;
     let mut order_summary: OrderSummary = read_register(accounts.event_queue).unwrap().unwrap();
 
-    let (qty_to_transfer, transfer_destination) = match side {
+    let (qty_to_transfer, transfer_destination) = match FromPrimitive::from_u8(*side).unwrap() {
         Side::Bid => {
             // We update the order summary to properly handle the FOK order type
-            let posted_quote_qty = fp32_mul(order_summary.total_base_qty_posted, limit_price);
+            let posted_quote_qty = fp32_mul(order_summary.total_base_qty_posted, *limit_price);
             order_summary.total_quote_qty += callback_info
                 .fee_tier
                 .taker_fee(order_summary.total_quote_qty - posted_quote_qty);
@@ -278,7 +285,7 @@ pub(crate) fn process(
                 .base_token_free
                 .saturating_sub(order_summary.total_base_qty);
             user_account.header.base_token_locked += order_summary.total_base_qty_posted;
-            let posted_quote_qty = fp32_mul(order_summary.total_base_qty_posted, limit_price);
+            let posted_quote_qty = fp32_mul(order_summary.total_base_qty_posted, *limit_price);
             let taken_quote_qty = order_summary.total_quote_qty - posted_quote_qty;
             let taker_fee = callback_info.fee_tier.taker_fee(taken_quote_qty);
             user_account.header.quote_token_free += taken_quote_qty - taker_fee;
@@ -286,10 +293,10 @@ pub(crate) fn process(
         }
     };
 
-    let abort = match order_type {
+    let abort = match FromPrimitive::from_u8(*order_type).unwrap() {
         OrderType::ImmediateOrCancel => order_summary.total_base_qty == 0,
         OrderType::FillOrKill => {
-            (order_summary.total_base_qty == max_base_qty)
+            (&order_summary.total_base_qty == max_base_qty)
                 || (order_summary.total_quote_qty == max_quote_qty)
         }
         OrderType::PostOnly => order_summary.posted_order_id.is_none(),

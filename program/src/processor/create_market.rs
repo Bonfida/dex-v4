@@ -1,4 +1,5 @@
-use borsh::{BorshDeserialize, BorshSerialize};
+use borsh::BorshDeserialize;
+use bytemuck::{try_from_bytes, Pod, Zeroable};
 use solana_program::{
     account_info::{next_account_info, AccountInfo},
     clock::Clock,
@@ -12,13 +13,14 @@ use solana_program::{
 
 use crate::state::{AccountTag, DexState};
 
-#[derive(BorshDeserialize, BorshSerialize)]
+#[derive(Copy, Clone, Zeroable, Pod)]
+#[repr(C)]
 /**
 The required arguments for a create_market instruction.
 */
 pub struct Params {
-    /// The market's signer nonce
-    pub signer_nonce: u8,
+    /// The market's signer nonce (u64 for padding)
+    pub signer_nonce: u64,
     /// The minimum allowed order size in base token amount
     pub min_base_order_size: u64,
 }
@@ -53,16 +55,16 @@ impl<'a, 'b: 'a> Accounts<'a, 'b> {
 pub(crate) fn process(
     program_id: &Pubkey,
     accounts: &[AccountInfo],
-    params: Params,
+    instruction_data: &[u8],
 ) -> ProgramResult {
     let accounts = Accounts::parse(program_id, accounts)?;
 
     let Params {
         signer_nonce,
         min_base_order_size,
-    } = params;
+    } = try_from_bytes(instruction_data).map_err(|_| ProgramError::InvalidInstructionData)?;
     let market_signer = Pubkey::create_program_address(
-        &[&accounts.market.key.to_bytes(), &[signer_nonce]],
+        &[&accounts.market.key.to_bytes(), &[*signer_nonce as u8]],
         program_id,
     )?;
 
@@ -84,7 +86,7 @@ pub(crate) fn process(
 
     *market_state = DexState {
         tag: AccountTag::DexState as u64,
-        signer_nonce: signer_nonce as u64,
+        signer_nonce: *signer_nonce,
         base_mint: base_mint.to_bytes(),
         quote_mint: quote_mint.to_bytes(),
         base_vault: accounts.base_vault.key.to_bytes(),
@@ -95,7 +97,7 @@ pub(crate) fn process(
         base_volume: 0,
         quote_volume: 0,
         accumulated_fees: 0,
-        min_base_order_size,
+        min_base_order_size: *min_base_order_size,
     };
 
     Ok(())

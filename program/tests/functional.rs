@@ -101,7 +101,7 @@ async fn test_dex() {
         aaob_program_id,
         market_admin.pubkey(),
         create_market::Params {
-            signer_nonce,
+            signer_nonce: signer_nonce as u64,
             min_base_order_size: 1000,
         },
     );
@@ -138,7 +138,7 @@ async fn test_dex() {
         user_account_owner.pubkey(),
         prg_test_ctx.payer.pubkey(),
         initialize_account::Params {
-            market: market_account.pubkey(),
+            market: market_account.pubkey().to_bytes(),
             max_orders: 10,
         },
     );
@@ -213,13 +213,14 @@ async fn test_dex() {
         user_account_owner.pubkey(),
         None,
         new_order::Params {
-            side: agnostic_orderbook::state::Side::Ask,
+            side: agnostic_orderbook::state::Side::Ask as u8,
             limit_price: 1000,
             max_base_qty: 1000,
             max_quote_qty: 1000,
-            order_type: new_order::OrderType::Limit,
-            self_trade_behavior: agnostic_orderbook::state::SelfTradeBehavior::DecrementTake,
+            order_type: new_order::OrderType::Limit as u8,
+            self_trade_behavior: agnostic_orderbook::state::SelfTradeBehavior::DecrementTake as u8,
             match_limit: 10,
+            _padding: [0; 5],
         },
     );
     sign_send_instructions(
@@ -283,13 +284,14 @@ async fn test_dex() {
         user_account_owner.pubkey(),
         None,
         new_order::Params {
-            side: agnostic_orderbook::state::Side::Ask,
+            side: agnostic_orderbook::state::Side::Ask as u8,
             limit_price: 1000,
             max_base_qty: 1100,
             max_quote_qty: 1000,
-            order_type: new_order::OrderType::Limit,
-            self_trade_behavior: agnostic_orderbook::state::SelfTradeBehavior::DecrementTake,
+            order_type: new_order::OrderType::Limit as u8,
+            self_trade_behavior: agnostic_orderbook::state::SelfTradeBehavior::DecrementTake as u8,
             match_limit: 10,
+            _padding: [0; 5],
         },
     );
     sign_send_instructions(
@@ -317,13 +319,14 @@ async fn test_dex() {
         user_account_owner.pubkey(),
         None,
         new_order::Params {
-            side: agnostic_orderbook::state::Side::Bid,
+            side: agnostic_orderbook::state::Side::Bid as u8,
             limit_price: 1000,
             max_base_qty: 1000,
             max_quote_qty: 1000,
-            order_type: new_order::OrderType::Limit,
-            self_trade_behavior: agnostic_orderbook::state::SelfTradeBehavior::DecrementTake,
+            order_type: new_order::OrderType::Limit as u8,
+            self_trade_behavior: agnostic_orderbook::state::SelfTradeBehavior::DecrementTake as u8,
             match_limit: 10,
+            _padding: [0; 5],
         },
     );
     sign_send_instructions(

@@ -1,7 +1,7 @@
-use borsh::BorshDeserialize;
+use num_traits::FromPrimitive;
 use solana_program::{
-    account_info::AccountInfo, entrypoint::ProgramResult, msg, program_error::ProgramError,
-    pubkey::Pubkey,
+    account_info::AccountInfo, entrypoint::ProgramResult, log::sol_log_compute_units, msg,
+    program_error::ProgramError, pubkey::Pubkey,
 };
 
 use crate::instruction::DexInstruction;
@@ -50,6 +50,9 @@ pub mod close_market;
 
 pub struct Processor {}
 
+// We add an offset larger than 1 to keep the instruction's internal arguments aligned
+pub(crate) const INSTRUCTION_TAG_OFFSET: usize = 8;
+
 impl Processor {
     pub fn process_instruction(
         program_id: &Pubkey,
@@ -57,34 +60,39 @@ impl Processor {
         instruction_data: &[u8],
     ) -> ProgramResult {
         msg!("Beginning processing");
-        let instruction = DexInstruction::try_from_slice(instruction_data)
-            .map_err(|_| ProgramError::InvalidInstructionData)?;
+        sol_log_compute_units();
+        msg!("{:?}", instruction_data[0]);
+        let instruction_tag = FromPrimitive::from_u8(instruction_data[0])
+            .ok_or(ProgramError::InvalidInstructionData)?;
+        sol_log_compute_units();
         msg!("Instruction unpacked");
 
-        match instruction {
-            DexInstruction::CreateMarket(params) => {
+        let instruction_data = &instruction_data[INSTRUCTION_TAG_OFFSET..];
+
+        match instruction_tag {
+            DexInstruction::CreateMarket => {
                 msg!("Instruction: Create Market");
-                create_market::process(program_id, accounts, params)?;
+                create_market::process(program_id, accounts, instruction_data)?;
             }
-            DexInstruction::NewOrder(params) => {
+            DexInstruction::NewOrder => {
                 msg!("Instruction: New Order");
-                new_order::process(program_id, accounts, params)?;
+                new_order::process(program_id, accounts, instruction_data)?;
             }
-            DexInstruction::ConsumeEvents(params) => {
+            DexInstruction::ConsumeEvents => {
                 msg!("Instruction: Consume Events");
-                consume_events::process(program_id, accounts, params)?;
+                consume_events::process(program_id, accounts, instruction_data)?;
             }
-            DexInstruction::CancelOrder(params) => {
+            DexInstruction::CancelOrder => {
                 msg!("Instruction: Cancel Order");
-                cancel_order::process(program_id, accounts, params)?;
+                cancel_order::process(program_id, accounts, instruction_data)?;
             }
-            DexInstruction::Settle(params) => {
+            DexInstruction::Settle => {
                 msg!("Instruction: Settle");
-                settle::process(program_id, accounts, params)?;
+                settle::process(program_id, accounts)?;
             }
-            DexInstruction::InitializeAccount(params) => {
+            DexInstruction::InitializeAccount => {
                 msg!("Instruction: Initialize account");
-                initialize_account::process(program_id, accounts, params)?;
+                initialize_account::process(program_id, accounts, instruction_data)?;
             }
             DexInstruction::SweepFees => {
                 msg!("Instruction: Sweep fees");

@@ -1,4 +1,3 @@
-use borsh::{BorshDeserialize, BorshSerialize};
 use solana_program::{
     account_info::{next_account_info, AccountInfo},
     entrypoint::ProgramResult,
@@ -13,12 +12,6 @@ use crate::{
     state::{DexState, UserAccount},
     utils::{check_account_key, check_account_owner, check_signer},
 };
-
-/**
-The required arguments for a settle instruction.
-*/
-#[derive(BorshDeserialize, BorshSerialize)]
-pub struct Params {}
 
 struct Accounts<'a, 'b: 'a> {
     spl_token_program: &'a AccountInfo<'b>,
@@ -78,14 +71,8 @@ impl<'a, 'b: 'a> Accounts<'a, 'b> {
     }
 }
 
-pub(crate) fn process(
-    program_id: &Pubkey,
-    accounts: &[AccountInfo],
-    params: Params,
-) -> ProgramResult {
+pub(crate) fn process(program_id: &Pubkey, accounts: &[AccountInfo]) -> ProgramResult {
     let accounts = Accounts::parse(program_id, accounts)?;
-
-    let Params {} = params;
 
     let market_state = DexState::get(accounts.market)?;
 

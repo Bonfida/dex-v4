@@ -1,4 +1,3 @@
-use borsh::{BorshDeserialize, BorshSerialize};
 use solana_program::{
     account_info::{next_account_info, AccountInfo},
     entrypoint::ProgramResult,
@@ -12,12 +11,6 @@ use crate::{
     state::UserAccount,
     utils::{check_account_owner, check_signer},
 };
-
-#[derive(BorshDeserialize, BorshSerialize)]
-/**
-The required arguments for a initialize_account instruction.
-*/
-pub struct Params {}
 
 struct Accounts<'a, 'b: 'a> {
     user: &'a AccountInfo<'b>,

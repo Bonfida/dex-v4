@@ -4,7 +4,8 @@ use agnostic_orderbook::{
     instruction::consume_events,
     state::{Event, EventQueue, EventQueueHeader, Side},
 };
-use borsh::{BorshDeserialize, BorshSerialize};
+use borsh::BorshDeserialize;
+use bytemuck::{try_from_bytes, Pod, Zeroable};
 use solana_program::{
     account_info::{next_account_info, AccountInfo},
     entrypoint::ProgramResult,
@@ -22,7 +23,8 @@ use crate::{
 
 use super::CALLBACK_INFO_LEN;
 
-#[derive(BorshDeserialize, BorshSerialize)]
+#[derive(Copy, Clone, Zeroable, Pod)]
+#[repr(C)]
 /**
 The required arguments for a consume_events instruction.
 */
@@ -74,11 +76,12 @@ impl<'a, 'b: 'a> Accounts<'a, 'b> {
 pub(crate) fn process(
     program_id: &Pubkey,
     accounts: &[AccountInfo],
-    params: Params,
+    instruction_data: &[u8],
 ) -> ProgramResult {
     let accounts = Accounts::parse(program_id, accounts)?;
 
-    let Params { max_iterations } = params;
+    let Params { max_iterations } =
+        try_from_bytes(instruction_data).map_err(|_| ProgramError::InvalidInstructionData)?;
 
     let mut market_state = DexState::get(accounts.market)?;
 
@@ -94,7 +97,7 @@ pub(crate) fn process(
 
     let mut total_iterations = 0;
 
-    for event in event_queue.iter().take(max_iterations as usize) {
+    for event in event_queue.iter().take(*max_iterations as usize) {
         if consume_event(accounts.user_accounts, event, &mut market_state).is_err() {
             break;
         }

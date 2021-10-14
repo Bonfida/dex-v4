@@ -1,16 +1,20 @@
 #![allow(clippy::too_many_arguments)]
-use borsh::{BorshDeserialize, BorshSerialize};
+use std::mem::size_of;
+
+use bytemuck::{bytes_of, Pod};
+use num_derive::{FromPrimitive, ToPrimitive};
 use solana_program::{
     instruction::{AccountMeta, Instruction},
     pubkey::Pubkey,
     system_program,
 };
 
+use crate::processor::INSTRUCTION_TAG_OFFSET;
 pub use crate::processor::{
     cancel_order, close_market, consume_events, create_market, initialize_account, new_order,
     settle, sweep_fees,
 };
-#[derive(BorshDeserialize, BorshSerialize)]
+#[derive(Clone, Copy, FromPrimitive, ToPrimitive)]
 /// Describes all possible instructions and their required accounts
 pub enum DexInstruction {
     /// Creates a new DEX market
@@ -23,7 +27,7 @@ pub enum DexInstruction {
     /// | 4     | ❌        | ❌      | The quote token vault account                |
     /// | 5     | ❌        | ❌      | The Asset Agnostic Orderbook program account |
     /// | 6     | ❌        | ❌      | The market admin account                     |
-    CreateMarket(create_market::Params),
+    CreateMarket,
     /// Execute a new order instruction. Supported types include Limit, IOC, FOK, or Post only.
     ///
     /// | index | writable | signer | description                                                                        |
@@ -43,7 +47,7 @@ pub enum DexInstruction {
     /// | 13    | ✅        | ❌      | The user's source token account                                                    |
     /// | 14    | ✅        | ❌      | The user's wallet                                                                  |
     /// | 15    | ✅        | ❌      | The optional SRM or MSRM discount token account (must be owned by the user wallet) |
-    NewOrder(new_order::Params),
+    NewOrder,
     /// Cancel an existing order and remove it from the orderbook.
     ///
     /// | index | writable | signer | description                          |
@@ -57,7 +61,7 @@ pub enum DexInstruction {
     /// | 6     | ✅        | ❌      | The asks shared memory               |
     /// | 7     | ✅        | ❌      | The DEX user account                 |
     /// | 8     | ❌        | ✅      | The user's wallet                    |
-    CancelOrder(cancel_order::Params),
+    CancelOrder,
     /// Crank the processing of DEX events.
     ///
     /// | index | writable | signer | description                          |
@@ -71,7 +75,7 @@ pub enum DexInstruction {
     /// | 6     | ❌        | ❌      | The MSRM token account               |
     /// | 7     | ❌        | ✅      | The MSRM token account owner         |
     /// | 8..   | ✅        | ❌      | The relevant user account            |
-    ConsumeEvents(consume_events::Params),
+    ConsumeEvents,
     /// Extract available base and quote token assets from a user account
     ///
     /// | index | writable | signer | description                          |
@@ -85,7 +89,7 @@ pub enum DexInstruction {
     /// | 6     | ❌        | ✅      | The DEX user account owner wallet    |
     /// | 7     | ✅        | ❌      | The destination base token account   |
     /// | 8     | ✅        | ❌      | The destination quote token account  |
-    Settle(settle::Params),
+    Settle,
     /// Initialize a new user account
     ///
     /// | index | writable | signer | description                    |
@@ -94,7 +98,7 @@ pub enum DexInstruction {
     /// | 1     | ✅        | ❌      | The user account to initialize |
     /// | 2     | ❌        | ✅      | The owner of the user account  |
     /// | 3     | ✅        | ✅      | The fee payer                  |
-    InitializeAccount(initialize_account::Params),
+    InitializeAccount,
     /// Extract accumulated fees from the market. This is an admin instruction
     ///
     /// | index | writable | signer | description                   |
@@ -132,6 +136,16 @@ pub enum DexInstruction {
     CloseMarket,
 }
 
+impl DexInstruction {
+    pub(crate) fn serialize<T: Pod>(&self, params: T) -> Vec<u8> {
+        let mut result: Vec<u8> = Vec::with_capacity(size_of::<T>() + INSTRUCTION_TAG_OFFSET);
+        result.extend_from_slice(bytes_of(&(*self as u64)));
+        result.extend_from_slice(bytes_of(&params));
+        println!("{:?}", result);
+        result
+    }
+}
+
 /// Create a new DEX market
 ///
 /// The asset agnostic orderbook must be properly initialized beforehand.
@@ -146,8 +160,7 @@ pub fn create_market(
     market_admin: Pubkey,
     create_market_params: create_market::Params,
 ) -> Instruction {
-    let instruction_data = DexInstruction::CreateMarket(create_market_params);
-    let data = instruction_data.try_to_vec().unwrap();
+    let data = DexInstruction::CreateMarket.serialize(create_market_params);
     let accounts = vec![
         AccountMeta::new(market_account, false),
         AccountMeta::new_readonly(orderbook, false),
@@ -187,9 +200,7 @@ pub fn new_order(
     discount_account: Option<Pubkey>,
     new_order_params: new_order::Params,
 ) -> Instruction {
-    let data = DexInstruction::NewOrder(new_order_params)
-        .try_to_vec()
-        .unwrap();
+    let data = DexInstruction::NewOrder.serialize(new_order_params);
     let mut accounts = vec![
         AccountMeta::new_readonly(agnostic_orderbook_program_id, false),
         AccountMeta::new_readonly(spl_token::ID, false),
@@ -233,9 +244,7 @@ pub fn cancel_order(
     user_account_owner: Pubkey,
     cancel_order_params: cancel_order::Params,
 ) -> Instruction {
-    let data = DexInstruction::CancelOrder(cancel_order_params)
-        .try_to_vec()
-        .unwrap();
+    let data = DexInstruction::CancelOrder.serialize(cancel_order_params);
     let accounts = vec![
         AccountMeta::new_readonly(agnostic_orderbook_program_id, false),
         AccountMeta::new_readonly(market_account, false),
@@ -270,9 +279,7 @@ pub fn consume_events(
     user_accounts: &[Pubkey],
     consume_events_params: consume_events::Params,
 ) -> Instruction {
-    let data = DexInstruction::ConsumeEvents(consume_events_params)
-        .try_to_vec()
-        .unwrap();
+    let data = DexInstruction::ConsumeEvents.serialize(consume_events_params);
     let mut accounts = vec![
         AccountMeta::new_readonly(agnostic_orderbook_program_id, false),
         AccountMeta::new(market_account, false),
@@ -302,9 +309,7 @@ pub fn initialize_account(
     fee_payer: Pubkey,
     params: initialize_account::Params,
 ) -> Instruction {
-    let data = DexInstruction::InitializeAccount(params)
-        .try_to_vec()
-        .unwrap();
+    let data = DexInstruction::InitializeAccount.serialize(params);
     let accounts = vec![
         AccountMeta::new_readonly(system_program::ID, false),
         AccountMeta::new(user_account, false),
@@ -329,7 +334,7 @@ pub fn sweep_fees(
     quote_vault: Pubkey,
     destination_token_account: Pubkey,
 ) -> Instruction {
-    let data = DexInstruction::SweepFees.try_to_vec().unwrap();
+    let data = DexInstruction::SweepFees.serialize(());
     let accounts = vec![
         AccountMeta::new(market_account, false),
         AccountMeta::new_readonly(market_signer, false),
@@ -359,9 +364,7 @@ pub fn settle(
     destination_base_account: Pubkey,
     destination_quote_account: Pubkey,
 ) -> Instruction {
-    let data = DexInstruction::Settle(settle::Params {})
-        .try_to_vec()
-        .unwrap();
+    let data = DexInstruction::Settle.serialize(());
     let accounts = vec![
         AccountMeta::new_readonly(spl_token::ID, false),
         AccountMeta::new_readonly(market_account, false),
@@ -388,7 +391,7 @@ pub fn close_account(
     user_account_owner: Pubkey,
     target_lamports_account: Pubkey,
 ) -> Instruction {
-    let data = DexInstruction::CloseAccount.try_to_vec().unwrap();
+    let data = DexInstruction::CloseAccount.serialize(());
     let accounts = vec![
         AccountMeta::new(user_account, false),
         AccountMeta::new_readonly(user_account_owner, true),
@@ -417,7 +420,7 @@ pub fn close_market(
     market_admin: Pubkey,
     target_lamports_account: Pubkey,
 ) -> Instruction {
-    let data = DexInstruction::CloseAccount.try_to_vec().unwrap();
+    let data = DexInstruction::CloseAccount.serialize(());
     let accounts = vec![
         AccountMeta::new(market, false),
         AccountMeta::new(base_vault, false),
