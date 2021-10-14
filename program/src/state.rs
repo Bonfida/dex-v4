@@ -12,7 +12,7 @@ use crate::{
     utils::{fp32_div, fp32_mul, FP_32_ONE},
 };
 
-#[derive(BorshDeserialize, BorshSerialize, Clone, Debug, PartialEq, Copy)]
+#[derive(Clone, Debug, PartialEq, Copy)]
 #[allow(missing_docs)]
 #[repr(u64)]
 pub enum AccountTag {
@@ -22,7 +22,7 @@ pub enum AccountTag {
     Closed,
 }
 
-#[derive(BorshDeserialize, BorshSerialize, Clone, Copy, PartialEq, FromPrimitive, ToPrimitive)]
+#[derive(Clone, Copy, PartialEq, FromPrimitive, ToPrimitive)]
 #[repr(u8)]
 #[allow(missing_docs)]
 pub enum Side {
@@ -31,7 +31,7 @@ pub enum Side {
 }
 
 /// This enum describes different supported behaviors for handling self trading scenarios
-#[derive(BorshDeserialize, BorshSerialize, PartialEq, Clone, Copy)]
+#[derive(PartialEq, Clone, Copy)]
 #[repr(u64)]
 pub enum SelfTradeBehavior {
     /// Decrement take means that both the maker and taker sides of the matched orders are decremented.

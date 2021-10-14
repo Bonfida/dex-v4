@@ -1,4 +1,3 @@
-use borsh::{BorshDeserialize, BorshSerialize};
 use solana_program::{
     account_info::{next_account_info, AccountInfo},
     entrypoint::ProgramResult,
@@ -12,19 +11,22 @@ use solana_program::{
     sysvar::Sysvar,
 };
 
+use bytemuck::{try_from_bytes, Pod, Zeroable};
+
 use crate::{
     error::DexError,
     state::{Order, UserAccount, UserAccountHeader, USER_ACCOUNT_HEADER_LEN},
     utils::{check_account_key, check_account_owner, check_signer},
 };
 
-#[derive(BorshDeserialize, BorshSerialize)]
+#[derive(Clone, Copy, Zeroable, Pod)]
+#[repr(C)]
 /**
 The required arguments for a initialize_account instruction.
 */
 pub struct Params {
     /// The user account's parent market
-    pub market: Pubkey,
+    pub market: [u8; 32],
     /// The maximum number of orders the user account may hold
     pub max_orders: u64,
 }
@@ -70,23 +72,22 @@ impl<'a, 'b: 'a> Accounts<'a, 'b> {
 pub(crate) fn process(
     program_id: &Pubkey,
     accounts: &[AccountInfo],
-    params: Params,
+    instruction_data: &[u8],
 ) -> ProgramResult {
     let accounts = Accounts::parse(program_id, accounts)?;
 
-    let Params { market, max_orders } = params;
+    let Params { market, max_orders } =
+        try_from_bytes(instruction_data).map_err(|_| ProgramError::InvalidInstructionData)?;
 
-    let (user_account_key, user_account_nonce) = Pubkey::find_program_address(
-        &[&market.to_bytes(), &accounts.user_owner.key.to_bytes()],
-        program_id,
-    );
+    let (user_account_key, user_account_nonce) =
+        Pubkey::find_program_address(&[market, &accounts.user_owner.key.to_bytes()], program_id);
 
     if &user_account_key != accounts.user.key {
         msg!("Provided an invalid user account for the specified market and owner");
         return Err(ProgramError::InvalidArgument);
     }
 
-    if max_orders == 0 {
+    if max_orders == &0 {
         msg!("The minimum number of orders an account should be able to hold is 1");
         return Err(ProgramError::InvalidArgument);
     }
@@ -110,14 +111,14 @@ pub(crate) fn process(
             accounts.user.clone(),
         ],
         &[&[
-            &market.to_bytes(),
+            market,
             &accounts.user_owner.key.to_bytes(),
             &[user_account_nonce],
         ]],
     )?;
     let mut u = UserAccount::get_unchecked(accounts.user);
 
-    *(u.header) = UserAccountHeader::new(&market, accounts.user_owner.key);
+    *(u.header) = UserAccountHeader::new(&Pubkey::new(market), accounts.user_owner.key);
 
     Ok(())
 }

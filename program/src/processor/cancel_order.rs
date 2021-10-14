@@ -3,7 +3,8 @@ use std::rc::Rc;
 use agnostic_orderbook::state::{
     get_side_from_order_id, EventQueue, EventQueueHeader, OrderSummary, Side,
 };
-use borsh::{BorshDeserialize, BorshSerialize};
+use borsh::BorshDeserialize;
+use bytemuck::{try_from_bytes, Pod, Zeroable};
 use solana_program::{
     account_info::{next_account_info, AccountInfo},
     entrypoint::ProgramResult,
@@ -21,7 +22,8 @@ use crate::{
 
 use super::CALLBACK_INFO_LEN;
 
-#[derive(BorshDeserialize, BorshSerialize)]
+#[derive(Clone, Copy, Zeroable, Pod)]
+#[repr(C)]
 /**
 The required arguments for a cancel_order instruction.
 */
@@ -94,8 +96,10 @@ impl<'a, 'b: 'a> Accounts<'a, 'b> {
 pub(crate) fn process(
     program_id: &Pubkey,
     accounts: &[AccountInfo],
-    params: Params,
+    instruction_data: &[u8],
 ) -> ProgramResult {
+    let params =
+        try_from_bytes(instruction_data).map_err(|_| ProgramError::InvalidInstructionData)?;
     let accounts = Accounts::parse(program_id, accounts)?;
 
     let Params {
@@ -108,9 +112,9 @@ pub(crate) fn process(
 
     check_accounts(program_id, &market_state, &accounts).unwrap();
 
-    let order_id_from_index = user_account.read_order(order_index as usize)?;
+    let order_id_from_index = user_account.read_order(*order_index as usize)?;
 
-    if order_id != order_id_from_index {
+    if order_id != &order_id_from_index {
         msg!("Order id does not match with the order at the given index!");
         return Err(ProgramError::InvalidArgument);
     }
@@ -122,7 +126,9 @@ pub(crate) fn process(
         *accounts.event_queue.key,
         *accounts.bids.key,
         *accounts.asks.key,
-        agnostic_orderbook::instruction::cancel_order::Params { order_id },
+        agnostic_orderbook::instruction::cancel_order::Params {
+            order_id: *order_id,
+        },
     );
 
     invoke_signed(
@@ -151,7 +157,7 @@ pub(crate) fn process(
 
     let order_summary: OrderSummary = event_queue.read_register().unwrap().unwrap();
 
-    let side = get_side_from_order_id(order_id);
+    let side = get_side_from_order_id(*order_id);
 
     match side {
         Side::Bid => {
@@ -180,7 +186,7 @@ pub(crate) fn process(
         }
     };
 
-    user_account.remove_order(order_index as usize)?;
+    user_account.remove_order(*order_index as usize)?;
 
     Ok(())
 }
