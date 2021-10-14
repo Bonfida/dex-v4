@@ -1,7 +1,6 @@
 use std::convert::TryInto;
 
 use agnostic_orderbook::state::MarketState;
-use borsh::BorshDeserialize;
 use bytemuck::try_from_bytes;
 use dex_v3::instruction::initialize_account;
 use dex_v3::instruction::new_order;
@@ -241,7 +240,7 @@ pub async fn create_aob_dex(
         .unwrap()
         .unwrap()
         .data;
-    let aob_market = MarketState::deserialize(&mut (&aob_market_data as &[u8])).unwrap();
+    let aob_market: MarketState = *try_from_bytes(&aob_market_data).unwrap();
 
     (
         AobDexTestContext {
@@ -404,11 +403,11 @@ pub async fn aob_dex_new_order(
         dex_test_ctx.dex_program_id,
         dex_test_ctx.aaob_program_id,
         dex_test_ctx.dex_market_key,
-        dex_test_ctx.aob_market.caller_authority,
+        Pubkey::new(&dex_test_ctx.aob_market.caller_authority),
         Pubkey::new(&dex_test_ctx.dex_market.orderbook),
-        dex_test_ctx.aob_market.event_queue,
-        dex_test_ctx.aob_market.bids,
-        dex_test_ctx.aob_market.asks,
+        Pubkey::new(&dex_test_ctx.aob_market.event_queue),
+        Pubkey::new(&dex_test_ctx.aob_market.bids),
+        Pubkey::new(&dex_test_ctx.aob_market.asks),
         Pubkey::new(&dex_test_ctx.dex_market.base_vault),
         Pubkey::new(&dex_test_ctx.dex_market.quote_vault),
         dex_test_ctx.user_account_keys[user_account_index],

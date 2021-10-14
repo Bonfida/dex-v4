@@ -1,4 +1,3 @@
-use borsh::BorshDeserialize;
 use bytemuck::{try_from_bytes, Pod, Zeroable};
 use solana_program::{
     account_info::{next_account_info, AccountInfo},
@@ -120,14 +119,12 @@ fn check_vault_account_and_get_mint(
 }
 
 fn check_orderbook(account: &AccountInfo, market_signer: &Pubkey) -> ProgramResult {
-    let orderbook_state = agnostic_orderbook::state::MarketState::deserialize(
-        &mut (&account.data.borrow() as &[u8]),
-    )?;
-    if orderbook_state.tag != agnostic_orderbook::state::AccountTag::Market {
+    let orderbook_state = agnostic_orderbook::state::MarketState::get(account)?;
+    if orderbook_state.tag != agnostic_orderbook::state::AccountTag::Market as u64 {
         msg!("Invalid orderbook");
         return Err(ProgramError::InvalidArgument);
     }
-    if &orderbook_state.caller_authority != market_signer {
+    if orderbook_state.caller_authority != market_signer.to_bytes() {
         msg!("The provided orderbook isn't owned by the market signer.");
         return Err(ProgramError::InvalidArgument);
     }
