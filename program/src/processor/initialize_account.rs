@@ -129,6 +129,10 @@ pub(crate) fn process(
             quote_token_locked: 0,
             number_of_orders: 0,
             accumulated_rebates: 0,
+            accumulated_maker_quote_volume: 0,
+            accumulated_maker_base_volume: 0,
+            accumulated_taker_quote_volume: 0,
+            accumulated_taker_base_volume: 0,
         },
     );
 

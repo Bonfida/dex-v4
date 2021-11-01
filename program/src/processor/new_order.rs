@@ -339,6 +339,13 @@ pub(crate) fn process(
         msg!("Added new order with order_id {:?}", order_id);
     }
 
+    user_account.header.accumulated_taker_base_volume += order_summary
+        .total_base_qty
+        .saturating_sub(order_summary.total_base_qty_posted);
+    user_account.header.accumulated_taker_quote_volume += order_summary
+        .total_quote_qty
+        .saturating_sub(fp32_mul(order_summary.total_base_qty_posted, limit_price));
+
     user_account.write();
 
     Ok(())
