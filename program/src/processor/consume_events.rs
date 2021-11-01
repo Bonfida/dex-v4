@@ -194,6 +194,7 @@ fn consume_event(
                     .quote_token_free
                     .checked_add(maker_rebate)
                     .unwrap();
+
                 match taker_side {
                     Side::Bid => {
                         taker_account.header.base_token_locked = taker_account
@@ -210,8 +211,15 @@ fn consume_event(
                             .unwrap();
                     }
                 };
+
+                // Update user accounts metrics
+                taker_account.header.accumulated_maker_quote_volume += quote_size;
+                taker_account.header.accumulated_maker_base_volume += base_size;
+                taker_account.header.accumulated_taker_quote_volume += quote_size;
+                taker_account.header.accumulated_taker_base_volume += base_size;
             } else {
                 let mut maker_account = UserAccount::parse(maker_account_info).unwrap();
+
                 match taker_side {
                     Side::Bid => {
                         let maker_rebate = maker_info.fee_tier.maker_rebate(quote_size);
@@ -255,6 +263,11 @@ fn consume_event(
                             taker_fee.checked_sub(maker_rebate).unwrap();
                     }
                 };
+
+                // Update user accounts metrics
+                maker_account.header.accumulated_maker_quote_volume += quote_size;
+                maker_account.header.accumulated_maker_base_volume += base_size;
+
                 maker_account.write();
                 market_state.quote_volume += quote_size;
                 market_state.base_volume += base_size;

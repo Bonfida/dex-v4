@@ -127,6 +127,14 @@ pub struct UserAccountHeader {
     ///
     /// The actual rebates will always be transfer to the user account's main balance. This field is just a metric.
     pub accumulated_rebates: u64,
+    /// The accumulated maker quote volume of the user. This field is just a metric.
+    pub accumulated_maker_quote_volume: u64,
+    /// The accumulated maker quote volume of the user. This field is just a metric.
+    pub accumulated_maker_base_volume: u64,
+    /// The accumulated taker quote volume of the user. This field is just a metric.
+    pub accumulated_taker_quote_volume: u64,
+    /// The accumulated taker quote volume of the user. This field is just a metric.
+    pub accumulated_taker_base_volume: u64,
     /// The user account's number of active orders.
     pub number_of_orders: u32,
 }
