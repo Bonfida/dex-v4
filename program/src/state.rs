@@ -140,7 +140,7 @@ pub(crate) struct UserAccount<'a> {
 }
 
 /// Size in bytes of the user account header object
-pub const USER_ACCOUNT_HEADER_LEN: usize = 120;
+pub const USER_ACCOUNT_HEADER_LEN: usize = 152;
 
 impl UserAccountHeader {
     pub(crate) fn new(market: &Pubkey, owner: &Pubkey) -> Self {
@@ -155,6 +155,10 @@ impl UserAccountHeader {
             number_of_orders: 0,
             accumulated_rebates: 0,
             _padding: 0,
+            accumulated_maker_quote_volume: 0,
+            accumulated_maker_base_volume: 0,
+            accumulated_taker_quote_volume: 0,
+            accumulated_taker_base_volume: 0,
         }
     }
 }

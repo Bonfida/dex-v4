@@ -340,9 +340,7 @@ pub(crate) fn process(
         .saturating_sub(order_summary.total_base_qty_posted);
     user_account.header.accumulated_taker_quote_volume += order_summary
         .total_quote_qty
-        .saturating_sub(fp32_mul(order_summary.total_base_qty_posted, limit_price));
-
-    user_account.write();
+        .saturating_sub(fp32_mul(order_summary.total_base_qty_posted, *limit_price));
 
     Ok(())
 }

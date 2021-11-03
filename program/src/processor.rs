@@ -1,6 +1,6 @@
 use num_traits::FromPrimitive;
 use solana_program::{
-    account_info::AccountInfo, entrypoint::ProgramResult, log::sol_log_compute_units, msg,
+    account_info::AccountInfo, entrypoint::ProgramResult, msg,
     program_error::ProgramError, pubkey::Pubkey,
 };
 
@@ -59,14 +59,10 @@ impl Processor {
         accounts: &[AccountInfo],
         instruction_data: &[u8],
     ) -> ProgramResult {
+
         msg!("Beginning processing");
-        sol_log_compute_units();
-        msg!("{:?}", instruction_data[0]);
         let instruction_tag = FromPrimitive::from_u8(instruction_data[0])
             .ok_or(ProgramError::InvalidInstructionData)?;
-        sol_log_compute_units();
-        msg!("Instruction unpacked");
-
         let instruction_data = &instruction_data[INSTRUCTION_TAG_OFFSET..];
 
         match instruction_tag {

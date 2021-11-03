@@ -270,7 +270,6 @@ fn consume_event(
                 maker_account.header.accumulated_maker_quote_volume += quote_size;
                 maker_account.header.accumulated_maker_base_volume += base_size;
 
-                maker_account.write();
                 market_state.quote_volume += quote_size;
                 market_state.base_volume += base_size;
             }
