@@ -74,6 +74,7 @@ pub(crate) fn process(
     let current_timestamp = Clock::get()?.unix_timestamp;
 
     if accounts.market.data.borrow()[0] != AccountTag::Uninitialized as u8 {
+        // Checking the first byte is sufficient as there is a samll number of AccountTags
         msg!("The market account contains initialized state!");
         return Err(ProgramError::InvalidArgument);
     }
