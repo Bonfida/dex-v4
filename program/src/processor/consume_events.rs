@@ -68,7 +68,12 @@ impl<'a, 'b: 'a> Accounts<'a, 'b> {
             e
         })?;
         check_account_owner(a.market, program_id, DexError::InvalidStateAccountOwner)?;
-
+        check_account_key(
+            a.aaob_program,
+            &agnostic_orderbook::ID.to_bytes(),
+            DexError::InvalidAobProgramAccount,
+        )?;
+        
         Ok(a)
     }
 }

@@ -125,6 +125,9 @@ impl<'a, 'b: 'a> Accounts<'a, 'b> {
             &agnostic_orderbook::ID.to_bytes(),
             DexError::InvalidAobProgramAccount,
         )?;
+        if let Some(discount_account) = a.discount_token_account {
+            check_account_owner(discount_account, a.user_owner.key, DexError::InvalidStateAccountOwner)?;
+        }
         check_account_owner(a.user, program_id, DexError::InvalidStateAccountOwner)?;
         check_account_owner(a.market, program_id, DexError::InvalidStateAccountOwner)?;
 
