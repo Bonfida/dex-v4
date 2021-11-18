@@ -312,7 +312,7 @@ fn consume_event(
                         user_account.header.quote_token_free = user_account
                             .header
                             .quote_token_free
-                            .checked_add(qty_to_transfer)
+                            .checked_add(qty_to_transfer.unwrap())
                             .unwrap();
                     }
                 }
