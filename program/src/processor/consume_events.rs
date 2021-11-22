@@ -73,7 +73,7 @@ impl<'a, 'b: 'a> Accounts<'a, 'b> {
             &agnostic_orderbook::ID.to_bytes(),
             DexError::InvalidAobProgramAccount,
         )?;
-        
+
         Ok(a)
     }
 }
@@ -221,10 +221,26 @@ fn consume_event(
                 };
 
                 // Update user accounts metrics
-                taker_account.header.accumulated_maker_quote_volume += quote_size;
-                taker_account.header.accumulated_maker_base_volume += base_size;
-                taker_account.header.accumulated_taker_quote_volume += quote_size;
-                taker_account.header.accumulated_taker_base_volume += base_size;
+                taker_account.header.accumulated_maker_quote_volume = taker_account
+                    .header
+                    .accumulated_maker_quote_volume
+                    .checked_add(quote_size)
+                    .unwrap();
+                taker_account.header.accumulated_maker_base_volume = taker_account
+                    .header
+                    .accumulated_maker_base_volume
+                    .checked_add(base_size)
+                    .unwrap();
+                taker_account.header.accumulated_taker_quote_volume = taker_account
+                    .header
+                    .accumulated_taker_quote_volume
+                    .checked_add(quote_size)
+                    .unwrap();
+                taker_account.header.accumulated_taker_base_volume = taker_account
+                    .header
+                    .accumulated_taker_base_volume
+                    .checked_add(base_size)
+                    .unwrap();
             } else {
                 let mut maker_account = UserAccount::get(maker_account_info).unwrap();
                 match taker_side {
@@ -272,11 +288,20 @@ fn consume_event(
                 };
 
                 // Update user accounts metrics
-                maker_account.header.accumulated_maker_quote_volume += quote_size;
-                maker_account.header.accumulated_maker_base_volume += base_size;
+                maker_account.header.accumulated_maker_quote_volume = maker_account
+                    .header
+                    .accumulated_maker_quote_volume
+                    .checked_add(quote_size)
+                    .unwrap();
+                maker_account.header.accumulated_maker_base_volume = maker_account
+                    .header
+                    .accumulated_maker_base_volume
+                    .checked_add(base_size)
+                    .unwrap();
 
-                market_state.quote_volume += quote_size;
-                market_state.base_volume += base_size;
+                market_state.quote_volume =
+                    market_state.quote_volume.checked_add(quote_size).unwrap();
+                market_state.base_volume = market_state.base_volume.checked_add(base_size).unwrap();
             }
         }
         Event::Out {
