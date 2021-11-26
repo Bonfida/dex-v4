@@ -266,7 +266,7 @@ impl FeeTier {
         }
         let one_srm = 1_000_000;
         let idx = match dex_state.fee_tier_thresholds[..5]
-            .binary_search_by(|n| (one_srm * n).cmp(&srm_held))
+            .binary_search_by_key(&srm_held, |n| (one_srm * n))
         {
             Ok(idx) => idx + 1,
             Err(idx) => idx,
