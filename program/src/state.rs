@@ -4,7 +4,7 @@ use num_derive::{FromPrimitive, ToPrimitive};
 use solana_program::{
     account_info::AccountInfo, msg, program_error::ProgramError, program_pack::Pack, pubkey::Pubkey,
 };
-use std::cell::RefMut;
+use std::{cell::RefMut, mem::size_of};
 
 use crate::{
     error::DexError,
@@ -74,10 +74,16 @@ pub struct DexState {
     pub min_base_order_size: u64,
     /// The signer nonce is necessary for the market to perform as a signing entity
     pub signer_nonce: u64,
+    /// Fee tier thresholds (last element is a MSRM threshold)
+    pub fee_tier_thresholds: [u64; 6],
+    /// Fee tier taker rates (last element is a MSRM rate)
+    pub fee_tier_taker_bps_rates: [u64; 7],
+    /// Fee tier maker rates (last element is a MSRM rate)
+    pub fee_tier_maker_bps_rebates: [u64; 7],
 }
 
 /// Size in bytes of the dex state object
-pub const DEX_STATE_LEN: usize = 248;
+pub const DEX_STATE_LEN: usize = size_of::<DexState>();
 
 impl DexState {
     pub(crate) fn get<'a, 'b: 'a>(
@@ -250,20 +256,37 @@ pub enum FeeTier {
 
 #[doc(hidden)]
 impl FeeTier {
-    pub fn from_srm_and_msrm_balances(srm_held: u64, msrm_held: u64) -> FeeTier {
+    pub fn from_srm_and_msrm_balances(
+        dex_state: &DexState,
+        srm_held: u64,
+        msrm_held: u64,
+    ) -> FeeTier {
+        if msrm_held >= dex_state.fee_tier_thresholds[5] {
+            return FeeTier::MSrm;
+        }
         let one_srm = 1_000_000;
-        match () {
-            () if msrm_held >= 1 => FeeTier::MSrm,
-            () if srm_held >= one_srm * 1_000_000 => FeeTier::Srm6,
-            () if srm_held >= one_srm * 100_000 => FeeTier::Srm5,
-            () if srm_held >= one_srm * 10_000 => FeeTier::Srm4,
-            () if srm_held >= one_srm * 1_000 => FeeTier::Srm3,
-            () if srm_held >= one_srm * 100 => FeeTier::Srm2,
-            () => FeeTier::Base,
+        let idx = match dex_state.fee_tier_thresholds[..5]
+            .binary_search_by(|n| (one_srm * n).cmp(&srm_held))
+        {
+            Ok(idx) => idx + 1,
+            Err(idx) => idx,
+        };
+        match idx {
+            0 => FeeTier::Base,
+            1 => FeeTier::Srm2,
+            2 => FeeTier::Srm3,
+            3 => FeeTier::Srm4,
+            4 => FeeTier::Srm5,
+            5 => FeeTier::Srm6,
+            _ => unreachable!(),
         }
     }
 
-    pub fn get(account: &AccountInfo, expected_owner: &Pubkey) -> Result<Self, ProgramError> {
+    pub fn get(
+        dex_state: &DexState,
+        account: &AccountInfo,
+        expected_owner: &Pubkey,
+    ) -> Result<Self, ProgramError> {
         let parsed_token_account = spl_token::state::Account::unpack(&account.data.borrow())?;
         if &parsed_token_account.owner != expected_owner {
             msg!("The discount token account must share its owner with the user account.");
@@ -277,7 +300,9 @@ impl FeeTier {
                 return Err(ProgramError::InvalidArgument);
             }
         };
-        Ok(Self::from_srm_and_msrm_balances(srm_held, msrm_held))
+        Ok(Self::from_srm_and_msrm_balances(
+            dex_state, srm_held, msrm_held,
+        ))
     }
 
     pub fn taker_rate(self) -> u64 {

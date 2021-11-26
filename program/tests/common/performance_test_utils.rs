@@ -2,6 +2,9 @@ use std::convert::TryInto;
 
 use agnostic_orderbook::state::MarketState;
 use bytemuck::try_from_bytes;
+use dex_v4::fee_defaults::DEFAULT_FEE_TIER_MAKER_BPS_REBATES;
+use dex_v4::fee_defaults::DEFAULT_FEE_TIER_TAKER_BPS_RATES;
+use dex_v4::fee_defaults::DEFAULT_FEE_TIER_THRESHOLDS;
 use dex_v4::instruction::initialize_account;
 use dex_v4::instruction::new_order;
 use dex_v4::state::{DexState, DEX_STATE_LEN};
@@ -123,6 +126,9 @@ pub async fn create_aob_dex(
             min_base_order_size: 1000,
             price_bitmask: u64::MAX,
             cranker_reward: 0,
+            fee_tier_thresholds: DEFAULT_FEE_TIER_THRESHOLDS,
+            fee_tier_maker_bps_rebates: DEFAULT_FEE_TIER_MAKER_BPS_REBATES,
+            fee_tier_taker_bps_rates: DEFAULT_FEE_TIER_TAKER_BPS_RATES,
         },
     );
     sign_send_instructions(&mut pgr_test_ctx, vec![create_market_instruction], vec![])

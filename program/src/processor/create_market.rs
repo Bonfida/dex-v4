@@ -30,6 +30,12 @@ pub struct Params {
     pub min_base_order_size: u64,
     pub price_bitmask: u64,
     pub cranker_reward: u64,
+    /// Fee tier thresholds
+    pub fee_tier_thresholds: [u64; 6],
+    /// Fee tier taker rates
+    pub fee_tier_taker_bps_rates: [u64; 7],
+    /// Fee tier maker rates
+    pub fee_tier_maker_bps_rebates: [u64; 7],
 }
 
 struct Accounts<'a, 'b: 'a> {
@@ -79,6 +85,9 @@ pub(crate) fn process(
         min_base_order_size,
         price_bitmask,
         cranker_reward,
+        fee_tier_thresholds,
+        fee_tier_maker_bps_rebates: fee_tier_maker_rates,
+        fee_tier_taker_bps_rates: fee_tier_taker_rates,
     } = try_from_bytes(instruction_data).map_err(|_| ProgramError::InvalidInstructionData)?;
     let market_signer = Pubkey::create_program_address(
         &[&accounts.market.key.to_bytes(), &[*signer_nonce as u8]],
@@ -109,6 +118,9 @@ pub(crate) fn process(
         quote_volume: 0,
         accumulated_fees: 0,
         min_base_order_size: *min_base_order_size,
+        fee_tier_thresholds: *fee_tier_thresholds,
+        fee_tier_taker_bps_rates: *fee_tier_taker_rates,
+        fee_tier_maker_bps_rebates: *fee_tier_maker_rates,
     };
 
     let invoke_params = agnostic_orderbook::instruction::create_market::Params {

@@ -4,8 +4,9 @@ use crate::{
     utils::{check_account_key, check_signer},
     utils::{check_account_owner, fp32_mul},
 };
+use agnostic_orderbook::error::AoError;
+use agnostic_orderbook::state::read_register;
 use agnostic_orderbook::state::{OrderSummary, Side};
-use agnostic_orderbook::{error::AoError, state::read_register};
 use borsh::{BorshDeserialize, BorshSerialize};
 use bytemuck::{try_from_bytes, Pod, Zeroable};
 use num_derive::FromPrimitive;
@@ -183,7 +184,7 @@ pub(crate) fn process(
         user_account: *accounts.user.key,
         fee_tier: accounts
             .discount_token_account
-            .map(|a| FeeTier::get(a, accounts.user_owner.key))
+            .map(|a| FeeTier::get(&market_state, a, accounts.user_owner.key))
             .unwrap_or(Ok(FeeTier::Base))?,
     };
     if *side == Side::Bid as u8 && *order_type != OrderType::PostOnly as u8 {

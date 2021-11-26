@@ -1,9 +1,9 @@
-use std::convert::TryInto;
-use std::io::BufRead;
-
 use agnostic_orderbook::state::MarketState;
 use bytemuck::try_from_bytes;
 use bytemuck::try_from_bytes_mut;
+use dex_v4::fee_defaults::DEFAULT_FEE_TIER_MAKER_BPS_REBATES;
+use dex_v4::fee_defaults::DEFAULT_FEE_TIER_TAKER_BPS_RATES;
+use dex_v4::fee_defaults::DEFAULT_FEE_TIER_THRESHOLDS;
 use dex_v4::instruction::cancel_order;
 use dex_v4::instruction::consume_events;
 use dex_v4::instruction::create_market;
@@ -11,6 +11,7 @@ use dex_v4::instruction::initialize_account;
 use dex_v4::instruction::new_order;
 use dex_v4::instruction::settle;
 use dex_v4::state::UserAccountHeader;
+use dex_v4::state::DEX_STATE_LEN;
 use dex_v4::state::USER_ACCOUNT_HEADER_LEN;
 use solana_program::pubkey::Pubkey;
 use solana_program::system_instruction::create_account;
@@ -19,6 +20,7 @@ use solana_program_test::ProgramTest;
 use solana_sdk::signature::Keypair;
 use solana_sdk::signature::Signer;
 use spl_token::instruction::mint_to;
+use std::convert::TryInto;
 pub mod common;
 use crate::common::utils::create_associated_token;
 use crate::common::utils::mint_bootstrap;
@@ -57,7 +59,7 @@ async fn test_dex() {
         &prg_test_ctx.payer.pubkey(),
         &market_account.pubkey(),
         1_000_000,
-        250,
+        DEX_STATE_LEN as u64,
         &dex_program_id,
     );
     sign_send_instructions(
@@ -100,6 +102,9 @@ async fn test_dex() {
             min_base_order_size: 1000,
             price_bitmask: u64::MAX,
             cranker_reward: 0,
+            fee_tier_thresholds: DEFAULT_FEE_TIER_THRESHOLDS,
+            fee_tier_maker_bps_rebates: DEFAULT_FEE_TIER_MAKER_BPS_REBATES,
+            fee_tier_taker_bps_rates: DEFAULT_FEE_TIER_TAKER_BPS_RATES,
         },
     );
     sign_send_instructions(&mut prg_test_ctx, vec![create_market_instruction], vec![])
