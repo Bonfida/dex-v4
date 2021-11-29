@@ -18,7 +18,7 @@ use solana_program::{
 use crate::{
     error::DexError,
     state::{CallBackInfo, DexState, UserAccount},
-    utils::{check_account_key, check_account_owner, check_signer, fp32_mul},
+    utils::{check_account_key, check_account_owner, fp32_mul},
 };
 
 use super::CALLBACK_INFO_LEN;
@@ -40,8 +40,6 @@ struct Accounts<'a, 'b: 'a> {
     orderbook: &'a AccountInfo<'b>,
     event_queue: &'a AccountInfo<'b>,
     reward_target: &'a AccountInfo<'b>,
-    msrm_token_account: &'a AccountInfo<'b>,
-    msrm_token_account_owner: &'a AccountInfo<'b>,
     user_accounts: &'a [AccountInfo<'b>],
 }
 
@@ -58,15 +56,9 @@ impl<'a, 'b: 'a> Accounts<'a, 'b> {
             orderbook: next_account_info(accounts_iter)?,
             event_queue: next_account_info(accounts_iter)?,
             reward_target: next_account_info(accounts_iter)?,
-            msrm_token_account: next_account_info(accounts_iter)?,
-            msrm_token_account_owner: next_account_info(accounts_iter)?,
             user_accounts: accounts_iter.as_slice(),
         };
 
-        check_signer(a.msrm_token_account_owner).map_err(|e| {
-            msg!("The msrm token account owner should be a signer for this transaction!");
-            e
-        })?;
         check_account_owner(a.market, program_id, DexError::InvalidStateAccountOwner)?;
         check_account_key(
             a.aaob_program,
@@ -120,8 +112,6 @@ pub(crate) fn process(
         *accounts.market_signer.key,
         *accounts.event_queue.key,
         *accounts.reward_target.key,
-        *accounts.msrm_token_account.key,
-        *accounts.msrm_token_account_owner.key,
         agnostic_orderbook::instruction::consume_events::Params {
             number_of_entries_to_consume: total_iterations,
         },
@@ -135,8 +125,6 @@ pub(crate) fn process(
             accounts.event_queue.clone(),
             accounts.market_signer.clone(),
             accounts.reward_target.clone(),
-            accounts.msrm_token_account.clone(),
-            accounts.msrm_token_account_owner.clone(),
         ],
         &[&[
             &accounts.market.key.to_bytes(),

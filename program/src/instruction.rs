@@ -72,8 +72,6 @@ pub enum DexInstruction {
     /// | 3     | ✅        | ❌      | The orderbook                        |
     /// | 4     | ✅        | ❌      | The event queue                      |
     /// | 5     | ✅        | ❌      | The reward target                    |
-    /// | 6     | ❌        | ❌      | The MSRM token account               |
-    /// | 7     | ❌        | ✅      | The MSRM token account owner         |
     /// | 8..   | ✅        | ❌      | The relevant user account            |
     ConsumeEvents,
     /// Extract available base and quote token assets from a user account
@@ -273,8 +271,6 @@ pub fn consume_events(
     orderbook: Pubkey,
     event_queue: Pubkey,
     reward_target: Pubkey,
-    msrm_token_account: Pubkey,
-    msrm_token_account_owner: Pubkey,
     user_accounts: &[Pubkey],
     consume_events_params: consume_events::Params,
 ) -> Instruction {
@@ -286,8 +282,6 @@ pub fn consume_events(
         AccountMeta::new(orderbook, false),
         AccountMeta::new(event_queue, false),
         AccountMeta::new(reward_target, false),
-        AccountMeta::new_readonly(msrm_token_account, false),
-        AccountMeta::new_readonly(msrm_token_account_owner, true),
     ];
 
     accounts.extend(user_accounts.iter().map(|k| AccountMeta::new(*k, false)));

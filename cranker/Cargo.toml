@@ -9,7 +9,7 @@ edition = "2018"
 [dependencies]
 solana-program = "1.7.11"
 solana-sdk = "1.7.11"
-dex-v3 = {path = "../program", features = ["no-entrypoint"]}
+dex-v4 = {path = "../program", features = ["no-entrypoint"]}
 solana-client = "1.7.11"
 solana-clap-utils = "1.7.11"
 clap = "2.33.3"

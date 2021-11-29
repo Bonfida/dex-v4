@@ -5,7 +5,7 @@ use agnostic_orderbook::{
     state::{Event, EventQueue, EventQueueHeader, MarketState},
 };
 use borsh::BorshDeserialize;
-use dex_v3::{
+use dex_v4::{
     instruction::consume_events,
     state::{CallBackInfo, DexState},
     CALLBACK_INFO_LEN,
