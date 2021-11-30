@@ -26,9 +26,9 @@ async fn test_dex_perf() {
     println!("Aob_dex_key {:?}", dex_program_id);
 
     let mut program_test = ProgramTest::new(
-        "dex_v3",
+        "dex_v4",
         dex_program_id,
-        processor!(dex_v3::entrypoint::process_instruction),
+        processor!(dex_v4::entrypoint::process_instruction),
     );
     program_test.add_program(
         "agnostic_orderbook",

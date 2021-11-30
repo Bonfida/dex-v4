@@ -2,13 +2,13 @@ use std::convert::TryInto;
 
 use agnostic_orderbook::state::MarketState;
 use bytemuck::try_from_bytes;
-use dex_v3::instruction::cancel_order;
-use dex_v3::instruction::consume_events;
-use dex_v3::instruction::create_market;
-use dex_v3::instruction::initialize_account;
-use dex_v3::instruction::new_order;
-use dex_v3::instruction::settle;
-use dex_v3::state::USER_ACCOUNT_HEADER_LEN;
+use dex_v4::instruction::cancel_order;
+use dex_v4::instruction::consume_events;
+use dex_v4::instruction::create_market;
+use dex_v4::instruction::initialize_account;
+use dex_v4::instruction::new_order;
+use dex_v4::instruction::settle;
+use dex_v4::state::USER_ACCOUNT_HEADER_LEN;
 use solana_program::pubkey::Pubkey;
 use solana_program::system_instruction::create_account;
 use solana_program::system_program;
@@ -24,14 +24,14 @@ use crate::common::utils::{create_market_and_accounts, sign_send_instructions};
 #[tokio::test]
 async fn test_dex() {
     // Create program and test environment
-    let dex_program_id = dex_v3::ID;
+    let dex_program_id = dex_v4::ID;
     let aaob_program_id = agnostic_orderbook::ID;
 
     let mut program_test = ProgramTest::new(
-        "dex_v3",
+        "dex_v4",
         dex_program_id,
         None,
-        // processor!(dex_v3::entrypoint::process_instruction),
+        // processor!(dex_v4::entrypoint::process_instruction),
     );
     program_test.add_program(
         "agnostic_orderbook",
@@ -348,8 +348,6 @@ async fn test_dex() {
         aaob_market_account,
         Pubkey::new(&aaob_market_state.event_queue),
         reward_target.pubkey(),
-        base_vault,
-        prg_test_ctx.payer.pubkey(),
         &[user_account],
         consume_events::Params { max_iterations: 10 },
     );

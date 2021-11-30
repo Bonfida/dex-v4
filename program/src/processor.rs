@@ -1,7 +1,7 @@
 use num_traits::FromPrimitive;
 use solana_program::{
-    account_info::AccountInfo, entrypoint::ProgramResult, msg,
-    program_error::ProgramError, pubkey::Pubkey,
+    account_info::AccountInfo, entrypoint::ProgramResult, msg, program_error::ProgramError,
+    pubkey::Pubkey,
 };
 
 use crate::instruction::DexInstruction;
@@ -59,7 +59,6 @@ impl Processor {
         accounts: &[AccountInfo],
         instruction_data: &[u8],
     ) -> ProgramResult {
-
         msg!("Beginning processing");
         let instruction_tag = FromPrimitive::from_u8(instruction_data[0])
             .ok_or(ProgramError::InvalidInstructionData)?;

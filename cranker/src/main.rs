@@ -10,7 +10,7 @@ fn main() {
     let matches = App::new("dex-crank")
         .version("0.1")
         .author("Bonfida")
-        .about("Serum dex v3 cranking runtime")
+        .about("Serum dex v4 cranking runtime")
         .arg(
             Arg::with_name("url")
                 .short("u")
