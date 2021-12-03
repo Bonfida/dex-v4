@@ -37,8 +37,7 @@ export class MarketState {
       {
         kind: "struct",
         fields: [
-          ["tag", "u8"],
-          ["signerNonce", "u8"],
+          ["tag", "u64"],
           ["baseMint", [32]],
           ["quoteMint", [32]],
           ["baseVault", [32]],
@@ -50,14 +49,15 @@ export class MarketState {
           ["quoteVolume", "u64"],
           ["accumulatedFees", "u64"],
           ["minBaseOrderSize", "u64"],
+          ["signerNonce", "u64"],
         ],
       },
     ],
   ]);
 
   constructor(obj: {
-    tag: number;
-    signerNonce: number;
+    tag: BN;
+    signerNonce: BN;
     baseMint: Uint8Array;
     quoteMint: Uint8Array;
     baseVault: Uint8Array;
@@ -70,8 +70,8 @@ export class MarketState {
     accumulatedFees: BN;
     minBaseOrderSize: BN;
   }) {
-    this.tag = obj.tag as AccountTag;
-    this.signerNonce = obj.signerNonce;
+    this.tag = obj.tag.toNumber() as AccountTag;
+    this.signerNonce = obj.signerNonce.toNumber();
     this.baseMint = new PublicKey(obj.baseMint);
     this.quoteMint = new PublicKey(obj.quoteMint);
     this.baseVault = new PublicKey(obj.baseVault);
@@ -107,6 +107,10 @@ export class UserAccount {
   quoteTokenFree: BN;
   quoteTokenLocked: BN;
   accumulatedRebates: BN;
+  accumulatedMakerQuoteVolume: BN;
+  accumulatedMakerBaseVolume: BN;
+  accumulatedTakerQuoteVolume: BN;
+  accumulatedTakerBaseVolume: BN;
   orders: BN[];
 
   static schema: Schema = new Map([
@@ -115,7 +119,7 @@ export class UserAccount {
       {
         kind: "struct",
         fields: [
-          ["tag", "u8"],
+          ["tag", "u64"],
           ["market", [32]],
           ["owner", [32]],
           ["baseTokenFree", "u64"],
@@ -123,6 +127,11 @@ export class UserAccount {
           ["quoteTokenFree", "u64"],
           ["quoteTokenLocked", "u64"],
           ["accumulatedRebates", "u64"],
+          ["accumulatedMakerQuoteVolume", "u64"],
+          ["accumulatedMakerBaseeVolume", "u64"],
+          ["accumulatedTakerQuoteVolume", "u64"],
+          ["accumulatedTakerBaseVolume", "u64"],
+          ["_padding", "u32"],
           ["orders", ["u128"]],
         ],
       },
@@ -130,7 +139,7 @@ export class UserAccount {
   ]);
 
   constructor(obj: {
-    tag: number;
+    tag: BN;
     market: Uint8Array;
     owner: Uint8Array;
     baseTokenFree: BN;
@@ -139,8 +148,12 @@ export class UserAccount {
     quoteTokenLocked: BN;
     orders: BN[];
     accumulatedRebates: BN;
+    accumulatedMakerQuoteVolume: BN;
+    accumulatedMakerBaseVolume: BN;
+    accumulatedTakerQuoteVolume: BN;
+    accumulatedTakerBaseVolume: BN;
   }) {
-    this.tag = obj.tag;
+    this.tag = obj.tag.toNumber();
     this.market = new PublicKey(obj.market);
     this.owner = new PublicKey(obj.owner);
     this.baseTokenFree = obj.baseTokenFree;
@@ -149,6 +162,10 @@ export class UserAccount {
     this.quoteTokenLocked = obj.quoteTokenLocked;
     this.orders = obj.orders;
     this.accumulatedRebates = obj.accumulatedRebates;
+    this.accumulatedMakerQuoteVolume = obj.accumulatedMakerQuoteVolume;
+    this.accumulatedMakerBaseVolume = obj.accumulatedMakerBaseVolume;
+    this.accumulatedTakerQuoteVolume = obj.accumulatedTakerQuoteVolume;
+    this.accumulatedTakerBaseVolume = obj.accumulatedTakerBaseVolume;
   }
 
   static async retrieve(connection: Connection, userAccount: PublicKey) {

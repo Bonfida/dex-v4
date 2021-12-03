@@ -1,13 +1,12 @@
 use std::{cell::RefCell, rc::Rc};
 
-use agnostic_orderbook::{
-    msrm_token,
-    state::{Event, EventQueue, EventQueueHeader, MarketState},
+use agnostic_orderbook::state::{
+    Event, EventQueue, EventQueueHeader, MarketState, MARKET_STATE_LEN,
 };
 use borsh::BorshDeserialize;
 use dex_v4::{
     instruction::consume_events,
-    state::{CallBackInfo, DexState},
+    state::{CallBackInfo, DexState, DEX_STATE_LEN},
     CALLBACK_INFO_LEN,
 };
 use error::CrankError;
@@ -21,7 +20,6 @@ use solana_sdk::{
     signer::Signer,
     transaction::Transaction,
 };
-use spl_associated_token_account::get_associated_token_address;
 
 pub mod error;
 pub mod utils;
@@ -36,6 +34,7 @@ pub struct Context {
 }
 
 pub const MAX_ITERATIONS: u64 = 10;
+pub const MAX_NUMBER_OF_USER_ACCOUNTS: usize = 20;
 
 impl Context {
     pub fn crank(self) {
@@ -46,28 +45,25 @@ impl Context {
             .get_account_data(&self.market)
             .map_err(|_| CrankError::ConnectionError)
             .unwrap();
-        let market_state = DexState::deserialize(&mut (&market_state_data as &[u8])).unwrap();
+        let market_state =
+            bytemuck::try_from_bytes::<DexState>(&market_state_data[..DEX_STATE_LEN]).unwrap();
 
         let market_signer = Pubkey::create_program_address(
-            &[&self.market.to_bytes(), &[market_state.signer_nonce]],
+            &[&self.market.to_bytes(), &[market_state.signer_nonce as u8]],
             &self.program_id,
         )
         .unwrap();
         let orderbook_data = connection
-            .get_account_data(&market_state.orderbook)
+            .get_account_data(&Pubkey::new(&market_state.orderbook))
             .unwrap();
         let orderbook =
-            agnostic_orderbook::state::MarketState::deserialize(&mut (&orderbook_data as &[u8]))
-                .unwrap();
-        let msrm_token_account =
-            get_associated_token_address(&self.cranking_authority.pubkey(), &msrm_token::ID);
+            bytemuck::try_from_bytes::<MarketState>(&orderbook_data[..MARKET_STATE_LEN]).unwrap();
         loop {
             let res = self.consume_events_iteration(
                 &connection,
                 &orderbook,
                 &market_state,
                 &market_signer,
-                &msrm_token_account,
             );
             println!("{:#?}", res);
         }
@@ -79,9 +75,9 @@ impl Context {
         orderbook: &MarketState,
         market_state: &DexState,
         market_signer: &Pubkey,
-        msrm_token_account: &Pubkey,
     ) -> Result<Signature, ClientError> {
-        let mut event_queue_data = connection.get_account_data(&orderbook.event_queue)?;
+        let mut event_queue_data =
+            connection.get_account_data(&Pubkey::new(&orderbook.event_queue))?;
         let event_queue_header =
             EventQueueHeader::deserialize(&mut (&event_queue_data as &[u8])).unwrap();
         let length = event_queue_header.count as usize;
@@ -99,7 +95,7 @@ impl Context {
                     quote_size: _,
                     base_size: _,
                     maker_callback_info,
-                    taker_callback_info,
+                    taker_callback_info: _,
                 } => {
                     let maker_callback_info =
                         CallBackInfo::deserialize(&mut (&maker_callback_info as &[u8])).unwrap();
@@ -119,16 +115,21 @@ impl Context {
             }
         }
 
+        user_accounts.truncate(MAX_NUMBER_OF_USER_ACCOUNTS);
+
+        // We don't use the default sort since the initial ordering of the pubkeys is completely random
+        user_accounts.sort_unstable();
+        // Since the array is sorted, this removes all duplicate accounts, which shrinks the array.
+        user_accounts.dedup();
+
         let consume_events_instruction = consume_events(
             self.program_id,
-            market_state.aaob_program,
+            agnostic_orderbook::id(),
             self.market,
             *market_signer,
-            market_state.orderbook,
-            orderbook.event_queue,
+            Pubkey::new(&market_state.orderbook),
+            Pubkey::new(&orderbook.event_queue),
             self.reward_target,
-            *msrm_token_account,
-            self.cranking_authority.pubkey(),
             &user_accounts,
             consume_events::Params {
                 max_iterations: MAX_ITERATIONS,

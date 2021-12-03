@@ -18,3 +18,4 @@ spl-associated-token-account = "1.0.3"
 thiserror = "1.0.29"
 borsh = "0.9.1"
 agnostic-orderbook = {path = "../../agnostic-orderbook/program", featuers = ["no-entrypoint"]}
+bytemuck = "1.7"
