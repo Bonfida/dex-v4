@@ -29,7 +29,6 @@ pub struct Context {
     pub market: Pubkey,
     pub reward_target: Pubkey,
     pub fee_payer: Keypair,
-    pub cranking_authority: Keypair,
     pub endpoint: String,
 }
 
@@ -141,10 +140,7 @@ impl Context {
             Some(&self.fee_payer.pubkey()),
         );
         let (recent_blockhash, _) = connection.get_recent_blockhash()?;
-        transaction.partial_sign(
-            &[&self.fee_payer, &self.cranking_authority],
-            recent_blockhash,
-        );
+        transaction.partial_sign(&[&self.fee_payer], recent_blockhash);
         connection.send_transaction_with_config(
             &transaction,
             RpcSendTransactionConfig {
