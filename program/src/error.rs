@@ -44,6 +44,8 @@ pub enum DexError {
     InvalidSplTokenProgram,
     #[error("A provided state account was not owned by the current program")]
     InvalidStateAccountOwner,
+    #[error("The AOB instruction call returned an error")]
+    AOBError,
 }
 
 impl From<DexError> for ProgramError {

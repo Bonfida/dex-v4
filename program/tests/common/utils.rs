@@ -1,7 +1,3 @@
-use std::str::FromStr;
-
-use agnostic_orderbook::instruction::create_market;
-use dex_v4::{CALLBACK_ID_LEN, CALLBACK_INFO_LEN};
 use solana_program::instruction::Instruction;
 use solana_program::program_pack::Pack;
 use solana_program::pubkey::Pubkey;
@@ -12,6 +8,7 @@ use solana_sdk::signature::Signer;
 use solana_sdk::{signature::Keypair, transaction::Transaction, transport::TransportError};
 use spl_associated_token_account::{create_associated_token_account, get_associated_token_address};
 use spl_token::state::Mint;
+use std::str::FromStr;
 
 pub async fn sign_send_instructions(
     ctx: &mut ProgramTestContext,
@@ -78,13 +75,19 @@ pub fn mint_bootstrap(
     (address, mint_info)
 }
 
+pub struct AOBAccounts {
+    pub event_queue: Pubkey,
+    pub market: Pubkey,
+    pub asks: Pubkey,
+    pub bids: Pubkey,
+}
+
 /// Creates the accounts needed for the AAOB market testing and returns the
 /// address of the market.
-pub async fn create_market_and_accounts(
+pub async fn create_aob_market_and_accounts(
     mut prg_test_ctx: &mut ProgramTestContext,
-    agnostic_orderbook_program_id: Pubkey,
-    caller_authority: Pubkey,
-) -> Pubkey {
+    dex_program_id: Pubkey,
+) -> AOBAccounts {
     // Create market state account
     let market_account = Keypair::new();
     let create_market_account_instruction = create_account(
@@ -92,7 +95,7 @@ pub async fn create_market_and_accounts(
         &market_account.pubkey(),
         1_000_000,
         250,
-        &agnostic_orderbook_program_id,
+        &dex_program_id,
     );
     sign_send_instructions(
         &mut prg_test_ctx,
@@ -109,7 +112,7 @@ pub async fn create_market_and_accounts(
         &event_queue_account.pubkey(),
         1_000_000,
         1_000,
-        &agnostic_orderbook_program_id,
+        &dex_program_id,
     );
     sign_send_instructions(
         &mut prg_test_ctx,
@@ -126,7 +129,7 @@ pub async fn create_market_and_accounts(
         &bids_account.pubkey(),
         1_000_000,
         1_000_000,
-        &agnostic_orderbook_program_id,
+        &dex_program_id,
     );
     sign_send_instructions(
         &mut prg_test_ctx,
@@ -143,7 +146,7 @@ pub async fn create_market_and_accounts(
         &asks_account.pubkey(),
         1_000_000,
         1_000_000,
-        &agnostic_orderbook_program_id,
+        &dex_program_id,
     );
     sign_send_instructions(
         &mut prg_test_ctx,
@@ -153,23 +156,10 @@ pub async fn create_market_and_accounts(
     .await
     .unwrap();
 
-    // Create Market
-    let create_market_instruction = create_market(
-        agnostic_orderbook_program_id,
-        market_account.pubkey(),
-        event_queue_account.pubkey(),
-        bids_account.pubkey(),
-        asks_account.pubkey(),
-        create_market::Params {
-            caller_authority,
-            callback_info_len: CALLBACK_INFO_LEN,
-            callback_id_len: CALLBACK_ID_LEN,
-            min_base_order_size: 0,
-        },
-    );
-    sign_send_instructions(&mut prg_test_ctx, vec![create_market_instruction], vec![])
-        .await
-        .unwrap();
-
-    market_account.pubkey()
+    AOBAccounts {
+        event_queue: event_queue_account.pubkey(),
+        market: market_account.pubkey(),
+        asks: asks_account.pubkey(),
+        bids: bids_account.pubkey(),
+    }
 }

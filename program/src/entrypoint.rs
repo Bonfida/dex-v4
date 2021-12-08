@@ -64,6 +64,9 @@ impl PrintProgramError for DexError {
             DexError::InvalidStateAccountOwner => {
                 msg!("Error: A provided state account was not owned by the current program")
             }
+            DexError::AOBError => {
+                msg!("Error: The AOB instruction call returned an error.")
+            }
         }
     }
 }

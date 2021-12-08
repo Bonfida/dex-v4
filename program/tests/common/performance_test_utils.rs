@@ -17,8 +17,8 @@ use solana_sdk::signature::Signer;
 use solana_sdk::{signature::Keypair, transport::TransportError};
 use spl_token::instruction::mint_to;
 
+use crate::common::utils::create_aob_market_and_accounts;
 use crate::common::utils::create_associated_token;
-use crate::common::utils::create_market_and_accounts;
 use crate::common::utils::mint_bootstrap;
 use crate::common::utils::sign_send_instructions;
 
@@ -96,8 +96,7 @@ pub async fn create_aob_dex(
         Pubkey::find_program_address(&[&market_account.pubkey().to_bytes()], &dex_program_id);
 
     // Create the AAOB market with all accounts
-    let aaob_market_account =
-        create_market_and_accounts(&mut pgr_test_ctx, aaob_program_id, market_signer).await;
+    let aaob_accounts = create_aob_market_and_accounts(&mut pgr_test_ctx, dex_program_id).await;
 
     // Create the vault accounts
     let base_vault = create_associated_token(&mut pgr_test_ctx, &base_mint_key, &market_signer)
@@ -112,14 +111,18 @@ pub async fn create_aob_dex(
     let create_market_instruction = dex_v4::instruction::create_market(
         dex_program_id,
         market_account.pubkey(),
-        aaob_market_account,
+        aaob_accounts.market,
         base_vault,
         quote_vault,
-        aaob_program_id,
         market_admin.pubkey(),
+        aaob_accounts.event_queue,
+        aaob_accounts.asks,
+        aaob_accounts.bids,
         dex_v4::instruction::create_market::Params {
             signer_nonce: signer_nonce as u64,
             min_base_order_size: 1000,
+            price_bitmask: u64::MAX,
+            cranker_reward: 0,
         },
     );
     sign_send_instructions(&mut pgr_test_ctx, vec![create_market_instruction], vec![])
@@ -235,7 +238,7 @@ pub async fn create_aob_dex(
     let dex_market: &DexState = try_from_bytes(&dex_market_data[..DEX_STATE_LEN] as &[u8]).unwrap();
     let aob_market_data = pgr_test_ctx
         .banks_client
-        .get_account(aaob_market_account)
+        .get_account(aaob_accounts.market)
         .await
         .unwrap()
         .unwrap()
@@ -401,9 +404,7 @@ pub async fn aob_dex_new_order(
     // New Order on AOB DEX
     let new_order_instruction = new_order(
         dex_test_ctx.dex_program_id,
-        dex_test_ctx.aaob_program_id,
         dex_test_ctx.dex_market_key,
-        Pubkey::new(&dex_test_ctx.aob_market.caller_authority),
         Pubkey::new(&dex_test_ctx.dex_market.orderbook),
         Pubkey::new(&dex_test_ctx.aob_market.event_queue),
         Pubkey::new(&dex_test_ctx.aob_market.bids),

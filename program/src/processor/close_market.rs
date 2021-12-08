@@ -1,9 +1,9 @@
+use agnostic_orderbook::error::AoError;
 use solana_program::{
     account_info::{next_account_info, AccountInfo},
     entrypoint::ProgramResult,
     msg,
-    program::invoke_signed,
-    program_error::ProgramError,
+    program_error::{PrintProgramError, ProgramError},
     program_pack::Pack,
     pubkey::Pubkey,
 };
@@ -19,12 +19,10 @@ struct Accounts<'a, 'b: 'a> {
     market: &'a AccountInfo<'b>,
     base_vault: &'a AccountInfo<'b>,
     quote_vault: &'a AccountInfo<'b>,
-    market_signer: &'a AccountInfo<'b>,
     orderbook: &'a AccountInfo<'b>,
     event_queue: &'a AccountInfo<'b>,
     bids: &'a AccountInfo<'b>,
     asks: &'a AccountInfo<'b>,
-    aaob_program: &'a AccountInfo<'b>,
     market_admin: &'a AccountInfo<'b>,
     target_lamports_account: &'a AccountInfo<'b>,
 }
@@ -40,12 +38,10 @@ impl<'a, 'b: 'a> Accounts<'a, 'b> {
             market: next_account_info(accounts_iter)?,
             base_vault: next_account_info(accounts_iter)?,
             quote_vault: next_account_info(accounts_iter)?,
-            market_signer: next_account_info(accounts_iter)?,
             orderbook: next_account_info(accounts_iter)?,
             event_queue: next_account_info(accounts_iter)?,
             bids: next_account_info(accounts_iter)?,
             asks: next_account_info(accounts_iter)?,
-            aaob_program: next_account_info(accounts_iter)?,
             market_admin: next_account_info(accounts_iter)?,
             target_lamports_account: next_account_info(accounts_iter)?,
         };
@@ -55,11 +51,6 @@ impl<'a, 'b: 'a> Accounts<'a, 'b> {
             e
         })?;
         check_account_owner(a.market, program_id, DexError::InvalidStateAccountOwner)?;
-        check_account_key(
-            a.aaob_program,
-            &agnostic_orderbook::ID.to_bytes(),
-            DexError::InvalidAobProgramAccount,
-        )?;
 
         Ok(a)
     }
@@ -70,7 +61,7 @@ pub(crate) fn process(program_id: &Pubkey, accounts: &[AccountInfo]) -> ProgramR
 
     let mut market_state = DexState::get(accounts.market)?;
 
-    check_accounts(program_id, &market_state, &accounts).unwrap();
+    check_accounts(&market_state, &accounts).unwrap();
 
     let base_vault_data = Account::unpack_from_slice(&accounts.base_vault.data.borrow_mut())?;
     let quote_vault_data = Account::unpack_from_slice(&accounts.quote_vault.data.borrow_mut())?;
@@ -88,31 +79,21 @@ pub(crate) fn process(program_id: &Pubkey, accounts: &[AccountInfo]) -> ProgramR
         return Err(ProgramError::from(DexError::MarketStillActive));
     }
 
-    let close_aaob_market_instruction = agnostic_orderbook::instruction::close_market(
-        *accounts.aaob_program.key,
-        *accounts.market.key,
-        *accounts.event_queue.key,
-        *accounts.bids.key,
-        *accounts.asks.key,
-        *accounts.market_signer.key,
-        *accounts.target_lamports_account.key,
-    );
+    let invoke_accounts = agnostic_orderbook::instruction::close_market::Accounts {
+        market: accounts.orderbook,
+        event_queue: accounts.event_queue,
+        bids: accounts.bids,
+        asks: accounts.asks,
+        authority: accounts.market, // No impact with AOB as a lib
+        lamports_target_account: accounts.target_lamports_account,
+    };
 
-    invoke_signed(
-        &close_aaob_market_instruction,
-        &[
-            accounts.market.clone(),
-            accounts.event_queue.clone(),
-            accounts.bids.clone(),
-            accounts.asks.clone(),
-            accounts.market_signer.clone(),
-            accounts.target_lamports_account.clone(),
-        ],
-        &[&[
-            &accounts.market.key.to_bytes(),
-            &[market_state.signer_nonce as u8],
-        ]],
-    )?;
+    if let Err(error) =
+        agnostic_orderbook::instruction::close_market::process(program_id, invoke_accounts)
+    {
+        error.print::<AoError>();
+        return Err(DexError::AOBError.into());
+    }
 
     market_state.tag = AccountTag::Closed as u64;
 
@@ -131,23 +112,7 @@ pub(crate) fn process(program_id: &Pubkey, accounts: &[AccountInfo]) -> ProgramR
     Ok(())
 }
 
-fn check_accounts(
-    program_id: &Pubkey,
-    market_state: &DexState,
-    accounts: &Accounts,
-) -> ProgramResult {
-    let market_signer = Pubkey::create_program_address(
-        &[
-            &accounts.market.key.to_bytes(),
-            &[market_state.signer_nonce as u8],
-        ],
-        program_id,
-    )?;
-    check_account_key(
-        accounts.market_signer,
-        &market_signer.to_bytes(),
-        DexError::InvalidMarketSignerAccount,
-    )?;
+fn check_accounts(market_state: &DexState, accounts: &Accounts) -> ProgramResult {
     check_account_key(
         accounts.orderbook,
         &market_state.orderbook,
