@@ -1,4 +1,14 @@
+use crate::{
+    error::DexError,
+    state::{AccountTag, DexState},
+    utils::check_account_owner,
+    CALLBACK_ID_LEN, CALLBACK_INFO_LEN,
+};
 use agnostic_orderbook::error::AoError;
+use bonfida_utils::BorshSize;
+use bonfida_utils::InstructionsAccount;
+use borsh::BorshDeserialize;
+use borsh::BorshSerialize;
 use bytemuck::{try_from_bytes, Pod, Zeroable};
 use solana_program::{
     account_info::{next_account_info, AccountInfo},
@@ -11,14 +21,7 @@ use solana_program::{
     sysvar::Sysvar,
 };
 
-use crate::{
-    error::DexError,
-    state::{AccountTag, DexState},
-    utils::check_account_owner,
-    CALLBACK_ID_LEN, CALLBACK_INFO_LEN,
-};
-
-#[derive(Copy, Clone, Zeroable, Pod)]
+#[derive(Copy, Clone, Zeroable, Pod, BorshDeserialize, BorshSerialize, BorshSize)]
 #[repr(C)]
 /**
 The required arguments for a create_market instruction.
@@ -38,18 +41,24 @@ pub struct Params {
     pub fee_tier_maker_bps_rebates: [u64; 7],
 }
 
-struct Accounts<'a, 'b: 'a> {
-    market: &'a AccountInfo<'b>,
-    orderbook: &'a AccountInfo<'b>,
-    base_vault: &'a AccountInfo<'b>,
-    quote_vault: &'a AccountInfo<'b>,
-    market_admin: &'a AccountInfo<'b>,
-    event_queue: &'a AccountInfo<'b>,
-    asks: &'a AccountInfo<'b>,
-    bids: &'a AccountInfo<'b>,
+#[derive(InstructionsAccount)]
+pub struct Accounts<'a, T> {
+    #[cons(writable)]
+    pub market: &'a T,
+    #[cons(writable)]
+    pub orderbook: &'a T,
+    pub base_vault: &'a T,
+    pub quote_vault: &'a T,
+    pub market_admin: &'a T,
+    #[cons(writable)]
+    pub event_queue: &'a T,
+    #[cons(writable)]
+    pub asks: &'a T,
+    #[cons(writable)]
+    pub bids: &'a T,
 }
 
-impl<'a, 'b: 'a> Accounts<'a, 'b> {
+impl<'a, 'b: 'a> Accounts<'a, AccountInfo<'b>> {
     pub fn parse(
         program_id: &Pubkey,
         accounts: &'a [AccountInfo<'b>],
@@ -80,6 +89,7 @@ pub(crate) fn process(
 ) -> ProgramResult {
     let accounts = Accounts::parse(program_id, accounts)?;
 
+    msg!("{:?}", instruction_data);
     let Params {
         signer_nonce,
         min_base_order_size,

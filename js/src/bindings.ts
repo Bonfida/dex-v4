@@ -2,13 +2,13 @@ import { Keypair, PublicKey, Connection, SystemProgram } from "@solana/web3.js";
 import { DEX_ID, SRM_MINT } from "./ids";
 import {
   cancelOrderInstruction,
-  consumeEventInstruction,
+  consumeEventsInstruction,
   createMarketInstruction,
   initializeAccountInstruction,
   newOrderInstruction,
   settleInstruction,
-  closeAccountIntruction,
-} from "./instructions";
+  closeAccountInstruction,
+} from "./raw_instructions";
 import { OrderType, PrimedTransaction, Side } from "./types";
 import * as aaob from "@bonfida/aaob";
 import BN from "bn.js";
@@ -18,6 +18,7 @@ import {
 } from "./utils";
 import { SelfTradeBehavior } from "./state";
 import { Market } from "./market";
+import { TOKEN_PROGRAM_ID } from "@solana/spl-token";
 
 /**
  * Constants
@@ -33,7 +34,9 @@ export const createMarket = async (
   quoteMint: PublicKey,
   minBaseOrderSize: number,
   feePayer: PublicKey,
-  marketAdmin: PublicKey
+  marketAdmin: PublicKey,
+  priceBitmask: BN,
+  crankerReward: BN
 ): Promise<PrimedTransaction[]> => {
   // Market Account
   const marketAccount = new Keypair();
@@ -64,7 +67,9 @@ export const createMarket = async (
     EVENT_CAPACITY,
     NODE_CAPACITY,
     new BN(minBaseOrderSize),
-    feePayer
+    feePayer,
+    priceBitmask,
+    crankerReward
   );
 
   // Base vault
@@ -82,16 +87,20 @@ export const createMarket = async (
   );
 
   const createMarket = new createMarketInstruction({
-    signerNonce: marketSignerNonce,
+    signerNonce: new BN(marketSignerNonce),
     minBaseOrderSize: new BN(minBaseOrderSize),
+    priceBitmask: priceBitmask,
+    crankerReward: new BN(crankerReward)
   }).getInstruction(
     DEX_ID,
     marketAccount.publicKey,
     aaobSigners[3].publicKey,
     await findAssociatedTokenAddress(marketSigner, baseMint),
     await findAssociatedTokenAddress(marketSigner, quoteMint),
-    aaob.AAOB_ID,
-    marketAdmin
+    marketAdmin,
+    aaobSigners[0].publicKey,
+    aaobSigners[1].publicKey,
+    aaobSigners[2].publicKey,
   );
 
   return [
@@ -133,8 +142,9 @@ export const placeOrder = async (
     maxBaseQty: new BN(size),
     maxQuoteQty: new BN(Math.ceil(size * limitPrice)),
     orderType: type,
-    selfTradeBehaviour: selfTradeBehaviour,
+    selfTradeBehavior: selfTradeBehaviour,
     matchLimit: new BN(Number.MAX_SAFE_INTEGER), // TODO Change
+    padding: new Uint8Array([0])
   }).getInstruction(
     DEX_ID,
     aaob.AAOB_ID,
@@ -176,9 +186,7 @@ export const cancelOrder = async (
     orderId,
   }).getInstruction(
     DEX_ID,
-    aaob.AAOB_ID,
     market.address,
-    marketSigner,
     market.orderbookAddress,
     market.eventQueueAddress,
     market.bidsAddress,
@@ -203,7 +211,7 @@ export const initializeAccount = async (
   const instruction = new initializeAccountInstruction({
     market: market.toBuffer(),
     maxOrders: new BN(maxOrders),
-  }).getInstruction(DEX_ID, userAccount, owner, owner);
+  }).getInstruction(DEX_ID, SystemProgram.programId, userAccount, owner, owner);
 
   return instruction;
 };
@@ -224,8 +232,9 @@ export const settle = async (
     DEX_ID
   );
 
-  const instruction = new settleInstruction().getInstruction(
+  const instruction = new settleInstruction({}).getInstruction(
     DEX_ID,
+    TOKEN_PROGRAM_ID,
     market.address,
     market.baseVault,
     market.quoteVault,
@@ -242,28 +251,22 @@ export const settle = async (
 export const comsumEvents = async (
   market: Market,
   rewardTarget: PublicKey,
-  msrmTokenAccount: PublicKey,
-  msrmTokenAccountOwner: PublicKey,
   userAccounts: PublicKey[],
-  maxIteration: BN
+  maxIterations: BN
 ) => {
   const [marketSigner] = await PublicKey.findProgramAddress(
     [market.address.toBuffer()],
     DEX_ID
   );
 
-  const instruction = new consumeEventInstruction({
-    maxIteration,
+  const instruction = new consumeEventsInstruction({
+    maxIterations,
   }).getInstruction(
     DEX_ID,
-    aaob.AAOB_ID,
     market.address,
-    marketSigner,
     market.orderbookAddress,
     market.eventQueueAddress,
     rewardTarget,
-    msrmTokenAccount,
-    msrmTokenAccountOwner,
     userAccounts
   );
 
@@ -276,7 +279,7 @@ export const closeAccount = async (market: PublicKey, owner: PublicKey) => {
     DEX_ID
   );
 
-  const instruction = new closeAccountIntruction().getInstruction(
+  const instruction = new closeAccountInstruction({}).getInstruction(
     DEX_ID,
     userAccount,
     owner,

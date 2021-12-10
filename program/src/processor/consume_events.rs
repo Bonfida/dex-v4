@@ -1,10 +1,18 @@
 use std::rc::Rc;
 
+use crate::{
+    error::DexError,
+    state::{CallBackInfo, DexState, UserAccount},
+    utils::{check_account_key, check_account_owner, fp32_mul},
+};
 use agnostic_orderbook::{
     error::AoError,
     state::{Event, EventQueue, EventQueueHeader, Side},
 };
+use bonfida_utils::BorshSize;
+use bonfida_utils::InstructionsAccount;
 use borsh::BorshDeserialize;
+use borsh::BorshSerialize;
 use bytemuck::{try_from_bytes, Pod, Zeroable};
 use solana_program::{
     account_info::{next_account_info, AccountInfo},
@@ -14,15 +22,9 @@ use solana_program::{
     pubkey::Pubkey,
 };
 
-use crate::{
-    error::DexError,
-    state::{CallBackInfo, DexState, UserAccount},
-    utils::{check_account_key, check_account_owner, fp32_mul},
-};
-
 use super::CALLBACK_INFO_LEN;
 
-#[derive(Copy, Clone, Zeroable, Pod)]
+#[derive(Copy, Clone, Zeroable, Pod, BorshDeserialize, BorshSerialize, BorshSize)]
 #[repr(C)]
 /**
 The required arguments for a consume_events instruction.
@@ -32,15 +34,21 @@ pub struct Params {
     pub max_iterations: u64,
 }
 
-struct Accounts<'a, 'b: 'a> {
-    market: &'a AccountInfo<'b>,
-    orderbook: &'a AccountInfo<'b>,
-    event_queue: &'a AccountInfo<'b>,
-    reward_target: &'a AccountInfo<'b>,
-    user_accounts: &'a [AccountInfo<'b>],
+#[derive(InstructionsAccount)]
+pub struct Accounts<'a, T> {
+    #[cons(writable)]
+    pub market: &'a T,
+    #[cons(writable)]
+    pub orderbook: &'a T,
+    #[cons(writable)]
+    pub event_queue: &'a T,
+    #[cons(writable)]
+    pub reward_target: &'a T,
+    #[cons(writable)]
+    pub user_accounts: &'a [T],
 }
 
-impl<'a, 'b: 'a> Accounts<'a, 'b> {
+impl<'a, 'b: 'a> Accounts<'a, AccountInfo<'b>> {
     pub fn parse(
         program_id: &Pubkey,
         accounts: &'a [AccountInfo<'b>],
@@ -118,7 +126,7 @@ pub(crate) fn process(
     Ok(())
 }
 
-fn check_accounts(market_state: &DexState, accounts: &Accounts) -> ProgramResult {
+fn check_accounts(market_state: &DexState, accounts: &Accounts<AccountInfo>) -> ProgramResult {
     check_account_key(
         accounts.orderbook,
         &market_state.orderbook,

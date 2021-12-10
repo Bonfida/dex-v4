@@ -221,6 +221,30 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "8d696c370c750c948ada61c69a0ee2cbbb9c50b1019ddb86d9317157a99c2cae"
 
 [[package]]
+name = "bonfida-macros"
+version = "0.1.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "3d74c55af5acad5bc3de07537a38c5c68b4c2ef44224c5058d0143fb431918d5"
+dependencies = [
+ "proc-macro2 1.0.29",
+ "quote 1.0.9",
+ "solana-program",
+ "syn 1.0.76",
+]
+
+[[package]]
+name = "bonfida-utils"
+version = "0.1.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "7815a41be8743a6441cca2d8662e0be21a3b62e2b909e59697950452150cd684"
+dependencies = [
+ "bonfida-macros",
+ "borsh",
+ "bytemuck",
+ "solana-program",
+]
+
+[[package]]
 name = "borsh"
 version = "0.9.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -681,6 +705,7 @@ name = "dex-v4"
 version = "0.1.0"
 dependencies = [
  "agnostic-orderbook",
+ "bonfida-utils",
  "borsh",
  "bytemuck",
  "enumflags2",

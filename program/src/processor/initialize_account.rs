@@ -1,3 +1,8 @@
+use bonfida_utils::BorshSize;
+use bonfida_utils::InstructionsAccount;
+use borsh::BorshDeserialize;
+use borsh::BorshSerialize;
+use bytemuck::{try_from_bytes, Pod, Zeroable};
 use solana_program::{
     account_info::{next_account_info, AccountInfo},
     entrypoint::ProgramResult,
@@ -11,15 +16,13 @@ use solana_program::{
     sysvar::Sysvar,
 };
 
-use bytemuck::{try_from_bytes, Pod, Zeroable};
-
 use crate::{
     error::DexError,
     state::{Order, UserAccount, UserAccountHeader, USER_ACCOUNT_HEADER_LEN},
     utils::{check_account_key, check_account_owner, check_signer},
 };
 
-#[derive(Clone, Copy, Zeroable, Pod)]
+#[derive(Clone, Copy, Zeroable, Pod, BorshDeserialize, BorshSerialize, BorshSize)]
 #[repr(C)]
 /**
 The required arguments for a initialize_account instruction.
@@ -31,14 +34,18 @@ pub struct Params {
     pub max_orders: u64,
 }
 
-struct Accounts<'a, 'b: 'a> {
-    system_program: &'a AccountInfo<'b>,
-    user: &'a AccountInfo<'b>,
-    user_owner: &'a AccountInfo<'b>,
-    fee_payer: &'a AccountInfo<'b>,
+#[derive(InstructionsAccount)]
+pub struct Accounts<'a, T> {
+    pub system_program: &'a T,
+    #[cons(writable)]
+    pub user: &'a T,
+    #[cons(signer)]
+    pub user_owner: &'a T,
+    #[cons(writable, signer)]
+    pub fee_payer: &'a T,
 }
 
-impl<'a, 'b: 'a> Accounts<'a, 'b> {
+impl<'a, 'b: 'a> Accounts<'a, AccountInfo<'b>> {
     pub fn parse(
         _program_id: &Pubkey,
         accounts: &'a [AccountInfo<'b>],
@@ -50,7 +57,7 @@ impl<'a, 'b: 'a> Accounts<'a, 'b> {
             user_owner: next_account_info(accounts_iter)?,
             fee_payer: next_account_info(accounts_iter)?,
         };
-        check_signer(&a.user_owner).map_err(|e| {
+        check_signer(a.user_owner).map_err(|e| {
             msg!("The user account owner should be a signer for this transaction!");
             e
         })?;

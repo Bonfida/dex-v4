@@ -112,15 +112,16 @@ pub async fn create_aob_dex(
     // Create the dex market
     let market_admin = Keypair::new();
     let create_market_instruction = dex_v4::instruction::create_market(
-        dex_program_id,
-        market_account.pubkey(),
-        aaob_accounts.market,
-        base_vault,
-        quote_vault,
-        market_admin.pubkey(),
-        aaob_accounts.event_queue,
-        aaob_accounts.asks,
-        aaob_accounts.bids,
+        dex_v4::instruction::create_market::Accounts {
+            base_vault: &base_vault,
+            quote_vault: &quote_vault,
+            market: &market_account.pubkey(),
+            orderbook: &aaob_accounts.market,
+            market_admin: &market_admin.pubkey(),
+            event_queue: &aaob_accounts.event_queue,
+            asks: &aaob_accounts.asks,
+            bids: &aaob_accounts.bids,
+        },
         dex_v4::instruction::create_market::Params {
             signer_nonce: signer_nonce as u64,
             min_base_order_size: 1000,
@@ -165,10 +166,12 @@ pub async fn create_aob_dex(
             &dex_program_id,
         );
         let create_user_account_instruction = initialize_account(
-            dex_program_id,
-            user_account,
-            user_account_owner.pubkey(),
-            pgr_test_ctx.payer.pubkey(),
+            initialize_account::Accounts {
+                system_program: &system_program::ID,
+                user: &user_account,
+                user_owner: &user_account_owner.pubkey(),
+                fee_payer: &pgr_test_ctx.payer.pubkey(),
+            },
             initialize_account::Params {
                 market: market_account.pubkey().to_bytes(),
                 max_orders: 100,
@@ -269,20 +272,20 @@ pub async fn create_aob_dex(
 }
 
 pub async fn initialize_serum_market_accounts(
-    mut pgr_test_ctx: &mut ProgramTestContext,
+    pgr_test_ctx: &mut ProgramTestContext,
     aob_dex_test_ctx: &AobDexTestContext,
     serum_dex_program_id: Pubkey,
 ) -> Result<SerumTestContext, TransportError> {
     let (market_key, create_market) =
-        create_serum_dex_account(&pgr_test_ctx, serum_dex_program_id, 376)?;
+        create_serum_dex_account(pgr_test_ctx, serum_dex_program_id, 376)?;
     let (req_q_key, create_req_q) =
-        create_serum_dex_account(&pgr_test_ctx, serum_dex_program_id, 6400)?;
+        create_serum_dex_account(pgr_test_ctx, serum_dex_program_id, 6400)?;
     let (event_q_key, create_event_q) =
-        create_serum_dex_account(&pgr_test_ctx, serum_dex_program_id, 1 << 20)?;
+        create_serum_dex_account(pgr_test_ctx, serum_dex_program_id, 1 << 20)?;
     let (bids_key, create_bids) =
-        create_serum_dex_account(&pgr_test_ctx, serum_dex_program_id, 1 << 16)?;
+        create_serum_dex_account(pgr_test_ctx, serum_dex_program_id, 1 << 16)?;
     let (asks_key, create_asks) =
-        create_serum_dex_account(&pgr_test_ctx, serum_dex_program_id, 1 << 16)?;
+        create_serum_dex_account(pgr_test_ctx, serum_dex_program_id, 1 << 16)?;
     let (vault_signer_nonce, vault_signer_pk): (u64, _) = {
         let mut i = 0;
         loop {
@@ -301,20 +304,20 @@ pub async fn initialize_serum_market_accounts(
         create_asks,
     ];
     let keys = vec![&market_key, &req_q_key, &event_q_key, &bids_key, &asks_key];
-    sign_send_instructions(&mut pgr_test_ctx, create_instructions, keys)
+    sign_send_instructions(pgr_test_ctx, create_instructions, keys)
         .await
         .unwrap();
 
     // Create Vaults
     let coin_vault = create_associated_token(
-        &mut pgr_test_ctx,
+        pgr_test_ctx,
         &Pubkey::new(&aob_dex_test_ctx.dex_market.base_mint),
         &vault_signer_pk,
     )
     .await
     .unwrap();
     let pc_vault = create_associated_token(
-        &mut pgr_test_ctx,
+        pgr_test_ctx,
         &Pubkey::new(&aob_dex_test_ctx.dex_market.quote_mint),
         &vault_signer_pk,
     )
@@ -356,7 +359,7 @@ pub async fn initialize_serum_market_accounts(
         coin_mint: Pubkey::new(&aob_dex_test_ctx.dex_market.base_mint),
         pc_mint: Pubkey::new(&aob_dex_test_ctx.dex_market.quote_mint),
     };
-    sign_send_instructions(&mut pgr_test_ctx, vec![init_market_instruction], vec![])
+    sign_send_instructions(pgr_test_ctx, vec![init_market_instruction], vec![])
         .await
         .unwrap();
 
@@ -364,9 +367,9 @@ pub async fn initialize_serum_market_accounts(
     for _ in 0..NB_USER_ACCS {
         // Create user open orders account
         let (open_order, create_open_order_instruction) =
-            create_serum_dex_account(&pgr_test_ctx, serum_dex_program_id, 3216).unwrap();
+            create_serum_dex_account(pgr_test_ctx, serum_dex_program_id, 3216).unwrap();
         sign_send_instructions(
-            &mut pgr_test_ctx,
+            pgr_test_ctx,
             vec![create_open_order_instruction],
             vec![&open_order],
         )
@@ -399,7 +402,7 @@ pub fn create_serum_dex_account(
 }
 
 pub async fn aob_dex_new_order(
-    mut pgr_test_ctx: &mut ProgramTestContext,
+    pgr_test_ctx: &mut ProgramTestContext,
     dex_test_ctx: &AobDexTestContext,
     side: agnostic_orderbook::state::Side,
     limit_price: u64,
@@ -409,21 +412,26 @@ pub async fn aob_dex_new_order(
 ) {
     // New Order on AOB DEX
     let new_order_instruction = new_order(
-        dex_test_ctx.dex_program_id,
-        dex_test_ctx.dex_market_key,
-        Pubkey::new(&dex_test_ctx.dex_market.orderbook),
-        Pubkey::new(&dex_test_ctx.aob_market.event_queue),
-        Pubkey::new(&dex_test_ctx.aob_market.bids),
-        Pubkey::new(&dex_test_ctx.aob_market.asks),
-        Pubkey::new(&dex_test_ctx.dex_market.base_vault),
-        Pubkey::new(&dex_test_ctx.dex_market.quote_vault),
-        dex_test_ctx.user_account_keys[user_account_index],
-        match side {
-            agnostic_orderbook::state::Side::Ask => dex_test_ctx.user_bases[user_account_index],
-            agnostic_orderbook::state::Side::Bid => dex_test_ctx.user_quotes[user_account_index],
+        new_order::Accounts {
+            spl_token_program: &spl_token::ID,
+            system_program: &system_program::ID,
+            market: &dex_test_ctx.dex_market_key,
+            orderbook: &Pubkey::new(&dex_test_ctx.dex_market.orderbook),
+            event_queue: &Pubkey::new(&dex_test_ctx.aob_market.event_queue),
+            bids: &Pubkey::new(&dex_test_ctx.aob_market.bids),
+            asks: &Pubkey::new(&dex_test_ctx.aob_market.asks),
+            base_vault: &Pubkey::new(&dex_test_ctx.dex_market.base_vault),
+            quote_vault: &Pubkey::new(&dex_test_ctx.dex_market.quote_vault),
+            user: &dex_test_ctx.user_account_keys[user_account_index],
+            user_token_account: &match side {
+                agnostic_orderbook::state::Side::Ask => dex_test_ctx.user_bases[user_account_index],
+                agnostic_orderbook::state::Side::Bid => {
+                    dex_test_ctx.user_quotes[user_account_index]
+                }
+            },
+            user_owner: &dex_test_ctx.user_owners[user_account_index].pubkey(),
+            discount_token_account: None,
         },
-        dex_test_ctx.user_owners[user_account_index].pubkey(),
-        None,
         new_order::Params {
             side: side as u8,
             limit_price,
@@ -436,7 +444,7 @@ pub async fn aob_dex_new_order(
         },
     );
     sign_send_instructions(
-        &mut pgr_test_ctx,
+        pgr_test_ctx,
         vec![new_order_instruction],
         vec![&dex_test_ctx.user_owners[user_account_index]],
     )
@@ -446,7 +454,7 @@ pub async fn aob_dex_new_order(
 
 #[allow(clippy::too_many_arguments)]
 pub async fn serum_dex_new_order(
-    mut pgr_test_ctx: &mut ProgramTestContext,
+    pgr_test_ctx: &mut ProgramTestContext,
     aob_dex_test_ctx: &AobDexTestContext,
     serum_test_ctx: &SerumTestContext,
     serum_dex_program_id: Pubkey,
@@ -486,7 +494,7 @@ pub async fn serum_dex_new_order(
     )
     .unwrap();
     sign_send_instructions(
-        &mut pgr_test_ctx,
+        pgr_test_ctx,
         vec![new_order_instruction],
         vec![&aob_dex_test_ctx.user_owners[open_orders_index]],
     )

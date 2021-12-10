@@ -1,15 +1,10 @@
 #![allow(clippy::too_many_arguments)]
-use std::mem::size_of;
 
-use bytemuck::{bytes_of, Pod};
+use bonfida_utils::InstructionsAccount;
 use num_derive::{FromPrimitive, ToPrimitive};
-use solana_program::{
-    instruction::{AccountMeta, Instruction},
-    pubkey::Pubkey,
-    system_program,
-};
+use solana_program::{instruction::Instruction, pubkey::Pubkey};
 
-use crate::processor::INSTRUCTION_TAG_OFFSET;
+use crate::processor::close_account;
 pub use crate::processor::{
     cancel_order, close_market, consume_events, create_market, initialize_account, new_order,
     settle, sweep_fees,
@@ -45,8 +40,8 @@ pub enum DexInstruction {
     /// | 8     | ✅        | ❌      | The quote token vault                                                              |
     /// | 9     | ✅        | ❌      | The DEX user account                                                               |
     /// | 10    | ✅        | ❌      | The user's source token account                                                    |
-    /// | 11    | ✅        | ❌      | The user's wallet                                                                  |
-    /// | 12    | ✅        | ❌      | The optional SRM or MSRM discount token account (must be owned by the user wallet) |
+    /// | 11    | ✅        | ✅      | The user's wallet                                                                  |
+    /// | 12    | ❌        | ❌      | The optional SRM or MSRM discount token account (must be owned by the user wallet) |
     NewOrder,
     /// Cancel an existing order and remove it from the orderbook.
     ///
@@ -64,7 +59,7 @@ pub enum DexInstruction {
     ///
     /// | index | writable | signer | description                          |
     /// |-------|----------|--------|--------------------------------------|
-    /// | 0     | ❌        | ❌      | The DEX market                       |
+    /// | 0     | ✅        | ❌      | The DEX market                       |
     /// | 1     | ✅        | ❌      | The orderbook                        |
     /// | 2     | ✅        | ❌      | The event queue                      |
     /// | 3     | ✅        | ❌      | The reward target                    |
@@ -128,291 +123,75 @@ pub enum DexInstruction {
     CloseMarket,
 }
 
-impl DexInstruction {
-    pub(crate) fn serialize<T: Pod>(&self, params: T) -> Vec<u8> {
-        let mut result: Vec<u8> = Vec::with_capacity(size_of::<T>() + INSTRUCTION_TAG_OFFSET);
-        result.extend_from_slice(bytes_of(&(*self as u64)));
-        result.extend_from_slice(bytes_of(&params));
-        result
-    }
-}
-
 /// Create a new DEX market
 ///
 /// The asset agnostic orderbook must be properly initialized beforehand.
-#[allow(clippy::clippy::too_many_arguments)]
 pub fn create_market(
-    dex_program_id: Pubkey,
-    market_account: Pubkey,
-    orderbook: Pubkey,
-    base_vault: Pubkey,
-    quote_vault: Pubkey,
-    market_admin: Pubkey,
-    event_queue: Pubkey,
-    asks: Pubkey,
-    bids: Pubkey,
-    create_market_params: create_market::Params,
+    accounts: create_market::Accounts<Pubkey>,
+    params: create_market::Params,
 ) -> Instruction {
-    let data = DexInstruction::CreateMarket.serialize(create_market_params);
-    let accounts = vec![
-        AccountMeta::new(market_account, false),
-        AccountMeta::new(orderbook, false),
-        AccountMeta::new_readonly(base_vault, false),
-        AccountMeta::new_readonly(quote_vault, false),
-        AccountMeta::new_readonly(market_admin, false),
-        AccountMeta::new(event_queue, false),
-        AccountMeta::new(asks, false),
-        AccountMeta::new(bids, false),
-    ];
-
-    Instruction {
-        program_id: dex_program_id,
-        accounts,
-        data,
-    }
+    accounts.get_instruction(DexInstruction::CreateMarket as u8, params)
 }
+
 /**
 Execute a new order on the orderbook.
 
 Depending on the provided parameters, the program will attempt to match the order with existing entries
 in the orderbook, and then optionally post the remaining order.
 */
-#[allow(clippy::clippy::too_many_arguments)]
-pub fn new_order(
-    dex_program_id: Pubkey,
-    market_account: Pubkey,
-    orderbook: Pubkey,
-    event_queue: Pubkey,
-    bids: Pubkey,
-    asks: Pubkey,
-    base_vault: Pubkey,
-    quote_vault: Pubkey,
-    user_account: Pubkey,
-    user_token_account: Pubkey,
-    user_account_owner: Pubkey,
-    discount_account: Option<Pubkey>,
-    new_order_params: new_order::Params,
-) -> Instruction {
-    let data = DexInstruction::NewOrder.serialize(new_order_params);
-    let mut accounts = vec![
-        AccountMeta::new_readonly(spl_token::ID, false),
-        AccountMeta::new_readonly(system_program::ID, false),
-        AccountMeta::new(market_account, false),
-        AccountMeta::new(orderbook, false),
-        AccountMeta::new(event_queue, false),
-        AccountMeta::new(bids, false),
-        AccountMeta::new(asks, false),
-        AccountMeta::new(base_vault, false),
-        AccountMeta::new(quote_vault, false),
-        AccountMeta::new(user_account, false),
-        AccountMeta::new(user_token_account, false),
-        AccountMeta::new(user_account_owner, true),
-    ];
-
-    if let Some(a) = discount_account {
-        accounts.push(AccountMeta::new_readonly(a, false))
-    }
-
-    Instruction {
-        program_id: dex_program_id,
-        accounts,
-        data,
-    }
+pub fn new_order(accounts: new_order::Accounts<Pubkey>, params: new_order::Params) -> Instruction {
+    accounts.get_instruction(DexInstruction::NewOrder as u8, params)
 }
 
 /// Cancel an existing order and remove it from the orderbook.
-#[allow(clippy::clippy::too_many_arguments)]
 pub fn cancel_order(
-    dex_program_id: Pubkey,
-    market_account: Pubkey,
-    orderbook: Pubkey,
-    event_queue: Pubkey,
-    bids: Pubkey,
-    asks: Pubkey,
-    user_account: Pubkey,
-    user_account_owner: Pubkey,
-    cancel_order_params: cancel_order::Params,
+    accounts: cancel_order::Accounts<Pubkey>,
+    params: cancel_order::Params,
 ) -> Instruction {
-    let data = DexInstruction::CancelOrder.serialize(cancel_order_params);
-    let accounts = vec![
-        AccountMeta::new_readonly(market_account, false),
-        AccountMeta::new(orderbook, false),
-        AccountMeta::new(event_queue, false),
-        AccountMeta::new(bids, false),
-        AccountMeta::new(asks, false),
-        AccountMeta::new(user_account, false),
-        AccountMeta::new_readonly(user_account_owner, true),
-    ];
-
-    Instruction {
-        program_id: dex_program_id,
-        accounts,
-        data,
-    }
+    accounts.get_instruction(DexInstruction::CancelOrder as u8, params)
 }
 
 /// Crank the processing of DEX events.
-#[allow(clippy::too_many_arguments)]
 pub fn consume_events(
-    dex_program_id: Pubkey,
-    market_account: Pubkey,
-    orderbook: Pubkey,
-    event_queue: Pubkey,
-    reward_target: Pubkey,
-    user_accounts: &[Pubkey],
-    consume_events_params: consume_events::Params,
+    accounts: consume_events::Accounts<Pubkey>,
+    params: consume_events::Params,
 ) -> Instruction {
-    let data = DexInstruction::ConsumeEvents.serialize(consume_events_params);
-    let mut accounts = vec![
-        AccountMeta::new(market_account, false),
-        AccountMeta::new(orderbook, false),
-        AccountMeta::new(event_queue, false),
-        AccountMeta::new(reward_target, false),
-    ];
-
-    accounts.extend(user_accounts.iter().map(|k| AccountMeta::new(*k, false)));
-
-    Instruction {
-        program_id: dex_program_id,
-        accounts,
-        data,
-    }
-}
-
-/// Initialize a new user account
-#[allow(clippy::too_many_arguments)]
-pub fn initialize_account(
-    dex_program_id: Pubkey,
-    user_account: Pubkey,
-    user_account_owner: Pubkey,
-    fee_payer: Pubkey,
-    params: initialize_account::Params,
-) -> Instruction {
-    let data = DexInstruction::InitializeAccount.serialize(params);
-    let accounts = vec![
-        AccountMeta::new_readonly(system_program::ID, false),
-        AccountMeta::new(user_account, false),
-        AccountMeta::new_readonly(user_account_owner, true),
-        AccountMeta::new(fee_payer, true),
-    ];
-
-    Instruction {
-        program_id: dex_program_id,
-        accounts,
-        data,
-    }
-}
-
-/// Extract accumulated fees from the market. This is an admin instruction
-#[allow(clippy::too_many_arguments)]
-pub fn sweep_fees(
-    dex_program_id: Pubkey,
-    market_account: Pubkey,
-    market_signer: Pubkey,
-    market_admin: Pubkey,
-    quote_vault: Pubkey,
-    destination_token_account: Pubkey,
-) -> Instruction {
-    let data = DexInstruction::SweepFees.serialize(());
-    let accounts = vec![
-        AccountMeta::new(market_account, false),
-        AccountMeta::new_readonly(market_signer, false),
-        AccountMeta::new_readonly(market_admin, true),
-        AccountMeta::new(quote_vault, false),
-        AccountMeta::new(destination_token_account, false),
-        AccountMeta::new_readonly(spl_token::ID, false),
-    ];
-
-    Instruction {
-        program_id: dex_program_id,
-        accounts,
-        data,
-    }
+    accounts.get_instruction(DexInstruction::ConsumeEvents as u8, params)
 }
 
 /// Extract available base and quote token assets from a user account
-#[allow(clippy::too_many_arguments)]
-pub fn settle(
-    dex_program_id: Pubkey,
-    market_account: Pubkey,
-    market_signer: Pubkey,
-    base_vault: Pubkey,
-    quote_vault: Pubkey,
-    user_account: Pubkey,
-    user_account_owner: Pubkey,
-    destination_base_account: Pubkey,
-    destination_quote_account: Pubkey,
-) -> Instruction {
-    let data = DexInstruction::Settle.serialize(());
-    let accounts = vec![
-        AccountMeta::new_readonly(spl_token::ID, false),
-        AccountMeta::new_readonly(market_account, false),
-        AccountMeta::new(base_vault, false),
-        AccountMeta::new(quote_vault, false),
-        AccountMeta::new_readonly(market_signer, false),
-        AccountMeta::new(user_account, false),
-        AccountMeta::new_readonly(user_account_owner, true),
-        AccountMeta::new(destination_base_account, false),
-        AccountMeta::new(destination_quote_account, false),
-    ];
+pub fn settle(accounts: settle::Accounts<Pubkey>, params: settle::Params) -> Instruction {
+    accounts.get_instruction(DexInstruction::Settle as u8, params)
+}
 
-    Instruction {
-        program_id: dex_program_id,
-        accounts,
-        data,
-    }
+/// Initialize a new user account
+pub fn initialize_account(
+    accounts: initialize_account::Accounts<Pubkey>,
+    params: initialize_account::Params,
+) -> Instruction {
+    accounts.get_instruction(DexInstruction::InitializeAccount as u8, params)
+}
+
+/// Extract accumulated fees from the market. This is an admin instruction
+pub fn sweep_fees(
+    accounts: sweep_fees::Accounts<Pubkey>,
+    params: sweep_fees::Params,
+) -> Instruction {
+    accounts.get_instruction(DexInstruction::SweepFees as u8, params)
 }
 
 /// Close an inactive and fully settled account
 pub fn close_account(
-    dex_program_id: Pubkey,
-    user_account: Pubkey,
-    user_account_owner: Pubkey,
-    target_lamports_account: Pubkey,
+    accounts: close_account::Accounts<Pubkey>,
+    params: close_account::Params,
 ) -> Instruction {
-    let data = DexInstruction::CloseAccount.serialize(());
-    let accounts = vec![
-        AccountMeta::new(user_account, false),
-        AccountMeta::new_readonly(user_account_owner, true),
-        AccountMeta::new(target_lamports_account, false),
-    ];
-
-    Instruction {
-        program_id: dex_program_id,
-        accounts,
-        data,
-    }
+    accounts.get_instruction(DexInstruction::CloseAccount as u8, params)
 }
 
 /// Close an existing market
 pub fn close_market(
-    dex_program_id: Pubkey,
-    market: Pubkey,
-    base_vault: Pubkey,
-    quote_vault: Pubkey,
-    orderbook: Pubkey,
-    event_queue: Pubkey,
-    bids: Pubkey,
-    asks: Pubkey,
-    market_admin: Pubkey,
-    target_lamports_account: Pubkey,
+    accounts: close_market::Accounts<Pubkey>,
+    params: close_market::Params,
 ) -> Instruction {
-    let data = DexInstruction::CloseAccount.serialize(());
-    let accounts = vec![
-        AccountMeta::new(market, false),
-        AccountMeta::new(base_vault, false),
-        AccountMeta::new(quote_vault, false),
-        AccountMeta::new(orderbook, false),
-        AccountMeta::new(event_queue, false),
-        AccountMeta::new(bids, false),
-        AccountMeta::new(asks, false),
-        AccountMeta::new_readonly(market_admin, true),
-        AccountMeta::new(target_lamports_account, false),
-    ];
-
-    Instruction {
-        program_id: dex_program_id,
-        accounts,
-        data,
-    }
+    accounts.get_instruction(DexInstruction::CloseMarket as u8, params)
 }

@@ -82,15 +82,16 @@ async fn test_dex() {
     // Create the dex market
     let market_admin = Keypair::new();
     let create_market_instruction = create_market(
-        dex_program_id,
-        market_account.pubkey(),
-        aaob_accounts.market,
-        base_vault,
-        quote_vault,
-        market_admin.pubkey(),
-        aaob_accounts.event_queue,
-        aaob_accounts.asks,
-        aaob_accounts.bids,
+        dex_v4::instruction::create_market::Accounts {
+            base_vault: &base_vault,
+            quote_vault: &quote_vault,
+            market: &market_account.pubkey(),
+            orderbook: &aaob_accounts.market,
+            market_admin: &market_admin.pubkey(),
+            event_queue: &aaob_accounts.event_queue,
+            asks: &aaob_accounts.asks,
+            bids: &aaob_accounts.bids,
+        },
         create_market::Params {
             signer_nonce: signer_nonce as u64,
             min_base_order_size: 1000,
@@ -129,10 +130,12 @@ async fn test_dex() {
         &dex_program_id,
     );
     let create_user_account_instruction = initialize_account(
-        dex_program_id,
-        user_account,
-        user_account_owner.pubkey(),
-        prg_test_ctx.payer.pubkey(),
+        initialize_account::Accounts {
+            system_program: &system_program::ID,
+            user: &user_account,
+            user_owner: &user_account_owner.pubkey(),
+            fee_payer: &prg_test_ctx.payer.pubkey(),
+        },
         initialize_account::Params {
             market: market_account.pubkey().to_bytes(),
             max_orders: 10,
@@ -203,18 +206,21 @@ async fn test_dex() {
 
     // New Order, to be cancelled
     let new_order_instruction = new_order(
-        dex_program_id,
-        market_account.pubkey(),
-        aaob_accounts.market,
-        Pubkey::new(&aaob_market_state.event_queue),
-        Pubkey::new(&aaob_market_state.bids),
-        Pubkey::new(&aaob_market_state.asks),
-        base_vault,
-        quote_vault,
-        user_account,
-        user_base_token_account,
-        user_account_owner.pubkey(),
-        None,
+        new_order::Accounts {
+            spl_token_program: &spl_token::ID,
+            system_program: &system_program::ID,
+            market: &market_account.pubkey(),
+            orderbook: &aaob_accounts.market,
+            event_queue: &Pubkey::new(&aaob_market_state.event_queue),
+            bids: &Pubkey::new(&aaob_market_state.bids),
+            asks: &Pubkey::new(&aaob_market_state.asks),
+            base_vault: &base_vault,
+            quote_vault: &quote_vault,
+            user: &user_account,
+            user_token_account: &user_base_token_account,
+            user_owner: &user_account_owner.pubkey(),
+            discount_token_account: None,
+        },
         new_order::Params {
             side: agnostic_orderbook::state::Side::Ask as u8,
             limit_price: 1000,
@@ -247,14 +253,15 @@ async fn test_dex() {
 
     // Cancel Order
     let new_order_instruction = cancel_order(
-        dex_program_id,
-        market_account.pubkey(),
-        aaob_accounts.market,
-        Pubkey::new(&aaob_market_state.event_queue),
-        Pubkey::new(&aaob_market_state.bids),
-        Pubkey::new(&aaob_market_state.asks),
-        user_account,
-        user_account_owner.pubkey(),
+        cancel_order::Accounts {
+            market: &market_account.pubkey(),
+            orderbook: &aaob_accounts.market,
+            event_queue: &Pubkey::new(&aaob_market_state.event_queue),
+            bids: &Pubkey::new(&aaob_market_state.bids),
+            asks: &Pubkey::new(&aaob_market_state.asks),
+            user: &user_account,
+            user_owner: &user_account_owner.pubkey(),
+        },
         cancel_order::Params {
             order_index: 0,
             order_id: {
@@ -273,18 +280,21 @@ async fn test_dex() {
 
     // New Order, to be matched
     let new_order_instruction = new_order(
-        dex_program_id,
-        market_account.pubkey(),
-        aaob_accounts.market,
-        Pubkey::new(&aaob_market_state.event_queue),
-        Pubkey::new(&aaob_market_state.bids),
-        Pubkey::new(&aaob_market_state.asks),
-        base_vault,
-        quote_vault,
-        user_account,
-        user_base_token_account,
-        user_account_owner.pubkey(),
-        None,
+        new_order::Accounts {
+            spl_token_program: &spl_token::ID,
+            system_program: &system_program::ID,
+            market: &market_account.pubkey(),
+            orderbook: &aaob_accounts.market,
+            event_queue: &Pubkey::new(&aaob_market_state.event_queue),
+            bids: &Pubkey::new(&aaob_market_state.bids),
+            asks: &Pubkey::new(&aaob_market_state.asks),
+            base_vault: &base_vault,
+            quote_vault: &quote_vault,
+            user: &user_account,
+            user_token_account: &user_base_token_account,
+            user_owner: &user_account_owner.pubkey(),
+            discount_token_account: None,
+        },
         new_order::Params {
             side: agnostic_orderbook::state::Side::Ask as u8,
             limit_price: 1000,
@@ -306,18 +316,21 @@ async fn test_dex() {
 
     // New Order, matching
     let new_order_instruction = new_order(
-        dex_program_id,
-        market_account.pubkey(),
-        aaob_accounts.market,
-        Pubkey::new(&aaob_market_state.event_queue),
-        Pubkey::new(&aaob_market_state.bids),
-        Pubkey::new(&aaob_market_state.asks),
-        base_vault,
-        quote_vault,
-        user_account,
-        user_quote_token_account,
-        user_account_owner.pubkey(),
-        None,
+        new_order::Accounts {
+            spl_token_program: &spl_token::ID,
+            system_program: &system_program::ID,
+            market: &market_account.pubkey(),
+            orderbook: &aaob_accounts.market,
+            event_queue: &Pubkey::new(&aaob_market_state.event_queue),
+            bids: &Pubkey::new(&aaob_market_state.bids),
+            asks: &Pubkey::new(&aaob_market_state.asks),
+            base_vault: &base_vault,
+            quote_vault: &quote_vault,
+            user: &user_account,
+            user_token_account: &user_quote_token_account,
+            user_owner: &user_account_owner.pubkey(),
+            discount_token_account: None,
+        },
         new_order::Params {
             side: agnostic_orderbook::state::Side::Bid as u8,
             limit_price: 1000,
@@ -341,12 +354,13 @@ async fn test_dex() {
 
     // Consume Events
     let consume_events_instruction = consume_events(
-        dex_program_id,
-        market_account.pubkey(),
-        aaob_accounts.market,
-        Pubkey::new(&aaob_market_state.event_queue),
-        reward_target.pubkey(),
-        &[user_account],
+        consume_events::Accounts {
+            market: &market_account.pubkey(),
+            orderbook: &aaob_accounts.market,
+            event_queue: &Pubkey::new(&aaob_market_state.event_queue),
+            reward_target: &reward_target.pubkey(),
+            user_accounts: &[user_account],
+        },
         consume_events::Params { max_iterations: 10 },
     );
     sign_send_instructions(&mut prg_test_ctx, vec![consume_events_instruction], vec![])
@@ -355,15 +369,18 @@ async fn test_dex() {
 
     // Settle
     let settle_instruction = settle(
-        dex_program_id,
-        market_account.pubkey(),
-        market_signer,
-        base_vault,
-        quote_vault,
-        user_account,
-        user_account_owner.pubkey(),
-        user_base_token_account,
-        user_quote_token_account,
+        settle::Accounts {
+            spl_token_program: &spl_token::ID,
+            market: &market_account.pubkey(),
+            base_vault: &base_vault,
+            quote_vault: &quote_vault,
+            market_signer: &market_signer,
+            user: &user_account,
+            user_owner: &user_account_owner.pubkey(),
+            destination_base_account: &user_base_token_account,
+            destination_quote_account: &user_quote_token_account,
+        },
+        settle::Params {},
     );
     sign_send_instructions(
         &mut prg_test_ctx,

@@ -25,7 +25,7 @@ pub async fn sign_send_instructions(
 }
 
 pub async fn create_associated_token(
-    mut prg_test_ctx: &mut ProgramTestContext,
+    prg_test_ctx: &mut ProgramTestContext,
     mint: &Pubkey,
     owner: &Pubkey,
 ) -> Result<Pubkey, TransportError> {
@@ -33,13 +33,9 @@ pub async fn create_associated_token(
         create_associated_token_account(&prg_test_ctx.payer.pubkey(), owner, mint);
     let associated_key = get_associated_token_address(owner, mint);
 
-    sign_send_instructions(
-        &mut prg_test_ctx,
-        vec![create_associated_instruction],
-        vec![],
-    )
-    .await
-    .map(|()| associated_key)
+    sign_send_instructions(prg_test_ctx, vec![create_associated_instruction], vec![])
+        .await
+        .map(|()| associated_key)
 }
 
 pub type MintInfo = (Pubkey, Mint);
@@ -85,7 +81,7 @@ pub struct AOBAccounts {
 /// Creates the accounts needed for the AAOB market testing and returns the
 /// address of the market.
 pub async fn create_aob_market_and_accounts(
-    mut prg_test_ctx: &mut ProgramTestContext,
+    prg_test_ctx: &mut ProgramTestContext,
     dex_program_id: Pubkey,
 ) -> AOBAccounts {
     // Create market state account
@@ -98,7 +94,7 @@ pub async fn create_aob_market_and_accounts(
         &dex_program_id,
     );
     sign_send_instructions(
-        &mut prg_test_ctx,
+        prg_test_ctx,
         vec![create_market_account_instruction],
         vec![&market_account],
     )
@@ -115,7 +111,7 @@ pub async fn create_aob_market_and_accounts(
         &dex_program_id,
     );
     sign_send_instructions(
-        &mut prg_test_ctx,
+        prg_test_ctx,
         vec![create_event_queue_account_instruction],
         vec![&event_queue_account],
     )
@@ -132,7 +128,7 @@ pub async fn create_aob_market_and_accounts(
         &dex_program_id,
     );
     sign_send_instructions(
-        &mut prg_test_ctx,
+        prg_test_ctx,
         vec![create_bids_account_instruction],
         vec![&bids_account],
     )
@@ -149,7 +145,7 @@ pub async fn create_aob_market_and_accounts(
         &dex_program_id,
     );
     sign_send_instructions(
-        &mut prg_test_ctx,
+        prg_test_ctx,
         vec![create_asks_account_instruction],
         vec![&asks_account],
     )
