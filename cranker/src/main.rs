@@ -3,7 +3,7 @@ use dex_cranker::Context;
 use solana_clap_utils::{
     fee_payer::{fee_payer_arg, FEE_PAYER_ARG},
     input_parsers::{keypair_of, pubkey_of},
-    input_validators::{self, is_pubkey},
+    input_validators::is_pubkey,
 };
 
 fn main() {
@@ -38,15 +38,6 @@ fn main() {
                 .required(true),
         )
         .arg(
-            Arg::with_name("cranking-authority")
-                .long("cranking-authority")
-                .takes_value(true)
-                .required(true)
-                .value_name("crank_authority")
-                .validator(input_validators::is_valid_signer)
-                .help("The key of the cranking authority holding at least a msrm"),
-        )
-        .arg(
             Arg::with_name("reward-target")
                 .short("t")
                 .long("reward-target")
@@ -63,13 +54,11 @@ fn main() {
     let market = pubkey_of(&matches, "market").expect("Invalid market Pubkey");
     let reward_target = pubkey_of(&matches, "reward-target").expect("Invalid reward target pubkey");
     let fee_payer = keypair_of(&matches, FEE_PAYER_ARG.name).unwrap();
-    let cranking_authority = keypair_of(&matches, "cranking-authority").unwrap();
     let context = Context {
         market,
         fee_payer,
         endpoint: String::from(endpoint),
         program_id,
-        cranking_authority,
         reward_target,
     };
     context.crank();

@@ -12,7 +12,7 @@ import { OrderType, Side } from "./types";
 import { TOKEN_PROGRAM_ID } from "@solana/spl-token";
 
 export class createMarketInstruction {
-  tag: number;
+  tag: BN;
   signerNonce: number;
   minBaseOrderSize: BN;
 
@@ -22,7 +22,7 @@ export class createMarketInstruction {
       {
         kind: "struct",
         fields: [
-          ["tag", "u8"],
+          ["tag", "u64"],
           ["signerNonce", "u8"],
           ["minBaseOrderSize", "u64"],
         ],
@@ -31,7 +31,7 @@ export class createMarketInstruction {
   ]);
 
   constructor(obj: { signerNonce: number; minBaseOrderSize: BN }) {
-    this.tag = 0;
+    this.tag = new BN(0);
     this.signerNonce = obj.signerNonce;
     this.minBaseOrderSize = obj.minBaseOrderSize;
   }
@@ -47,7 +47,6 @@ export class createMarketInstruction {
    * @param orderbook Address of the AAOB
    * @param baseVault Address of the market base vault
    * @param quoteVault Address of the market quote vault
-   * @param aaobId AAOB program ID
    * @param marketAdmin Address of the market admin
    * @returns Returns a TransactionInstruction object
    */
@@ -88,12 +87,6 @@ export class createMarketInstruction {
       },
       // Account 5
       {
-        pubkey: aaobId,
-        isSigner: false,
-        isWritable: false,
-      },
-      // Account 6
-      {
         pubkey: marketAdmin,
         isSigner: false,
         isWritable: false,
@@ -108,7 +101,7 @@ export class createMarketInstruction {
 }
 
 export class newOrderInstruction {
-  tag: number;
+  tag: BN;
   side: Side;
   limitPrice: BN;
   maxBaseQty: BN;
@@ -116,6 +109,7 @@ export class newOrderInstruction {
   orderType: OrderType;
   selfTradeBehaviour: SelfTradeBehavior;
   matchLimit: BN;
+  _padding: Uint8Array;
 
   static schema: Schema = new Map([
     [
@@ -123,14 +117,15 @@ export class newOrderInstruction {
       {
         kind: "struct",
         fields: [
-          ["tag", "u8"],
-          ["side", "u8"],
+          ["tag", "u64"],
           ["limitPrice", "u64"],
           ["maxBaseQty", "u64"],
           ["maxQuoteQty", "u64"],
+          ["matchLimit", "u64"],
+          ["side", "u8"],
           ["orderType", "u8"],
           ["selfTradeBehaviour", "u8"],
-          ["matchLimit", "u64"],
+          ["_padding", [5]],
         ],
       },
     ],
@@ -145,7 +140,7 @@ export class newOrderInstruction {
     selfTradeBehaviour: number;
     matchLimit: BN;
   }) {
-    this.tag = 1;
+    this.tag = new BN(1);
     this.side = obj.side as Side;
     this.limitPrice = obj.limitPrice;
     this.maxBaseQty = obj.maxBaseQty;
@@ -153,6 +148,7 @@ export class newOrderInstruction {
     this.orderType = obj.orderType as OrderType;
     this.selfTradeBehaviour = obj.selfTradeBehaviour as SelfTradeBehavior;
     this.matchLimit = obj.matchLimit;
+    this._padding = new Uint8Array(5);
   }
 
   serialize(): Uint8Array {
@@ -299,12 +295,12 @@ export class newOrderInstruction {
 }
 
 export class cancelOrderInstruction {
-  tag: number;
+  tag: BN;
   orderIndex: BN;
   orderId: BN;
 
   constructor(obj: { orderIndex: BN; orderId: BN }) {
-    this.tag = 2;
+    this.tag = new BN(2);
     this.orderIndex = obj.orderIndex;
     this.orderId = obj.orderId;
   }
@@ -315,7 +311,7 @@ export class cancelOrderInstruction {
       {
         kind: "struct",
         fields: [
-          ["tag", "u8"],
+          ["tag", "u64"],
           ["orderIndex", "u64"],
           ["orderId", "u128"],
         ],
@@ -420,11 +416,11 @@ export class cancelOrderInstruction {
 }
 
 export class consumeEventInstruction {
-  tag: number;
+  tag: BN;
   maxIteration: BN;
 
   constructor(obj: { maxIteration: BN }) {
-    this.tag = 3;
+    this.tag = new BN(3);
     this.maxIteration = obj.maxIteration;
   }
 
@@ -434,7 +430,7 @@ export class consumeEventInstruction {
       {
         kind: "struct",
         fields: [
-          ["tag", "u8"],
+          ["tag", "u64"],
           ["maxIteration", "u64"],
         ],
       },
@@ -454,8 +450,6 @@ export class consumeEventInstruction {
    * @param orderbook Address of the AAOB
    * @param eventQueue Address of the event queue
    * @param rewardTarget Address to send the cranking reward
-   * @param msrmTokenAccount Address of the MSRM token account
-   * @param msrmTokenAccountOwner Address of the MSRM token account owner
    * @param userAccounts Address of the user accounts to crank
    * @returns Returns a TransactionInstruction object
    */
@@ -509,18 +503,6 @@ export class consumeEventInstruction {
         isSigner: false,
         isWritable: true,
       },
-      // Account 7
-      {
-        pubkey: msrmTokenAccount,
-        isSigner: false,
-        isWritable: false,
-      },
-      // Account 8
-      {
-        pubkey: msrmTokenAccountOwner,
-        isSigner: true,
-        isWritable: false,
-      },
     ];
 
     userAccounts.forEach((acc) =>
@@ -540,10 +522,10 @@ export class consumeEventInstruction {
 }
 
 export class settleInstruction {
-  tag: number;
+  tag: BN;
 
   constructor() {
-    this.tag = 4;
+    this.tag = new BN(4);
   }
 
   static schema: Schema = new Map([
@@ -551,7 +533,7 @@ export class settleInstruction {
       settleInstruction,
       {
         kind: "struct",
-        fields: [["tag", "u8"]],
+        fields: [["tag", "u64"]],
       },
     ],
   ]);
@@ -652,12 +634,12 @@ export class settleInstruction {
 }
 
 export class initializeAccountInstruction {
-  tag: number;
+  tag: BN;
   market: Uint8Array;
   maxOrders: BN;
 
   constructor(obj: { market: Uint8Array; maxOrders: BN }) {
-    this.tag = 5;
+    this.tag = new BN(5);
     this.market = obj.market;
     this.maxOrders = obj.maxOrders;
   }
@@ -668,7 +650,7 @@ export class initializeAccountInstruction {
       {
         kind: "struct",
         fields: [
-          ["tag", "u8"],
+          ["tag", "u64"],
           ["market", [32]],
           ["maxOrders", "u64"],
         ],
@@ -731,10 +713,10 @@ export class initializeAccountInstruction {
 }
 
 export class sweepFeesInstruction {
-  tag: number;
+  tag: BN;
 
   constructor() {
-    this.tag = 6;
+    this.tag = new BN(6);
   }
 
   static schema: Schema = new Map([
@@ -742,7 +724,7 @@ export class sweepFeesInstruction {
       sweepFeesInstruction,
       {
         kind: "struct",
-        fields: [["tag", "u8"]],
+        fields: [["tag", "u64"]],
       },
     ],
   ]);
@@ -817,9 +799,9 @@ export class sweepFeesInstruction {
 }
 
 export class closeAccountIntruction {
-  tag: number;
+  tag: BN;
   constructor() {
-    this.tag = 7;
+    this.tag = new BN(7);
   }
 
   static schema: Schema = new Map([
@@ -827,7 +809,7 @@ export class closeAccountIntruction {
       closeAccountIntruction,
       {
         kind: "struct",
-        fields: [["tag", "u8"]],
+        fields: [["tag", "u64"]],
       },
     ],
   ]);
@@ -881,9 +863,9 @@ export class closeAccountIntruction {
 }
 
 export class closeMarketInstruction {
-  tag: number;
+  tag: BN;
   constructor() {
-    this.tag = 8;
+    this.tag = new BN(8);
   }
 
   static schema: Schema = new Map([
@@ -891,7 +873,7 @@ export class closeMarketInstruction {
       closeMarketInstruction,
       {
         kind: "struct",
-        fields: [["tag", "u8"]],
+        fields: [["tag", "u64"]],
       },
     ],
   ]);
