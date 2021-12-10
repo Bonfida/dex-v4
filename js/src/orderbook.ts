@@ -4,6 +4,7 @@ import { Market } from "./market";
 import { throwIfNull } from "./utils";
 import * as aaob from "@bonfida/aaob";
 import { CALLBACK_INFO_LEN } from "./state";
+import BN from "bn.js";
 
 /**
  * Orderbook class
@@ -59,14 +60,11 @@ export class Orderbook {
    */
   static async loadSlab(connection, slabAddress: PublicKey) {
     const { data } = throwIfNull(await connection.getAccountInfo(slabAddress));
-    const slabHeader = aaob.SlabHeader.deserialize(
-      data.slice(0, SlabHeader.LEN)
-    );
-    return new Slab({
-      header: slabHeader,
-      callBackInfoLen: CALLBACK_INFO_LEN,
+    const slab = aaob.Slab.deserialize(
       data,
-    });
+      new BN(CALLBACK_INFO_LEN)
+    );
+    return slab
   }
 
   /**

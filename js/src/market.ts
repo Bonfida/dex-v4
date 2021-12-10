@@ -661,15 +661,15 @@ export class Market {
   filterForOpenOrdersFromSlab(slab: Slab, openOrders: OpenOrders, side: Side) {
     return [...slab]
       .filter((o) =>
-        openOrders?.address.equals(new PublicKey(o.callBackInfo.slice(0, 32)))
+        openOrders?.address.equals(new PublicKey(slab.getCallBackInfo(o.callBackInfoPt).slice(0, 32)))
       )
       .map((o) => {
         return {
           orderId: o.key,
           price: getPriceFromKey(o.key).toNumber(),
-          feeTier: o.callBackInfo.slice(32)[0],
+          feeTier: slab.getCallBackInfo(o.callBackInfoPt).slice(32)[0],
           size: o.baseQuantity.toNumber(),
-          openOrdersAddress: new PublicKey(o.callBackInfo.slice(0, 32)),
+          openOrdersAddress: new PublicKey(slab.getCallBackInfo(o.callBackInfoPt).slice(0, 32)),
           side: side,
         };
       });
