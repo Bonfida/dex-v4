@@ -1,7 +1,7 @@
 use std::rc::Rc;
 
 use agnostic_orderbook::{
-    instruction::consume_events,
+    error::AoError,
     state::{Event, EventQueue, EventQueueHeader, Side},
 };
 use borsh::BorshDeserialize;
@@ -10,8 +10,7 @@ use solana_program::{
     account_info::{next_account_info, AccountInfo},
     entrypoint::ProgramResult,
     msg,
-    program::invoke_signed,
-    program_error::ProgramError,
+    program_error::{PrintProgramError, ProgramError},
     pubkey::Pubkey,
 };
 
@@ -34,9 +33,7 @@ pub struct Params {
 }
 
 struct Accounts<'a, 'b: 'a> {
-    aaob_program: &'a AccountInfo<'b>,
     market: &'a AccountInfo<'b>,
-    market_signer: &'a AccountInfo<'b>,
     orderbook: &'a AccountInfo<'b>,
     event_queue: &'a AccountInfo<'b>,
     reward_target: &'a AccountInfo<'b>,
@@ -50,9 +47,7 @@ impl<'a, 'b: 'a> Accounts<'a, 'b> {
     ) -> Result<Self, ProgramError> {
         let accounts_iter = &mut accounts.iter();
         let a = Self {
-            aaob_program: next_account_info(accounts_iter)?,
             market: next_account_info(accounts_iter)?,
-            market_signer: next_account_info(accounts_iter)?,
             orderbook: next_account_info(accounts_iter)?,
             event_queue: next_account_info(accounts_iter)?,
             reward_target: next_account_info(accounts_iter)?,
@@ -60,11 +55,6 @@ impl<'a, 'b: 'a> Accounts<'a, 'b> {
         };
 
         check_account_owner(a.market, program_id, DexError::InvalidStateAccountOwner)?;
-        check_account_key(
-            a.aaob_program,
-            &agnostic_orderbook::ID.to_bytes(),
-            DexError::InvalidAobProgramAccount,
-        )?;
 
         Ok(a)
     }
@@ -90,7 +80,7 @@ pub(crate) fn process(
         CALLBACK_INFO_LEN as usize,
     );
 
-    check_accounts(program_id, &market_state, &accounts).unwrap();
+    check_accounts(&market_state, &accounts).unwrap();
 
     let mut total_iterations = 0;
 
@@ -106,51 +96,29 @@ pub(crate) fn process(
         return Err(DexError::NoOp.into());
     }
 
-    let pop_events_instruction = consume_events(
-        *accounts.aaob_program.key,
-        *accounts.orderbook.key,
-        *accounts.market_signer.key,
-        *accounts.event_queue.key,
-        *accounts.reward_target.key,
-        agnostic_orderbook::instruction::consume_events::Params {
-            number_of_entries_to_consume: total_iterations,
-        },
-    );
+    let invoke_params = agnostic_orderbook::instruction::consume_events::Params {
+        number_of_entries_to_consume: total_iterations,
+    };
+    let invoke_accounts = agnostic_orderbook::instruction::consume_events::Accounts {
+        market: accounts.orderbook,
+        event_queue: accounts.event_queue,
+        authority: accounts.market, // No impact with AOB as a lib
+        reward_target: accounts.reward_target,
+    };
 
-    invoke_signed(
-        &pop_events_instruction,
-        &[
-            accounts.aaob_program.clone(),
-            accounts.orderbook.clone(),
-            accounts.event_queue.clone(),
-            accounts.market_signer.clone(),
-            accounts.reward_target.clone(),
-        ],
-        &[&[
-            &accounts.market.key.to_bytes(),
-            &[market_state.signer_nonce as u8],
-        ]],
-    )?;
+    if let Err(error) = agnostic_orderbook::instruction::consume_events::process(
+        program_id,
+        invoke_accounts,
+        invoke_params,
+    ) {
+        error.print::<AoError>();
+        return Err(DexError::AOBError.into());
+    }
+
     Ok(())
 }
 
-fn check_accounts(
-    program_id: &Pubkey,
-    market_state: &DexState,
-    accounts: &Accounts,
-) -> ProgramResult {
-    let market_signer = Pubkey::create_program_address(
-        &[
-            &accounts.market.key.to_bytes(),
-            &[market_state.signer_nonce as u8],
-        ],
-        program_id,
-    )?;
-    check_account_key(
-        accounts.market_signer,
-        &market_signer.to_bytes(),
-        DexError::InvalidMarketSignerAccount,
-    )?;
+fn check_accounts(market_state: &DexState, accounts: &Accounts) -> ProgramResult {
     check_account_key(
         accounts.orderbook,
         &market_state.orderbook,

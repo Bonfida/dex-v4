@@ -1,13 +1,17 @@
-use std::convert::TryInto;
-
 use agnostic_orderbook::state::MarketState;
 use bytemuck::try_from_bytes;
+use bytemuck::try_from_bytes_mut;
+use dex_v4::fee_defaults::DEFAULT_FEE_TIER_MAKER_BPS_REBATES;
+use dex_v4::fee_defaults::DEFAULT_FEE_TIER_TAKER_BPS_RATES;
+use dex_v4::fee_defaults::DEFAULT_FEE_TIER_THRESHOLDS;
 use dex_v4::instruction::cancel_order;
 use dex_v4::instruction::consume_events;
 use dex_v4::instruction::create_market;
 use dex_v4::instruction::initialize_account;
 use dex_v4::instruction::new_order;
 use dex_v4::instruction::settle;
+use dex_v4::state::UserAccountHeader;
+use dex_v4::state::DEX_STATE_LEN;
 use dex_v4::state::USER_ACCOUNT_HEADER_LEN;
 use solana_program::pubkey::Pubkey;
 use solana_program::system_instruction::create_account;
@@ -16,10 +20,11 @@ use solana_program_test::ProgramTest;
 use solana_sdk::signature::Keypair;
 use solana_sdk::signature::Signer;
 use spl_token::instruction::mint_to;
+use std::convert::TryInto;
 pub mod common;
 use crate::common::utils::create_associated_token;
 use crate::common::utils::mint_bootstrap;
-use crate::common::utils::{create_market_and_accounts, sign_send_instructions};
+use crate::common::utils::{create_aob_market_and_accounts, sign_send_instructions};
 
 #[tokio::test]
 async fn test_dex() {
@@ -54,7 +59,7 @@ async fn test_dex() {
         &prg_test_ctx.payer.pubkey(),
         &market_account.pubkey(),
         1_000_000,
-        250,
+        DEX_STATE_LEN as u64,
         &dex_program_id,
     );
     sign_send_instructions(
@@ -70,17 +75,7 @@ async fn test_dex() {
         Pubkey::find_program_address(&[&market_account.pubkey().to_bytes()], &dex_program_id);
 
     // Create the AAOB market with all accounts
-    let aaob_market_account =
-        create_market_and_accounts(&mut prg_test_ctx, aaob_program_id, market_signer).await;
-
-    let aaob_market_state_data = prg_test_ctx
-        .banks_client
-        .get_account(aaob_market_account)
-        .await
-        .unwrap()
-        .unwrap();
-    let aaob_market_state: &MarketState =
-        try_from_bytes(&aaob_market_state_data.data[..std::mem::size_of::<MarketState>()]).unwrap();
+    let aaob_accounts = create_aob_market_and_accounts(&mut prg_test_ctx, dex_program_id).await;
 
     // Create the vault accounts
     let base_vault = create_associated_token(&mut prg_test_ctx, &base_mint_key, &market_signer)
@@ -95,14 +90,21 @@ async fn test_dex() {
     let create_market_instruction = create_market(
         dex_program_id,
         market_account.pubkey(),
-        aaob_market_account,
+        aaob_accounts.market,
         base_vault,
         quote_vault,
-        aaob_program_id,
         market_admin.pubkey(),
+        aaob_accounts.event_queue,
+        aaob_accounts.asks,
+        aaob_accounts.bids,
         create_market::Params {
             signer_nonce: signer_nonce as u64,
             min_base_order_size: 1000,
+            price_bitmask: u64::MAX,
+            cranker_reward: 0,
+            fee_tier_thresholds: DEFAULT_FEE_TIER_THRESHOLDS,
+            fee_tier_maker_bps_rebates: DEFAULT_FEE_TIER_MAKER_BPS_REBATES,
+            fee_tier_taker_bps_rates: DEFAULT_FEE_TIER_TAKER_BPS_RATES,
         },
     );
     sign_send_instructions(&mut prg_test_ctx, vec![create_market_instruction], vec![])
@@ -196,13 +198,20 @@ async fn test_dex() {
     .await
     .unwrap();
 
+    let aaob_market_state_data = prg_test_ctx
+        .banks_client
+        .get_account(aaob_accounts.market)
+        .await
+        .unwrap()
+        .unwrap();
+    let aaob_market_state: &MarketState =
+        try_from_bytes(&aaob_market_state_data.data[..std::mem::size_of::<MarketState>()]).unwrap();
+
     // New Order, to be cancelled
     let new_order_instruction = new_order(
         dex_program_id,
-        aaob_program_id,
         market_account.pubkey(),
-        market_signer,
-        aaob_market_account,
+        aaob_accounts.market,
         Pubkey::new(&aaob_market_state.event_queue),
         Pubkey::new(&aaob_market_state.bids),
         Pubkey::new(&aaob_market_state.asks),
@@ -215,8 +224,8 @@ async fn test_dex() {
         new_order::Params {
             side: agnostic_orderbook::state::Side::Ask as u8,
             limit_price: 1000,
-            max_base_qty: 1000,
-            max_quote_qty: 1000,
+            max_base_qty: 100_000,
+            max_quote_qty: 100_000,
             order_type: new_order::OrderType::Limit as u8,
             self_trade_behavior: agnostic_orderbook::state::SelfTradeBehavior::DecrementTake as u8,
             match_limit: 10,
@@ -231,21 +240,22 @@ async fn test_dex() {
     .await
     .unwrap();
 
-    let user_acc_data = prg_test_ctx
+    let mut user_acc_data = prg_test_ctx
         .banks_client
         .get_account(user_account)
         .await
         .unwrap()
         .unwrap()
         .data;
+    let user_acc: &mut UserAccountHeader =
+        try_from_bytes_mut(&mut user_acc_data[..USER_ACCOUNT_HEADER_LEN]).unwrap();
+    println!("Number of orders {:?}", user_acc.number_of_orders);
 
     // Cancel Order
     let new_order_instruction = cancel_order(
         dex_program_id,
-        aaob_program_id,
         market_account.pubkey(),
-        market_signer,
-        aaob_market_account,
+        aaob_accounts.market,
         Pubkey::new(&aaob_market_state.event_queue),
         Pubkey::new(&aaob_market_state.bids),
         Pubkey::new(&aaob_market_state.asks),
@@ -270,10 +280,8 @@ async fn test_dex() {
     // New Order, to be matched
     let new_order_instruction = new_order(
         dex_program_id,
-        aaob_program_id,
         market_account.pubkey(),
-        market_signer,
-        aaob_market_account,
+        aaob_accounts.market,
         Pubkey::new(&aaob_market_state.event_queue),
         Pubkey::new(&aaob_market_state.bids),
         Pubkey::new(&aaob_market_state.asks),
@@ -305,10 +313,8 @@ async fn test_dex() {
     // New Order, matching
     let new_order_instruction = new_order(
         dex_program_id,
-        aaob_program_id,
         market_account.pubkey(),
-        market_signer,
-        aaob_market_account,
+        aaob_accounts.market,
         Pubkey::new(&aaob_market_state.event_queue),
         Pubkey::new(&aaob_market_state.bids),
         Pubkey::new(&aaob_market_state.asks),
@@ -342,10 +348,8 @@ async fn test_dex() {
     // Consume Events
     let consume_events_instruction = consume_events(
         dex_program_id,
-        aaob_program_id,
         market_account.pubkey(),
-        market_signer,
-        aaob_market_account,
+        aaob_accounts.market,
         Pubkey::new(&aaob_market_state.event_queue),
         reward_target.pubkey(),
         &[user_account],

@@ -1,16 +1,22 @@
+use agnostic_orderbook::error::AoError;
 use bytemuck::{try_from_bytes, Pod, Zeroable};
 use solana_program::{
     account_info::{next_account_info, AccountInfo},
     clock::Clock,
     entrypoint::ProgramResult,
     msg,
-    program_error::ProgramError,
+    program_error::{PrintProgramError, ProgramError},
     program_pack::Pack,
     pubkey::Pubkey,
     sysvar::Sysvar,
 };
 
-use crate::state::{AccountTag, DexState};
+use crate::{
+    error::DexError,
+    state::{AccountTag, DexState},
+    utils::check_account_owner,
+    CALLBACK_ID_LEN, CALLBACK_INFO_LEN,
+};
 
 #[derive(Copy, Clone, Zeroable, Pod)]
 #[repr(C)]
@@ -22,6 +28,14 @@ pub struct Params {
     pub signer_nonce: u64,
     /// The minimum allowed order size in base token amount
     pub min_base_order_size: u64,
+    pub price_bitmask: u64,
+    pub cranker_reward: u64,
+    /// Fee tier thresholds
+    pub fee_tier_thresholds: [u64; 6],
+    /// Fee tier taker rates
+    pub fee_tier_taker_bps_rates: [u64; 7],
+    /// Fee tier maker rates
+    pub fee_tier_maker_bps_rebates: [u64; 7],
 }
 
 struct Accounts<'a, 'b: 'a> {
@@ -30,11 +44,14 @@ struct Accounts<'a, 'b: 'a> {
     base_vault: &'a AccountInfo<'b>,
     quote_vault: &'a AccountInfo<'b>,
     market_admin: &'a AccountInfo<'b>,
+    event_queue: &'a AccountInfo<'b>,
+    asks: &'a AccountInfo<'b>,
+    bids: &'a AccountInfo<'b>,
 }
 
 impl<'a, 'b: 'a> Accounts<'a, 'b> {
     pub fn parse(
-        _program_id: &Pubkey,
+        program_id: &Pubkey,
         accounts: &'a [AccountInfo<'b>],
     ) -> Result<Self, ProgramError> {
         let accounts_iter = &mut accounts.iter();
@@ -45,7 +62,12 @@ impl<'a, 'b: 'a> Accounts<'a, 'b> {
             base_vault: next_account_info(accounts_iter)?,
             quote_vault: next_account_info(accounts_iter)?,
             market_admin: next_account_info(accounts_iter)?,
+            event_queue: next_account_info(accounts_iter)?,
+            asks: next_account_info(accounts_iter)?,
+            bids: next_account_info(accounts_iter)?,
         };
+        check_account_owner(a.market, program_id, DexError::InvalidStateAccountOwner)?;
+        check_account_owner(a.orderbook, program_id, DexError::InvalidStateAccountOwner)?;
 
         Ok(a)
     }
@@ -61,20 +83,21 @@ pub(crate) fn process(
     let Params {
         signer_nonce,
         min_base_order_size,
+        price_bitmask,
+        cranker_reward,
+        fee_tier_thresholds,
+        fee_tier_maker_bps_rebates: fee_tier_maker_rates,
+        fee_tier_taker_bps_rates: fee_tier_taker_rates,
     } = try_from_bytes(instruction_data).map_err(|_| ProgramError::InvalidInstructionData)?;
     let market_signer = Pubkey::create_program_address(
         &[&accounts.market.key.to_bytes(), &[*signer_nonce as u8]],
         program_id,
     )?;
-
     let base_mint = check_vault_account_and_get_mint(accounts.base_vault, &market_signer)?;
     let quote_mint = check_vault_account_and_get_mint(accounts.quote_vault, &market_signer)?;
-    check_orderbook(&accounts.orderbook, &market_signer)?;
-
     let current_timestamp = Clock::get()?.unix_timestamp;
-
     if accounts.market.data.borrow()[0] != AccountTag::Uninitialized as u8 {
-        // Checking the first byte is sufficient as there is a samll number of AccountTags
+        // Checking the first byte is sufficient as there is a small number of AccountTags
         msg!("The market account contains initialized state!");
         return Err(ProgramError::InvalidArgument);
     }
@@ -95,7 +118,34 @@ pub(crate) fn process(
         quote_volume: 0,
         accumulated_fees: 0,
         min_base_order_size: *min_base_order_size,
+        fee_tier_thresholds: *fee_tier_thresholds,
+        fee_tier_taker_bps_rates: *fee_tier_taker_rates,
+        fee_tier_maker_bps_rebates: *fee_tier_maker_rates,
     };
+
+    let invoke_params = agnostic_orderbook::instruction::create_market::Params {
+        caller_authority: *program_id, // No impact with AOB as a lib
+        callback_info_len: CALLBACK_INFO_LEN,
+        callback_id_len: CALLBACK_ID_LEN,
+        min_base_order_size: *min_base_order_size,
+        price_bitmask: *price_bitmask,
+        cranker_reward: *cranker_reward,
+    };
+    let invoke_accounts = agnostic_orderbook::instruction::create_market::Accounts {
+        market: accounts.orderbook,
+        event_queue: accounts.event_queue,
+        bids: accounts.bids,
+        asks: accounts.asks,
+    };
+
+    if let Err(error) = agnostic_orderbook::instruction::create_market::process(
+        program_id,
+        invoke_accounts,
+        invoke_params,
+    ) {
+        error.print::<AoError>();
+        return Err(DexError::AOBError.into());
+    }
 
     Ok(())
 }
@@ -114,17 +164,4 @@ fn check_vault_account_and_get_mint(
         return Err(ProgramError::InvalidArgument);
     }
     Ok(acc.mint)
-}
-
-fn check_orderbook(account: &AccountInfo, market_signer: &Pubkey) -> ProgramResult {
-    let orderbook_state = agnostic_orderbook::state::MarketState::get(account)?;
-    if orderbook_state.tag != agnostic_orderbook::state::AccountTag::Market as u64 {
-        msg!("Invalid orderbook");
-        return Err(ProgramError::InvalidArgument);
-    }
-    if orderbook_state.caller_authority != market_signer.to_bytes() {
-        msg!("The provided orderbook isn't owned by the market signer.");
-        return Err(ProgramError::InvalidArgument);
-    }
-    Ok(())
 }
