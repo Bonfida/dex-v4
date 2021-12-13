@@ -35,8 +35,11 @@ export const createMarket = async (
   minBaseOrderSize: number,
   feePayer: PublicKey,
   marketAdmin: PublicKey,
-  priceBitmask: BN,
-  crankerReward: BN
+  tickSize: BN,
+  crankerReward: BN,
+  feeTierThresholds: BN[],
+  feeTierTakerBpsRates: BN[],
+  feeTierMakerBpsRebates: BN[]
 ): Promise<PrimedTransaction[]> => {
   // Market Account
   const marketAccount = new Keypair();
@@ -68,7 +71,7 @@ export const createMarket = async (
     NODE_CAPACITY,
     new BN(minBaseOrderSize),
     feePayer,
-    priceBitmask,
+    tickSize,
     crankerReward
   );
 
@@ -89,8 +92,11 @@ export const createMarket = async (
   const createMarket = new createMarketInstruction({
     signerNonce: new BN(marketSignerNonce),
     minBaseOrderSize: new BN(minBaseOrderSize),
-    priceBitmask: priceBitmask,
-    crankerReward: new BN(crankerReward)
+    tickSize: tickSize,
+    crankerReward: new BN(crankerReward),
+    feeTierThresholds,
+    feeTierTakerBpsRates,
+    feeTierMakerBpsRebates,
   }).getInstruction(
     DEX_ID,
     marketAccount.publicKey,

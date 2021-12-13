@@ -85,6 +85,7 @@ async fn test_dex_perf() {
             max_base_qty,
             max_quote_qty,
             (i % NB_USER_ACCS) as usize,
+            dex_program_id,
         )
         .await;
 

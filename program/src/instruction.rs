@@ -127,10 +127,11 @@ pub enum DexInstruction {
 ///
 /// The asset agnostic orderbook must be properly initialized beforehand.
 pub fn create_market(
+    program_id: Pubkey,
     accounts: create_market::Accounts<Pubkey>,
     params: create_market::Params,
 ) -> Instruction {
-    accounts.get_instruction(DexInstruction::CreateMarket as u8, params)
+    accounts.get_instruction(program_id, DexInstruction::CreateMarket as u8, params)
 }
 
 /**
@@ -139,59 +140,73 @@ Execute a new order on the orderbook.
 Depending on the provided parameters, the program will attempt to match the order with existing entries
 in the orderbook, and then optionally post the remaining order.
 */
-pub fn new_order(accounts: new_order::Accounts<Pubkey>, params: new_order::Params) -> Instruction {
-    accounts.get_instruction(DexInstruction::NewOrder as u8, params)
+pub fn new_order(
+    program_id: Pubkey,
+    accounts: new_order::Accounts<Pubkey>,
+    params: new_order::Params,
+) -> Instruction {
+    accounts.get_instruction(program_id, DexInstruction::NewOrder as u8, params)
 }
 
 /// Cancel an existing order and remove it from the orderbook.
 pub fn cancel_order(
+    program_id: Pubkey,
     accounts: cancel_order::Accounts<Pubkey>,
     params: cancel_order::Params,
 ) -> Instruction {
-    accounts.get_instruction(DexInstruction::CancelOrder as u8, params)
+    accounts.get_instruction(program_id, DexInstruction::CancelOrder as u8, params)
 }
 
 /// Crank the processing of DEX events.
 pub fn consume_events(
+    program_id: Pubkey,
     accounts: consume_events::Accounts<Pubkey>,
     params: consume_events::Params,
 ) -> Instruction {
-    accounts.get_instruction(DexInstruction::ConsumeEvents as u8, params)
+    accounts.get_instruction(program_id, DexInstruction::ConsumeEvents as u8, params)
 }
 
 /// Extract available base and quote token assets from a user account
-pub fn settle(accounts: settle::Accounts<Pubkey>, params: settle::Params) -> Instruction {
-    accounts.get_instruction(DexInstruction::Settle as u8, params)
+pub fn settle(
+    program_id: Pubkey,
+    accounts: settle::Accounts<Pubkey>,
+    params: settle::Params,
+) -> Instruction {
+    accounts.get_instruction(program_id, DexInstruction::Settle as u8, params)
 }
 
 /// Initialize a new user account
 pub fn initialize_account(
+    program_id: Pubkey,
     accounts: initialize_account::Accounts<Pubkey>,
     params: initialize_account::Params,
 ) -> Instruction {
-    accounts.get_instruction(DexInstruction::InitializeAccount as u8, params)
+    accounts.get_instruction(program_id, DexInstruction::InitializeAccount as u8, params)
 }
 
 /// Extract accumulated fees from the market. This is an admin instruction
 pub fn sweep_fees(
+    program_id: Pubkey,
     accounts: sweep_fees::Accounts<Pubkey>,
     params: sweep_fees::Params,
 ) -> Instruction {
-    accounts.get_instruction(DexInstruction::SweepFees as u8, params)
+    accounts.get_instruction(program_id, DexInstruction::SweepFees as u8, params)
 }
 
 /// Close an inactive and fully settled account
 pub fn close_account(
+    program_id: Pubkey,
     accounts: close_account::Accounts<Pubkey>,
     params: close_account::Params,
 ) -> Instruction {
-    accounts.get_instruction(DexInstruction::CloseAccount as u8, params)
+    accounts.get_instruction(program_id, DexInstruction::CloseAccount as u8, params)
 }
 
 /// Close an existing market
 pub fn close_market(
+    program_id: Pubkey,
     accounts: close_market::Accounts<Pubkey>,
     params: close_market::Params,
 ) -> Instruction {
-    accounts.get_instruction(DexInstruction::CloseMarket as u8, params)
+    accounts.get_instruction(program_id, DexInstruction::CloseMarket as u8, params)
 }

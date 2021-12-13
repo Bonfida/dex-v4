@@ -82,6 +82,7 @@ async fn test_dex() {
     // Create the dex market
     let market_admin = Keypair::new();
     let create_market_instruction = create_market(
+        dex_program_id,
         dex_v4::instruction::create_market::Accounts {
             base_vault: &base_vault,
             quote_vault: &quote_vault,
@@ -95,7 +96,7 @@ async fn test_dex() {
         create_market::Params {
             signer_nonce: signer_nonce as u64,
             min_base_order_size: 1000,
-            price_bitmask: u64::MAX,
+            tick_size: 1,
             cranker_reward: 0,
             fee_tier_thresholds: DEFAULT_FEE_TIER_THRESHOLDS,
             fee_tier_maker_bps_rebates: DEFAULT_FEE_TIER_MAKER_BPS_REBATES,
@@ -130,6 +131,7 @@ async fn test_dex() {
         &dex_program_id,
     );
     let create_user_account_instruction = initialize_account(
+        dex_program_id,
         initialize_account::Accounts {
             system_program: &system_program::ID,
             user: &user_account,
@@ -206,6 +208,7 @@ async fn test_dex() {
 
     // New Order, to be cancelled
     let new_order_instruction = new_order(
+        dex_program_id,
         new_order::Accounts {
             spl_token_program: &spl_token::ID,
             system_program: &system_program::ID,
@@ -253,6 +256,7 @@ async fn test_dex() {
 
     // Cancel Order
     let new_order_instruction = cancel_order(
+        dex_program_id,
         cancel_order::Accounts {
             market: &market_account.pubkey(),
             orderbook: &aaob_accounts.market,
@@ -280,6 +284,7 @@ async fn test_dex() {
 
     // New Order, to be matched
     let new_order_instruction = new_order(
+        dex_program_id,
         new_order::Accounts {
             spl_token_program: &spl_token::ID,
             system_program: &system_program::ID,
@@ -316,6 +321,7 @@ async fn test_dex() {
 
     // New Order, matching
     let new_order_instruction = new_order(
+        dex_program_id,
         new_order::Accounts {
             spl_token_program: &spl_token::ID,
             system_program: &system_program::ID,
@@ -354,6 +360,7 @@ async fn test_dex() {
 
     // Consume Events
     let consume_events_instruction = consume_events(
+        dex_program_id,
         consume_events::Accounts {
             market: &market_account.pubkey(),
             orderbook: &aaob_accounts.market,
@@ -369,6 +376,7 @@ async fn test_dex() {
 
     // Settle
     let settle_instruction = settle(
+        dex_program_id,
         settle::Accounts {
             spl_token_program: &spl_token::ID,
             market: &market_account.pubkey(),

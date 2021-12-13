@@ -4,8 +4,9 @@ use agnostic_orderbook::state::{
     Event, EventQueue, EventQueueHeader, MarketState, MARKET_STATE_LEN,
 };
 use borsh::BorshDeserialize;
+use dex_v4::instruction::consume_events;
 use dex_v4::{
-    instruction::consume_events,
+    instruction::consume_events::Accounts,
     state::{CallBackInfo, DexState, DEX_STATE_LEN},
     CALLBACK_INFO_LEN,
 };
@@ -122,14 +123,13 @@ impl Context {
         user_accounts.dedup();
 
         let consume_events_instruction = consume_events(
-            self.program_id,
-            agnostic_orderbook::id(),
-            self.market,
-            *market_signer,
-            Pubkey::new(&market_state.orderbook),
-            Pubkey::new(&orderbook.event_queue),
-            self.reward_target,
-            &user_accounts,
+            Accounts {
+                orderbook: &Pubkey::new(&market_state.orderbook),
+                market: &self.market,
+                event_queue: &Pubkey::new(&orderbook.event_queue),
+                reward_target: &self.reward_target,
+                user_accounts: &user_accounts,
+            },
             consume_events::Params {
                 max_iterations: MAX_ITERATIONS,
             },

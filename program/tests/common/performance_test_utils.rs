@@ -112,6 +112,7 @@ pub async fn create_aob_dex(
     // Create the dex market
     let market_admin = Keypair::new();
     let create_market_instruction = dex_v4::instruction::create_market(
+        dex_program_id,
         dex_v4::instruction::create_market::Accounts {
             base_vault: &base_vault,
             quote_vault: &quote_vault,
@@ -125,7 +126,7 @@ pub async fn create_aob_dex(
         dex_v4::instruction::create_market::Params {
             signer_nonce: signer_nonce as u64,
             min_base_order_size: 1000,
-            price_bitmask: u64::MAX,
+            tick_size: 1,
             cranker_reward: 0,
             fee_tier_thresholds: DEFAULT_FEE_TIER_THRESHOLDS,
             fee_tier_maker_bps_rebates: DEFAULT_FEE_TIER_MAKER_BPS_REBATES,
@@ -166,6 +167,7 @@ pub async fn create_aob_dex(
             &dex_program_id,
         );
         let create_user_account_instruction = initialize_account(
+            dex_program_id,
             initialize_account::Accounts {
                 system_program: &system_program::ID,
                 user: &user_account,
@@ -401,6 +403,7 @@ pub fn create_serum_dex_account(
     Ok((key, create_account_instr))
 }
 
+#[allow(clippy::too_many_arguments)]
 pub async fn aob_dex_new_order(
     pgr_test_ctx: &mut ProgramTestContext,
     dex_test_ctx: &AobDexTestContext,
@@ -409,9 +412,11 @@ pub async fn aob_dex_new_order(
     max_base_qty: u64,
     max_quote_qty: u64,
     user_account_index: usize,
+    dex_program_id: Pubkey,
 ) {
     // New Order on AOB DEX
     let new_order_instruction = new_order(
+        dex_program_id,
         new_order::Accounts {
             spl_token_program: &spl_token::ID,
             system_program: &system_program::ID,

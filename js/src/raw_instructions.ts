@@ -164,7 +164,7 @@ export class newOrderInstruction {
           ["side", "u8"],
           ["orderType", "u8"],
           ["selfTradeBehavior", "u8"],
-          ["padding", "[5]"],
+          ["padding", [5]],
         ],
       },
     ],
@@ -295,7 +295,7 @@ export class initializeAccountInstruction {
         kind: "struct",
         fields: [
           ["tag", "u8"],
-          ["market", "[32]"],
+          ["market", [32]],
           ["maxOrders", "u64"],
         ],
       },
@@ -574,8 +574,11 @@ export class createMarketInstruction {
   tag: number;
   signerNonce: BN;
   minBaseOrderSize: BN;
-  priceBitmask: BN;
+  tickSize: BN;
   crankerReward: BN;
+  feeTierThresholds: BN[];
+  feeTierTakerBpsRates: BN[];
+  feeTierMakerBpsRebates: BN[];
   static schema: Schema = new Map([
     [
       createMarketInstruction,
@@ -585,8 +588,11 @@ export class createMarketInstruction {
           ["tag", "u8"],
           ["signerNonce", "u64"],
           ["minBaseOrderSize", "u64"],
-          ["priceBitmask", "u64"],
+          ["tickSize", "u64"],
           ["crankerReward", "u64"],
+          ["feeTierThresholds", ["u64", 6]],
+          ["feeTierTakerBpsRates", ["u64", 7]],
+          ["feeTierMakerBpsRebates", ["u64", 7]],
         ],
       },
     ],
@@ -594,14 +600,20 @@ export class createMarketInstruction {
   constructor(obj: {
     signerNonce: BN;
     minBaseOrderSize: BN;
-    priceBitmask: BN;
+    tickSize: BN;
     crankerReward: BN;
+    feeTierThresholds: BN[];
+    feeTierTakerBpsRates: BN[];
+    feeTierMakerBpsRebates: BN[];
   }) {
     this.tag = 0
     this.signerNonce = obj.signerNonce;
     this.minBaseOrderSize = obj.minBaseOrderSize;
-    this.priceBitmask = obj.priceBitmask;
+    this.tickSize = obj.tickSize;
     this.crankerReward = obj.crankerReward;
+    this.feeTierThresholds = obj.feeTierThresholds;
+    this.feeTierTakerBpsRates = obj.feeTierTakerBpsRates;
+    this.feeTierMakerBpsRebates = obj.feeTierMakerBpsRebates;
   }
   serialize(): Uint8Array {
     return serialize(createMarketInstruction.schema, this);

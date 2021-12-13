@@ -31,7 +31,7 @@ pub struct Params {
     pub signer_nonce: u64,
     /// The minimum allowed order size in base token amount
     pub min_base_order_size: u64,
-    pub price_bitmask: u64,
+    pub tick_size: u64,
     pub cranker_reward: u64,
     /// Fee tier thresholds
     pub fee_tier_thresholds: [u64; 6],
@@ -93,7 +93,7 @@ pub(crate) fn process(
     let Params {
         signer_nonce,
         min_base_order_size,
-        price_bitmask,
+        tick_size,
         cranker_reward,
         fee_tier_thresholds,
         fee_tier_maker_bps_rebates: fee_tier_maker_rates,
@@ -134,11 +134,11 @@ pub(crate) fn process(
     };
 
     let invoke_params = agnostic_orderbook::instruction::create_market::Params {
-        caller_authority: *program_id, // No impact with AOB as a lib
+        caller_authority: program_id.to_bytes(), // No impact with AOB as a lib
         callback_info_len: CALLBACK_INFO_LEN,
         callback_id_len: CALLBACK_ID_LEN,
         min_base_order_size: *min_base_order_size,
-        price_bitmask: *price_bitmask,
+        tick_size: *tick_size,
         cranker_reward: *cranker_reward,
     };
     let invoke_accounts = agnostic_orderbook::instruction::create_market::Accounts {
