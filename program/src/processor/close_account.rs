@@ -1,3 +1,13 @@
+use crate::{
+    error::DexError,
+    state::UserAccount,
+    utils::{check_account_owner, check_signer},
+};
+use bonfida_utils::BorshSize;
+use bonfida_utils::InstructionsAccount;
+use borsh::BorshDeserialize;
+use borsh::BorshSerialize;
+use bytemuck::{Pod, Zeroable};
 use solana_program::{
     account_info::{next_account_info, AccountInfo},
     entrypoint::ProgramResult,
@@ -5,20 +15,21 @@ use solana_program::{
     program_error::ProgramError,
     pubkey::Pubkey,
 };
+#[derive(Clone, Copy, BorshDeserialize, BorshSerialize, BorshSize, Pod, Zeroable)]
+#[repr(C)]
+pub struct Params {}
 
-use crate::{
-    error::DexError,
-    state::UserAccount,
-    utils::{check_account_owner, check_signer},
-};
-
-struct Accounts<'a, 'b: 'a> {
-    user: &'a AccountInfo<'b>,
-    user_owner: &'a AccountInfo<'b>,
-    target_lamports_account: &'a AccountInfo<'b>,
+#[derive(InstructionsAccount)]
+pub struct Accounts<'a, T> {
+    #[cons(writable)]
+    user: &'a T,
+    #[cons(signer)]
+    user_owner: &'a T,
+    #[cons(writable)]
+    target_lamports_account: &'a T,
 }
 
-impl<'a, 'b: 'a> Accounts<'a, 'b> {
+impl<'a, 'b: 'a> Accounts<'a, AccountInfo<'b>> {
     pub fn parse(
         _program_id: &Pubkey,
         accounts: &'a [AccountInfo<'b>],
@@ -29,17 +40,17 @@ impl<'a, 'b: 'a> Accounts<'a, 'b> {
             user_owner: next_account_info(accounts_iter)?,
             target_lamports_account: next_account_info(accounts_iter)?,
         };
-        check_signer(&a.user_owner).map_err(|e| {
+        check_signer(a.user_owner).map_err(|e| {
             msg!("The user account owner should be a signer for this transaction!");
             e
         })?;
-        check_account_owner(a.user, &_program_id, DexError::InvalidStateAccountOwner)?;
+        check_account_owner(a.user, _program_id, DexError::InvalidStateAccountOwner)?;
 
         Ok(a)
     }
 
     pub fn load_user_account(&self) -> Result<UserAccount<'a>, ProgramError> {
-        let user_account = UserAccount::get(&self.user)?;
+        let user_account = UserAccount::get(self.user)?;
         if user_account.header.owner != self.user_owner.key.to_bytes() {
             msg!("Invalid user account owner provided!");
             return Err(ProgramError::InvalidArgument);

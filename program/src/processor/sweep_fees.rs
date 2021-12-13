@@ -1,3 +1,13 @@
+use crate::{
+    error::DexError,
+    state::DexState,
+    utils::{check_account_key, check_account_owner, check_signer},
+};
+use bonfida_utils::BorshSize;
+use bonfida_utils::InstructionsAccount;
+use borsh::BorshDeserialize;
+use borsh::BorshSerialize;
+use bytemuck::{Pod, Zeroable};
 use solana_program::{
     account_info::{next_account_info, AccountInfo},
     entrypoint::ProgramResult,
@@ -7,22 +17,25 @@ use solana_program::{
     pubkey::Pubkey,
 };
 
-use crate::{
-    error::DexError,
-    state::DexState,
-    utils::{check_account_key, check_account_owner, check_signer},
-};
+#[derive(Clone, Copy, BorshDeserialize, BorshSerialize, BorshSize, Pod, Zeroable)]
+#[repr(C)]
+pub struct Params {}
 
-struct Accounts<'a, 'b: 'a> {
-    market: &'a AccountInfo<'b>,
-    market_signer: &'a AccountInfo<'b>,
-    market_admin: &'a AccountInfo<'b>,
-    quote_vault: &'a AccountInfo<'b>,
-    destination_token_account: &'a AccountInfo<'b>,
-    spl_token_program: &'a AccountInfo<'b>,
+#[derive(InstructionsAccount)]
+pub struct Accounts<'a, T> {
+    #[cons(writable)]
+    market: &'a T,
+    market_signer: &'a T,
+    #[cons(signer)]
+    market_admin: &'a T,
+    #[cons(writable)]
+    quote_vault: &'a T,
+    #[cons(writable)]
+    destination_token_account: &'a T,
+    spl_token_program: &'a T,
 }
 
-impl<'a, 'b: 'a> Accounts<'a, 'b> {
+impl<'a, 'b: 'a> Accounts<'a, AccountInfo<'b>> {
     pub fn parse(
         program_id: &Pubkey,
         accounts: &'a [AccountInfo<'b>],
@@ -95,7 +108,7 @@ pub(crate) fn process(program_id: &Pubkey, accounts: &[AccountInfo]) -> ProgramR
 fn check_accounts(
     program_id: &Pubkey,
     market_state: &DexState,
-    accounts: &Accounts,
+    accounts: &Accounts<AccountInfo>,
 ) -> ProgramResult {
     let market_signer = Pubkey::create_program_address(
         &[

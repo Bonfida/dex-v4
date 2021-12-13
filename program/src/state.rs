@@ -140,7 +140,8 @@ pub struct UserAccountHeader {
     pub number_of_orders: u32,
 }
 
-pub(crate) struct UserAccount<'a> {
+#[allow(missing_docs)]
+pub struct UserAccount<'a> {
     pub header: RefMut<'a, UserAccountHeader>,
     orders: RefMut<'a, [u128]>,
 }
@@ -194,6 +195,7 @@ impl<'a> UserAccount<'a> {
 }
 
 impl<'a> UserAccount<'a> {
+    #[allow(missing_docs)]
     pub fn read_order(&self, order_index: usize) -> Result<u128, DexError> {
         if order_index >= self.header.number_of_orders as usize {
             return Err(DexError::InvalidOrderIndex);
@@ -201,6 +203,7 @@ impl<'a> UserAccount<'a> {
         Ok(self.orders[order_index])
     }
 
+    #[allow(missing_docs)]
     pub fn remove_order(&mut self, order_index: usize) -> Result<(), DexError> {
         if order_index >= self.header.number_of_orders as usize {
             return Err(DexError::InvalidOrderIndex);
@@ -212,6 +215,7 @@ impl<'a> UserAccount<'a> {
         Ok(())
     }
 
+    #[allow(missing_docs)]
     pub fn add_order(&mut self, order: u128) -> Result<(), DexError> {
         let slot = self
             .orders
@@ -222,6 +226,7 @@ impl<'a> UserAccount<'a> {
         Ok(())
     }
 
+    #[allow(missing_docs)]
     pub fn find_order_index(&self, order_id: u128) -> Result<usize, DexError> {
         let res = self
             .orders

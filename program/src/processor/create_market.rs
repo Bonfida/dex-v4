@@ -1,4 +1,14 @@
+use crate::{
+    error::DexError,
+    state::{AccountTag, DexState},
+    utils::check_account_owner,
+    CALLBACK_ID_LEN, CALLBACK_INFO_LEN,
+};
 use agnostic_orderbook::error::AoError;
+use bonfida_utils::BorshSize;
+use bonfida_utils::InstructionsAccount;
+use borsh::BorshDeserialize;
+use borsh::BorshSerialize;
 use bytemuck::{try_from_bytes, Pod, Zeroable};
 use solana_program::{
     account_info::{next_account_info, AccountInfo},
@@ -11,14 +21,7 @@ use solana_program::{
     sysvar::Sysvar,
 };
 
-use crate::{
-    error::DexError,
-    state::{AccountTag, DexState},
-    utils::check_account_owner,
-    CALLBACK_ID_LEN, CALLBACK_INFO_LEN,
-};
-
-#[derive(Copy, Clone, Zeroable, Pod)]
+#[derive(Copy, Clone, Zeroable, Pod, BorshDeserialize, BorshSerialize, BorshSize)]
 #[repr(C)]
 /**
 The required arguments for a create_market instruction.
@@ -28,7 +31,7 @@ pub struct Params {
     pub signer_nonce: u64,
     /// The minimum allowed order size in base token amount
     pub min_base_order_size: u64,
-    pub price_bitmask: u64,
+    pub tick_size: u64,
     pub cranker_reward: u64,
     /// Fee tier thresholds
     pub fee_tier_thresholds: [u64; 6],
@@ -38,18 +41,24 @@ pub struct Params {
     pub fee_tier_maker_bps_rebates: [u64; 7],
 }
 
-struct Accounts<'a, 'b: 'a> {
-    market: &'a AccountInfo<'b>,
-    orderbook: &'a AccountInfo<'b>,
-    base_vault: &'a AccountInfo<'b>,
-    quote_vault: &'a AccountInfo<'b>,
-    market_admin: &'a AccountInfo<'b>,
-    event_queue: &'a AccountInfo<'b>,
-    asks: &'a AccountInfo<'b>,
-    bids: &'a AccountInfo<'b>,
+#[derive(InstructionsAccount)]
+pub struct Accounts<'a, T> {
+    #[cons(writable)]
+    pub market: &'a T,
+    #[cons(writable)]
+    pub orderbook: &'a T,
+    pub base_vault: &'a T,
+    pub quote_vault: &'a T,
+    pub market_admin: &'a T,
+    #[cons(writable)]
+    pub event_queue: &'a T,
+    #[cons(writable)]
+    pub asks: &'a T,
+    #[cons(writable)]
+    pub bids: &'a T,
 }
 
-impl<'a, 'b: 'a> Accounts<'a, 'b> {
+impl<'a, 'b: 'a> Accounts<'a, AccountInfo<'b>> {
     pub fn parse(
         program_id: &Pubkey,
         accounts: &'a [AccountInfo<'b>],
@@ -80,10 +89,11 @@ pub(crate) fn process(
 ) -> ProgramResult {
     let accounts = Accounts::parse(program_id, accounts)?;
 
+    msg!("{:?}", instruction_data);
     let Params {
         signer_nonce,
         min_base_order_size,
-        price_bitmask,
+        tick_size,
         cranker_reward,
         fee_tier_thresholds,
         fee_tier_maker_bps_rebates: fee_tier_maker_rates,
@@ -124,11 +134,11 @@ pub(crate) fn process(
     };
 
     let invoke_params = agnostic_orderbook::instruction::create_market::Params {
-        caller_authority: *program_id, // No impact with AOB as a lib
+        caller_authority: program_id.to_bytes(), // No impact with AOB as a lib
         callback_info_len: CALLBACK_INFO_LEN,
         callback_id_len: CALLBACK_ID_LEN,
         min_base_order_size: *min_base_order_size,
-        price_bitmask: *price_bitmask,
+        tick_size: *tick_size,
         cranker_reward: *cranker_reward,
     };
     let invoke_accounts = agnostic_orderbook::instruction::create_market::Accounts {

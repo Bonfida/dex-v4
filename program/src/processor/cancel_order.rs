@@ -1,10 +1,18 @@
 use std::rc::Rc;
 
+use crate::{
+    error::DexError,
+    state::{DexState, UserAccount},
+    utils::{check_account_key, check_account_owner, check_signer},
+};
 use agnostic_orderbook::{
     error::AoError,
     state::{get_side_from_order_id, EventQueue, EventQueueHeader, OrderSummary, Side},
 };
+use bonfida_utils::BorshSize;
+use bonfida_utils::InstructionsAccount;
 use borsh::BorshDeserialize;
+use borsh::BorshSerialize;
 use bytemuck::{try_from_bytes, Pod, Zeroable};
 use solana_program::{
     account_info::{next_account_info, AccountInfo},
@@ -14,15 +22,9 @@ use solana_program::{
     pubkey::Pubkey,
 };
 
-use crate::{
-    error::DexError,
-    state::{DexState, UserAccount},
-    utils::{check_account_key, check_account_owner, check_signer},
-};
-
 use super::CALLBACK_INFO_LEN;
 
-#[derive(Clone, Copy, Zeroable, Pod)]
+#[derive(Clone, Copy, Zeroable, Pod, BorshDeserialize, BorshSerialize, BorshSize)]
 #[repr(C)]
 /**
 The required arguments for a cancel_order instruction.
@@ -35,17 +37,24 @@ pub struct Params {
     pub order_id: u128,
 }
 
-struct Accounts<'a, 'b: 'a> {
-    market: &'a AccountInfo<'b>,
-    orderbook: &'a AccountInfo<'b>,
-    event_queue: &'a AccountInfo<'b>,
-    bids: &'a AccountInfo<'b>,
-    asks: &'a AccountInfo<'b>,
-    user: &'a AccountInfo<'b>,
-    user_owner: &'a AccountInfo<'b>,
+#[derive(InstructionsAccount)]
+pub struct Accounts<'a, T> {
+    pub market: &'a T,
+    #[cons(writable)]
+    pub orderbook: &'a T,
+    #[cons(writable)]
+    pub event_queue: &'a T,
+    #[cons(writable)]
+    pub bids: &'a T,
+    #[cons(writable)]
+    pub asks: &'a T,
+    #[cons(writable)]
+    pub user: &'a T,
+    #[cons(signer)]
+    pub user_owner: &'a T,
 }
 
-impl<'a, 'b: 'a> Accounts<'a, 'b> {
+impl<'a, 'b: 'a> Accounts<'a, AccountInfo<'b>> {
     pub fn parse(
         program_id: &Pubkey,
         accounts: &'a [AccountInfo<'b>],
@@ -60,7 +69,7 @@ impl<'a, 'b: 'a> Accounts<'a, 'b> {
             user: next_account_info(accounts_iter)?,
             user_owner: next_account_info(accounts_iter)?,
         };
-        check_signer(&a.user_owner).map_err(|e| {
+        check_signer(a.user_owner).map_err(|e| {
             msg!("The user account owner should be a signer for this transaction!");
             e
         })?;
@@ -71,7 +80,7 @@ impl<'a, 'b: 'a> Accounts<'a, 'b> {
     }
 
     pub fn load_user_account(&self) -> Result<UserAccount<'a>, ProgramError> {
-        let user_account = UserAccount::get(&self.user)?;
+        let user_account = UserAccount::get(self.user)?;
         if user_account.header.owner != self.user_owner.key.to_bytes() {
             msg!("Invalid user account owner provided!");
             return Err(ProgramError::InvalidArgument);
@@ -174,7 +183,7 @@ pub(crate) fn process(
     Ok(())
 }
 
-fn check_accounts(market_state: &DexState, accounts: &Accounts) -> ProgramResult {
+fn check_accounts(market_state: &DexState, accounts: &Accounts<AccountInfo>) -> ProgramResult {
     check_account_key(
         accounts.orderbook,
         &market_state.orderbook,

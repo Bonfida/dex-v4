@@ -1,3 +1,13 @@
+use crate::{
+    error::DexError,
+    state::{DexState, UserAccount},
+    utils::{check_account_key, check_account_owner, check_signer},
+};
+use bonfida_utils::BorshSize;
+use bonfida_utils::InstructionsAccount;
+use borsh::BorshDeserialize;
+use borsh::BorshSerialize;
+use bytemuck::{Pod, Zeroable};
 use solana_program::{
     account_info::{next_account_info, AccountInfo},
     entrypoint::ProgramResult,
@@ -7,25 +17,30 @@ use solana_program::{
     pubkey::Pubkey,
 };
 
-use crate::{
-    error::DexError,
-    state::{DexState, UserAccount},
-    utils::{check_account_key, check_account_owner, check_signer},
-};
+#[derive(Clone, Copy, BorshDeserialize, BorshSerialize, BorshSize, Pod, Zeroable)]
+#[repr(C)]
+pub struct Params {}
 
-struct Accounts<'a, 'b: 'a> {
-    spl_token_program: &'a AccountInfo<'b>,
-    market: &'a AccountInfo<'b>,
-    base_vault: &'a AccountInfo<'b>,
-    quote_vault: &'a AccountInfo<'b>,
-    market_signer: &'a AccountInfo<'b>,
-    user: &'a AccountInfo<'b>,
-    user_owner: &'a AccountInfo<'b>,
-    destination_base_account: &'a AccountInfo<'b>,
-    destination_quote_account: &'a AccountInfo<'b>,
+#[derive(InstructionsAccount)]
+pub struct Accounts<'a, T> {
+    pub spl_token_program: &'a T,
+    pub market: &'a T,
+    #[cons(writable)]
+    pub base_vault: &'a T,
+    #[cons(writable)]
+    pub quote_vault: &'a T,
+    pub market_signer: &'a T,
+    #[cons(writable)]
+    pub user: &'a T,
+    #[cons(signer)]
+    pub user_owner: &'a T,
+    #[cons(writable)]
+    pub destination_base_account: &'a T,
+    #[cons(writable)]
+    pub destination_quote_account: &'a T,
 }
 
-impl<'a, 'b: 'a> Accounts<'a, 'b> {
+impl<'a, 'b: 'a> Accounts<'a, AccountInfo<'b>> {
     pub fn parse(
         program_id: &Pubkey,
         accounts: &'a [AccountInfo<'b>],
@@ -42,23 +57,23 @@ impl<'a, 'b: 'a> Accounts<'a, 'b> {
             destination_base_account: next_account_info(accounts_iter)?,
             destination_quote_account: next_account_info(accounts_iter)?,
         };
-        check_signer(&a.user_owner).map_err(|e| {
+        check_signer(a.user_owner).map_err(|e| {
             msg!("The user account owner should be a signer for this transaction!");
             e
         })?;
         check_account_key(
-            &a.spl_token_program,
+            a.spl_token_program,
             &spl_token::ID.to_bytes(),
             DexError::InvalidSplTokenProgram,
         )?;
-        check_account_owner(&a.market, program_id, DexError::InvalidStateAccountOwner)?;
-        check_account_owner(&a.user, program_id, DexError::InvalidStateAccountOwner)?;
+        check_account_owner(a.market, program_id, DexError::InvalidStateAccountOwner)?;
+        check_account_owner(a.user, program_id, DexError::InvalidStateAccountOwner)?;
 
         Ok(a)
     }
 
     pub fn load_user_account(&self) -> Result<UserAccount<'a>, ProgramError> {
-        let user_account = UserAccount::get(&self.user)?;
+        let user_account = UserAccount::get(self.user)?;
         if user_account.header.owner != self.user_owner.key.to_bytes() {
             msg!("Invalid user account owner provided!");
             return Err(ProgramError::InvalidArgument);
@@ -83,8 +98,8 @@ pub(crate) fn process(program_id: &Pubkey, accounts: &[AccountInfo]) -> ProgramR
     let transfer_quote_instruction = spl_token::instruction::transfer(
         &spl_token::ID,
         &Pubkey::new(&market_state.quote_vault),
-        &accounts.destination_quote_account.key,
-        &accounts.market_signer.key,
+        accounts.destination_quote_account.key,
+        accounts.market_signer.key,
         &[],
         user_account.header.quote_token_free,
     )?;
@@ -106,8 +121,8 @@ pub(crate) fn process(program_id: &Pubkey, accounts: &[AccountInfo]) -> ProgramR
     let transfer_base_instruction = spl_token::instruction::transfer(
         &spl_token::ID,
         &Pubkey::new(&market_state.base_vault),
-        &accounts.destination_base_account.key,
-        &accounts.market_signer.key,
+        accounts.destination_base_account.key,
+        accounts.market_signer.key,
         &[],
         user_account.header.base_token_free,
     )?;
@@ -135,7 +150,7 @@ pub(crate) fn process(program_id: &Pubkey, accounts: &[AccountInfo]) -> ProgramR
 fn check_accounts(
     program_id: &Pubkey,
     market_state: &DexState,
-    accounts: &Accounts,
+    accounts: &Accounts<AccountInfo>,
 ) -> ProgramResult {
     let market_signer = Pubkey::create_program_address(
         &[
