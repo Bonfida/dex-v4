@@ -23,8 +23,7 @@ import { TOKEN_PROGRAM_ID } from "@solana/spl-token";
 /**
  * Constants
  */
-const MARKET_STATE_SPACE =
-  1 + 1 + 32 + 32 + 32 + 32 + 32 + 32 + 8 + 8 + 8 + 8 + 8;
+const MARKET_STATE_SPACE = 408;
 const NODE_CAPACITY = 100;
 const EVENT_CAPACITY = 100;
 
@@ -72,8 +71,11 @@ export const createMarket = async (
     new BN(minBaseOrderSize),
     feePayer,
     tickSize,
-    crankerReward
+    crankerReward,
+    DEX_ID
   );
+  // Remove the AOB create_market instruction as it is not needed with lib usage
+  aaobInstructions.pop();
 
   // Base vault
   const createBaseVault = await createAssociatedTokenAccount(
@@ -106,7 +108,7 @@ export const createMarket = async (
     marketAdmin,
     aaobSigners[0].publicKey,
     aaobSigners[1].publicKey,
-    aaobSigners[2].publicKey,
+    aaobSigners[2].publicKey
   );
 
   return [
@@ -150,7 +152,7 @@ export const placeOrder = async (
     orderType: type,
     selfTradeBehavior: selfTradeBehaviour,
     matchLimit: new BN(Number.MAX_SAFE_INTEGER), // TODO Change
-    padding: new Uint8Array([0])
+    padding: new Uint8Array([0]),
   }).getInstruction(
     DEX_ID,
     aaob.AAOB_ID,

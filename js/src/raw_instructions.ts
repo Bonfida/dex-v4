@@ -8,140 +8,8 @@ export interface AccountKey {
   isSigner: boolean;
   isWritable: boolean;
 }
-export class cancelOrderInstruction {
-  tag: number;
-  orderIndex: BN;
-  orderId: BN;
-  static schema: Schema = new Map([
-    [
-      cancelOrderInstruction,
-      {
-        kind: "struct",
-        fields: [
-          ["tag", "u8"],
-          ["orderIndex", "u64"],
-          ["orderId", "u128"],
-        ],
-      },
-    ],
-  ]);
-  constructor(obj: {
-    orderIndex: BN;
-    orderId: BN;
-  }) {
-    this.tag = 2
-    this.orderIndex = obj.orderIndex;
-    this.orderId = obj.orderId;
-  }
-  serialize(): Uint8Array {
-    return serialize(cancelOrderInstruction.schema, this);
-  }
-  getInstruction(
-    programId: PublicKey,
-    market: PublicKey,
-    orderbook: PublicKey,
-    eventQueue: PublicKey,
-    bids: PublicKey,
-    asks: PublicKey,
-    user: PublicKey,
-    userOwner: PublicKey,
-  ): TransactionInstruction {
-    const data = Buffer.from(this.serialize());
-    let keys: AccountKey[] = [];
-    keys.push({
-      pubkey: market,
-      isSigner: false,
-      isWritable: false,
-    });
-    keys.push({
-      pubkey: orderbook,
-      isSigner: false,
-      isWritable: true,
-    });
-    keys.push({
-      pubkey: eventQueue,
-      isSigner: false,
-      isWritable: true,
-    });
-    keys.push({
-      pubkey: bids,
-      isSigner: false,
-      isWritable: true,
-    });
-    keys.push({
-      pubkey: asks,
-      isSigner: false,
-      isWritable: true,
-    });
-    keys.push({
-      pubkey: user,
-      isSigner: false,
-      isWritable: true,
-    });
-    keys.push({
-      pubkey: userOwner,
-      isSigner: true,
-      isWritable: false,
-    });
-    return new TransactionInstruction({
-      keys,
-      programId,
-      data,
-    });
-  }
-}
-export class closeAccountInstruction {
-  tag: number;
-  static schema: Schema = new Map([
-    [
-      closeAccountInstruction,
-      {
-        kind: "struct",
-        fields: [
-          ["tag", "u8"],
-        ],
-      },
-    ],
-  ]);
-  constructor(obj: {
-  }) {
-    this.tag = 7
-  }
-  serialize(): Uint8Array {
-    return serialize(closeAccountInstruction.schema, this);
-  }
-  getInstruction(
-    programId: PublicKey,
-    user: PublicKey,
-    userOwner: PublicKey,
-    targetLamportsAccount: PublicKey,
-  ): TransactionInstruction {
-    const data = Buffer.from(this.serialize());
-    let keys: AccountKey[] = [];
-    keys.push({
-      pubkey: user,
-      isSigner: false,
-      isWritable: true,
-    });
-    keys.push({
-      pubkey: userOwner,
-      isSigner: true,
-      isWritable: false,
-    });
-    keys.push({
-      pubkey: targetLamportsAccount,
-      isSigner: false,
-      isWritable: true,
-    });
-    return new TransactionInstruction({
-      keys,
-      programId,
-      data,
-    });
-  }
-}
 export class newOrderInstruction {
-  tag: number;
+  tag: BN;
   limitPrice: BN;
   maxBaseQty: BN;
   maxQuoteQty: BN;
@@ -156,7 +24,7 @@ export class newOrderInstruction {
       {
         kind: "struct",
         fields: [
-          ["tag", "u8"],
+          ["tag", "u64"],
           ["limitPrice", "u64"],
           ["maxBaseQty", "u64"],
           ["maxQuoteQty", "u64"],
@@ -179,7 +47,7 @@ export class newOrderInstruction {
     selfTradeBehavior: number;
     padding: Uint8Array;
   }) {
-    this.tag = 1
+    this.tag = new BN(1);
     this.limitPrice = obj.limitPrice;
     this.maxBaseQty = obj.maxBaseQty;
     this.maxQuoteQty = obj.maxQuoteQty;
@@ -206,7 +74,7 @@ export class newOrderInstruction {
     user: PublicKey,
     userTokenAccount: PublicKey,
     userOwner: PublicKey,
-    discountTokenAccount?: PublicKey,
+    discountTokenAccount?: PublicKey
   ): TransactionInstruction {
     const data = Buffer.from(this.serialize());
     let keys: AccountKey[] = [];
@@ -284,61 +152,188 @@ export class newOrderInstruction {
     });
   }
 }
-export class initializeAccountInstruction {
-  tag: number;
-  market: Uint8Array;
-  maxOrders: BN;
+export class createMarketInstruction {
+  tag: BN;
+  signerNonce: BN;
+  minBaseOrderSize: BN;
+  tickSize: BN;
+  crankerReward: BN;
+  feeTierThresholds: BN[];
+  feeTierTakerBpsRates: BN[];
+  feeTierMakerBpsRebates: BN[];
   static schema: Schema = new Map([
     [
-      initializeAccountInstruction,
+      createMarketInstruction,
       {
         kind: "struct",
         fields: [
-          ["tag", "u8"],
-          ["market", [32]],
-          ["maxOrders", "u64"],
+          ["tag", "u64"],
+          ["signerNonce", "u64"],
+          ["minBaseOrderSize", "u64"],
+          ["tickSize", "u64"],
+          ["crankerReward", "u64"],
+          ["feeTierThresholds", ["u64", 6]],
+          ["feeTierTakerBpsRates", ["u64", 7]],
+          ["feeTierMakerBpsRebates", ["u64", 7]],
         ],
       },
     ],
   ]);
   constructor(obj: {
-    market: Uint8Array;
-    maxOrders: BN;
+    signerNonce: BN;
+    minBaseOrderSize: BN;
+    tickSize: BN;
+    crankerReward: BN;
+    feeTierThresholds: BN[];
+    feeTierTakerBpsRates: BN[];
+    feeTierMakerBpsRebates: BN[];
   }) {
-    this.tag = 5
-    this.market = obj.market;
-    this.maxOrders = obj.maxOrders;
+    this.tag = new BN(0);
+    this.signerNonce = obj.signerNonce;
+    this.minBaseOrderSize = obj.minBaseOrderSize;
+    this.tickSize = obj.tickSize;
+    this.crankerReward = obj.crankerReward;
+    this.feeTierThresholds = obj.feeTierThresholds;
+    this.feeTierTakerBpsRates = obj.feeTierTakerBpsRates;
+    this.feeTierMakerBpsRebates = obj.feeTierMakerBpsRebates;
   }
   serialize(): Uint8Array {
-    return serialize(initializeAccountInstruction.schema, this);
+    return serialize(createMarketInstruction.schema, this);
   }
   getInstruction(
     programId: PublicKey,
-    systemProgram: PublicKey,
-    user: PublicKey,
-    userOwner: PublicKey,
-    feePayer: PublicKey,
+    market: PublicKey,
+    orderbook: PublicKey,
+    baseVault: PublicKey,
+    quoteVault: PublicKey,
+    marketAdmin: PublicKey,
+    eventQueue: PublicKey,
+    asks: PublicKey,
+    bids: PublicKey
   ): TransactionInstruction {
     const data = Buffer.from(this.serialize());
     let keys: AccountKey[] = [];
     keys.push({
-      pubkey: systemProgram,
-      isSigner: false,
-      isWritable: false,
-    });
-    keys.push({
-      pubkey: user,
+      pubkey: market,
       isSigner: false,
       isWritable: true,
     });
     keys.push({
-      pubkey: userOwner,
+      pubkey: orderbook,
+      isSigner: false,
+      isWritable: true,
+    });
+    keys.push({
+      pubkey: baseVault,
+      isSigner: false,
+      isWritable: false,
+    });
+    keys.push({
+      pubkey: quoteVault,
+      isSigner: false,
+      isWritable: false,
+    });
+    keys.push({
+      pubkey: marketAdmin,
+      isSigner: false,
+      isWritable: false,
+    });
+    keys.push({
+      pubkey: eventQueue,
+      isSigner: false,
+      isWritable: true,
+    });
+    keys.push({
+      pubkey: asks,
+      isSigner: false,
+      isWritable: true,
+    });
+    keys.push({
+      pubkey: bids,
+      isSigner: false,
+      isWritable: true,
+    });
+    return new TransactionInstruction({
+      keys,
+      programId,
+      data,
+    });
+  }
+}
+export class closeMarketInstruction {
+  tag: BN;
+  static schema: Schema = new Map([
+    [
+      closeMarketInstruction,
+      {
+        kind: "struct",
+        fields: [["tag", "u64"]],
+      },
+    ],
+  ]);
+  constructor(obj: {}) {
+    this.tag = new BN(8);
+  }
+  serialize(): Uint8Array {
+    return serialize(closeMarketInstruction.schema, this);
+  }
+  getInstruction(
+    programId: PublicKey,
+    market: PublicKey,
+    baseVault: PublicKey,
+    quoteVault: PublicKey,
+    orderbook: PublicKey,
+    eventQueue: PublicKey,
+    bids: PublicKey,
+    asks: PublicKey,
+    marketAdmin: PublicKey,
+    targetLamportsAccount: PublicKey
+  ): TransactionInstruction {
+    const data = Buffer.from(this.serialize());
+    let keys: AccountKey[] = [];
+    keys.push({
+      pubkey: market,
+      isSigner: false,
+      isWritable: true,
+    });
+    keys.push({
+      pubkey: baseVault,
+      isSigner: false,
+      isWritable: true,
+    });
+    keys.push({
+      pubkey: quoteVault,
+      isSigner: false,
+      isWritable: true,
+    });
+    keys.push({
+      pubkey: orderbook,
+      isSigner: false,
+      isWritable: true,
+    });
+    keys.push({
+      pubkey: eventQueue,
+      isSigner: false,
+      isWritable: true,
+    });
+    keys.push({
+      pubkey: bids,
+      isSigner: false,
+      isWritable: true,
+    });
+    keys.push({
+      pubkey: asks,
+      isSigner: false,
+      isWritable: true,
+    });
+    keys.push({
+      pubkey: marketAdmin,
       isSigner: true,
       isWritable: false,
     });
     keys.push({
-      pubkey: feePayer,
-      isSigner: true,
+      pubkey: targetLamportsAccount,
+      isSigner: false,
       isWritable: true,
     });
     return new TransactionInstruction({
@@ -349,7 +344,7 @@ export class initializeAccountInstruction {
   }
 }
 export class consumeEventsInstruction {
-  tag: number;
+  tag: BN;
   maxIterations: BN;
   static schema: Schema = new Map([
     [
@@ -357,16 +352,14 @@ export class consumeEventsInstruction {
       {
         kind: "struct",
         fields: [
-          ["tag", "u8"],
+          ["tag", "u64"],
           ["maxIterations", "u64"],
         ],
       },
     ],
   ]);
-  constructor(obj: {
-    maxIterations: BN;
-  }) {
-    this.tag = 3
+  constructor(obj: { maxIterations: BN }) {
+    this.tag = new BN(3);
     this.maxIterations = obj.maxIterations;
   }
   serialize(): Uint8Array {
@@ -378,7 +371,7 @@ export class consumeEventsInstruction {
     orderbook: PublicKey,
     eventQueue: PublicKey,
     rewardTarget: PublicKey,
-    userAccounts: PublicKey[],
+    userAccounts: PublicKey[]
   ): TransactionInstruction {
     const data = Buffer.from(this.serialize());
     let keys: AccountKey[] = [];
@@ -417,21 +410,18 @@ export class consumeEventsInstruction {
   }
 }
 export class settleInstruction {
-  tag: number;
+  tag: BN;
   static schema: Schema = new Map([
     [
       settleInstruction,
       {
         kind: "struct",
-        fields: [
-          ["tag", "u8"],
-        ],
+        fields: [["tag", "u64"]],
       },
     ],
   ]);
-  constructor(obj: {
-  }) {
-    this.tag = 4
+  constructor(obj: {}) {
+    this.tag = new BN(4);
   }
   serialize(): Uint8Array {
     return serialize(settleInstruction.schema, this);
@@ -446,7 +436,7 @@ export class settleInstruction {
     user: PublicKey,
     userOwner: PublicKey,
     destinationBaseAccount: PublicKey,
-    destinationQuoteAccount: PublicKey,
+    destinationQuoteAccount: PublicKey
   ): TransactionInstruction {
     const data = Buffer.from(this.serialize());
     let keys: AccountKey[] = [];
@@ -502,22 +492,80 @@ export class settleInstruction {
     });
   }
 }
+export class initializeAccountInstruction {
+  tag: BN;
+  market: Uint8Array;
+  maxOrders: BN;
+  static schema: Schema = new Map([
+    [
+      initializeAccountInstruction,
+      {
+        kind: "struct",
+        fields: [
+          ["tag", "u64"],
+          ["market", [32]],
+          ["maxOrders", "u64"],
+        ],
+      },
+    ],
+  ]);
+  constructor(obj: { market: Uint8Array; maxOrders: BN }) {
+    this.tag = new BN(5);
+    this.market = obj.market;
+    this.maxOrders = obj.maxOrders;
+  }
+  serialize(): Uint8Array {
+    return serialize(initializeAccountInstruction.schema, this);
+  }
+  getInstruction(
+    programId: PublicKey,
+    systemProgram: PublicKey,
+    user: PublicKey,
+    userOwner: PublicKey,
+    feePayer: PublicKey
+  ): TransactionInstruction {
+    const data = Buffer.from(this.serialize());
+    let keys: AccountKey[] = [];
+    keys.push({
+      pubkey: systemProgram,
+      isSigner: false,
+      isWritable: false,
+    });
+    keys.push({
+      pubkey: user,
+      isSigner: false,
+      isWritable: true,
+    });
+    keys.push({
+      pubkey: userOwner,
+      isSigner: true,
+      isWritable: false,
+    });
+    keys.push({
+      pubkey: feePayer,
+      isSigner: true,
+      isWritable: true,
+    });
+    return new TransactionInstruction({
+      keys,
+      programId,
+      data,
+    });
+  }
+}
 export class sweepFeesInstruction {
-  tag: number;
+  tag: BN;
   static schema: Schema = new Map([
     [
       sweepFeesInstruction,
       {
         kind: "struct",
-        fields: [
-          ["tag", "u8"],
-        ],
+        fields: [["tag", "u64"]],
       },
     ],
   ]);
-  constructor(obj: {
-  }) {
-    this.tag = 6
+  constructor(obj: {}) {
+    this.tag = new BN(6);
   }
   serialize(): Uint8Array {
     return serialize(sweepFeesInstruction.schema, this);
@@ -529,7 +577,7 @@ export class sweepFeesInstruction {
     marketAdmin: PublicKey,
     quoteVault: PublicKey,
     destinationTokenAccount: PublicKey,
-    splTokenProgram: PublicKey,
+    splTokenProgram: PublicKey
   ): TransactionInstruction {
     const data = Buffer.from(this.serialize());
     let keys: AccountKey[] = [];
@@ -570,71 +618,47 @@ export class sweepFeesInstruction {
     });
   }
 }
-export class createMarketInstruction {
-  tag: number;
-  signerNonce: BN;
-  minBaseOrderSize: BN;
-  tickSize: BN;
-  crankerReward: BN;
-  feeTierThresholds: BN[];
-  feeTierTakerBpsRates: BN[];
-  feeTierMakerBpsRebates: BN[];
+export class cancelOrderInstruction {
+  tag: BN;
+  orderIndex: BN;
+  orderId: BN;
   static schema: Schema = new Map([
     [
-      createMarketInstruction,
+      cancelOrderInstruction,
       {
         kind: "struct",
         fields: [
-          ["tag", "u8"],
-          ["signerNonce", "u64"],
-          ["minBaseOrderSize", "u64"],
-          ["tickSize", "u64"],
-          ["crankerReward", "u64"],
-          ["feeTierThresholds", ["u64", 6]],
-          ["feeTierTakerBpsRates", ["u64", 7]],
-          ["feeTierMakerBpsRebates", ["u64", 7]],
+          ["tag", "u64"],
+          ["orderIndex", "u64"],
+          ["orderId", "u128"],
         ],
       },
     ],
   ]);
-  constructor(obj: {
-    signerNonce: BN;
-    minBaseOrderSize: BN;
-    tickSize: BN;
-    crankerReward: BN;
-    feeTierThresholds: BN[];
-    feeTierTakerBpsRates: BN[];
-    feeTierMakerBpsRebates: BN[];
-  }) {
-    this.tag = 0
-    this.signerNonce = obj.signerNonce;
-    this.minBaseOrderSize = obj.minBaseOrderSize;
-    this.tickSize = obj.tickSize;
-    this.crankerReward = obj.crankerReward;
-    this.feeTierThresholds = obj.feeTierThresholds;
-    this.feeTierTakerBpsRates = obj.feeTierTakerBpsRates;
-    this.feeTierMakerBpsRebates = obj.feeTierMakerBpsRebates;
+  constructor(obj: { orderIndex: BN; orderId: BN }) {
+    this.tag = new BN(2);
+    this.orderIndex = obj.orderIndex;
+    this.orderId = obj.orderId;
   }
   serialize(): Uint8Array {
-    return serialize(createMarketInstruction.schema, this);
+    return serialize(cancelOrderInstruction.schema, this);
   }
   getInstruction(
     programId: PublicKey,
     market: PublicKey,
     orderbook: PublicKey,
-    baseVault: PublicKey,
-    quoteVault: PublicKey,
-    marketAdmin: PublicKey,
     eventQueue: PublicKey,
-    asks: PublicKey,
     bids: PublicKey,
+    asks: PublicKey,
+    user: PublicKey,
+    userOwner: PublicKey
   ): TransactionInstruction {
     const data = Buffer.from(this.serialize());
     let keys: AccountKey[] = [];
     keys.push({
       pubkey: market,
       isSigner: false,
-      isWritable: true,
+      isWritable: false,
     });
     keys.push({
       pubkey: orderbook,
@@ -642,22 +666,12 @@ export class createMarketInstruction {
       isWritable: true,
     });
     keys.push({
-      pubkey: baseVault,
-      isSigner: false,
-      isWritable: false,
-    });
-    keys.push({
-      pubkey: quoteVault,
-      isSigner: false,
-      isWritable: false,
-    });
-    keys.push({
-      pubkey: marketAdmin,
-      isSigner: false,
-      isWritable: false,
-    });
-    keys.push({
       pubkey: eventQueue,
+      isSigner: false,
+      isWritable: true,
+    });
+    keys.push({
+      pubkey: bids,
       isSigner: false,
       isWritable: true,
     });
@@ -667,9 +681,14 @@ export class createMarketInstruction {
       isWritable: true,
     });
     keys.push({
-      pubkey: bids,
+      pubkey: user,
       isSigner: false,
       isWritable: true,
+    });
+    keys.push({
+      pubkey: userOwner,
+      isSigner: true,
+      isWritable: false,
     });
     return new TransactionInstruction({
       keys,
@@ -678,77 +697,38 @@ export class createMarketInstruction {
     });
   }
 }
-export class closeMarketInstruction {
-  tag: number;
+export class closeAccountInstruction {
+  tag: BN;
   static schema: Schema = new Map([
     [
-      closeMarketInstruction,
+      closeAccountInstruction,
       {
         kind: "struct",
-        fields: [
-          ["tag", "u8"],
-        ],
+        fields: [["tag", "u64"]],
       },
     ],
   ]);
-  constructor(obj: {
-  }) {
-    this.tag = 8
+  constructor(obj: {}) {
+    this.tag = new BN(7);
   }
   serialize(): Uint8Array {
-    return serialize(closeMarketInstruction.schema, this);
+    return serialize(closeAccountInstruction.schema, this);
   }
   getInstruction(
     programId: PublicKey,
-    market: PublicKey,
-    baseVault: PublicKey,
-    quoteVault: PublicKey,
-    orderbook: PublicKey,
-    eventQueue: PublicKey,
-    bids: PublicKey,
-    asks: PublicKey,
-    marketAdmin: PublicKey,
-    targetLamportsAccount: PublicKey,
+    user: PublicKey,
+    userOwner: PublicKey,
+    targetLamportsAccount: PublicKey
   ): TransactionInstruction {
     const data = Buffer.from(this.serialize());
     let keys: AccountKey[] = [];
     keys.push({
-      pubkey: market,
+      pubkey: user,
       isSigner: false,
       isWritable: true,
     });
     keys.push({
-      pubkey: baseVault,
-      isSigner: false,
-      isWritable: true,
-    });
-    keys.push({
-      pubkey: quoteVault,
-      isSigner: false,
-      isWritable: true,
-    });
-    keys.push({
-      pubkey: orderbook,
-      isSigner: false,
-      isWritable: true,
-    });
-    keys.push({
-      pubkey: eventQueue,
-      isSigner: false,
-      isWritable: true,
-    });
-    keys.push({
-      pubkey: bids,
-      isSigner: false,
-      isWritable: true,
-    });
-    keys.push({
-      pubkey: asks,
-      isSigner: false,
-      isWritable: true,
-    });
-    keys.push({
-      pubkey: marketAdmin,
+      pubkey: userOwner,
       isSigner: true,
       isWritable: false,
     });
