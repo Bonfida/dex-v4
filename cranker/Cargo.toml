@@ -17,5 +17,5 @@ tokio = {version = "1.11.0", features = ["rt-multi-thread", "time"]}
 spl-associated-token-account = "1.0.3"
 thiserror = "1.0.29"
 borsh = "0.9.1"
-agnostic-orderbook = {path = "../../agnostic-orderbook/program", featuers = ["no-entrypoint"]}
+agnostic-orderbook = {git = "https://github.com/Bonfida/agnostic-orderbook.git", features = ["no-entrypoint"]}
 bytemuck = "1.7"

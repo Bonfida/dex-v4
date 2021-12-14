@@ -89,7 +89,6 @@ pub(crate) fn process(
 ) -> ProgramResult {
     let accounts = Accounts::parse(program_id, accounts)?;
 
-    msg!("{:?}", instruction_data);
     let Params {
         signer_nonce,
         min_base_order_size,

@@ -36,7 +36,7 @@
     "typescript": "^4.1.3"
   },
   "dependencies": {
-    "@bonfida/aaob": "file:../../agnostic-orderbook/js",
+    "@bonfida/aaob": "^0.0.3",
     "@solana/spl-token": "0.1.5",
     "@solana/web3.js": "^1.27.0",
     "bn.js": "^5.1.3",

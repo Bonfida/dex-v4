@@ -48,23 +48,13 @@ impl Context {
         let market_state =
             bytemuck::try_from_bytes::<DexState>(&market_state_data[..DEX_STATE_LEN]).unwrap();
 
-        let market_signer = Pubkey::create_program_address(
-            &[&self.market.to_bytes(), &[market_state.signer_nonce as u8]],
-            &self.program_id,
-        )
-        .unwrap();
         let orderbook_data = connection
             .get_account_data(&Pubkey::new(&market_state.orderbook))
             .unwrap();
         let orderbook =
             bytemuck::try_from_bytes::<MarketState>(&orderbook_data[..MARKET_STATE_LEN]).unwrap();
         loop {
-            let res = self.consume_events_iteration(
-                &connection,
-                &orderbook,
-                &market_state,
-                &market_signer,
-            );
+            let res = self.consume_events_iteration(&connection, &orderbook, &market_state);
             println!("{:#?}", res);
         }
     }
@@ -74,7 +64,6 @@ impl Context {
         connection: &RpcClient,
         orderbook: &MarketState,
         market_state: &DexState,
-        market_signer: &Pubkey,
     ) -> Result<Signature, ClientError> {
         let mut event_queue_data =
             connection.get_account_data(&Pubkey::new(&orderbook.event_queue))?;
@@ -123,6 +112,7 @@ impl Context {
         user_accounts.dedup();
 
         let consume_events_instruction = consume_events(
+            self.program_id,
             Accounts {
                 orderbook: &Pubkey::new(&market_state.orderbook),
                 market: &self.market,

@@ -156,10 +156,8 @@ fn consume_event(
             let maker_account_info = &accounts[accounts
                 .binary_search_by_key(&maker_info.user_account, |k| *k.key)
                 .map_err(|_| DexError::MissingUserAccount)?];
+            let mut taker_account = UserAccount::get(maker_account_info).unwrap();
             if taker_info.user_account == maker_info.user_account {
-                // Self trade scenario
-                // The account has already been credited at the time of matching by new_order.
-                let mut taker_account = UserAccount::get(maker_account_info).unwrap();
                 let maker_rebate = taker_info.fee_tier.maker_rebate(quote_size);
                 taker_account.header.quote_token_free = taker_account
                     .header
