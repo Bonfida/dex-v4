@@ -152,16 +152,19 @@ export class Market {
   ) {
     const marketState = await MarketState.retrieve(connection, address);
 
+    console.log("CHECK");
     const orderbookState = await AaobMarketState.retrieve(
       connection,
       marketState.orderbook
     );
 
+    console.log("CHECK");
     const [baseDecimals, quoteDecimals] = await Promise.all([
       getMintDecimals(connection, marketState.baseMint),
       getMintDecimals(connection, marketState.quoteMint),
     ]);
 
+    console.log("CHECK");
     return new Market(
       marketState,
       orderbookState,
@@ -661,7 +664,9 @@ export class Market {
   filterForOpenOrdersFromSlab(slab: Slab, openOrders: OpenOrders, side: Side) {
     return [...slab]
       .filter((o) =>
-        openOrders?.address.equals(new PublicKey(slab.getCallBackInfo(o.callBackInfoPt).slice(0, 32)))
+        openOrders?.address.equals(
+          new PublicKey(slab.getCallBackInfo(o.callBackInfoPt).slice(0, 32))
+        )
       )
       .map((o) => {
         return {
@@ -669,7 +674,9 @@ export class Market {
           price: getPriceFromKey(o.key).toNumber(),
           feeTier: slab.getCallBackInfo(o.callBackInfoPt).slice(32)[0],
           size: o.baseQuantity.toNumber(),
-          openOrdersAddress: new PublicKey(slab.getCallBackInfo(o.callBackInfoPt).slice(0, 32)),
+          openOrdersAddress: new PublicKey(
+            slab.getCallBackInfo(o.callBackInfoPt).slice(0, 32)
+          ),
           side: side,
         };
       });
