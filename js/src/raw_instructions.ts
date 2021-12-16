@@ -45,7 +45,6 @@ export class newOrderInstruction {
     side: number;
     orderType: number;
     selfTradeBehavior: number;
-    padding: Uint8Array;
   }) {
     this.tag = new BN(1);
     this.limitPrice = obj.limitPrice;
@@ -55,7 +54,7 @@ export class newOrderInstruction {
     this.side = obj.side;
     this.orderType = obj.orderType;
     this.selfTradeBehavior = obj.selfTradeBehavior;
-    this.padding = obj.padding;
+    this.padding = new Uint8Array(5).fill(0);
   }
   serialize(): Uint8Array {
     return serialize(newOrderInstruction.schema, this);
@@ -271,7 +270,7 @@ export class closeMarketInstruction {
       },
     ],
   ]);
-  constructor(obj: {}) {
+  constructor() {
     this.tag = new BN(8);
   }
   serialize(): Uint8Array {
@@ -420,7 +419,7 @@ export class settleInstruction {
       },
     ],
   ]);
-  constructor(obj: {}) {
+  constructor() {
     this.tag = new BN(4);
   }
   serialize(): Uint8Array {
@@ -564,7 +563,7 @@ export class sweepFeesInstruction {
       },
     ],
   ]);
-  constructor(obj: {}) {
+  constructor() {
     this.tag = new BN(6);
   }
   serialize(): Uint8Array {
@@ -708,7 +707,7 @@ export class closeAccountInstruction {
       },
     ],
   ]);
-  constructor(obj: {}) {
+  constructor() {
     this.tag = new BN(7);
   }
   serialize(): Uint8Array {

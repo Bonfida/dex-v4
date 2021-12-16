@@ -129,11 +129,6 @@ export const placeOrder = async (
   owner: PublicKey,
   discountTokenAccount?: PublicKey
 ) => {
-  const [marketSigner] = await PublicKey.findProgramAddress(
-    [market.address.toBuffer()],
-    DEX_ID
-  );
-
   const [userAccount] = await PublicKey.findProgramAddress(
     [market.address.toBuffer(), owner.toBuffer()],
     DEX_ID
@@ -152,12 +147,11 @@ export const placeOrder = async (
     orderType: type,
     selfTradeBehavior: selfTradeBehaviour,
     matchLimit: new BN(Number.MAX_SAFE_INTEGER), // TODO Change
-    padding: new Uint8Array([0]),
   }).getInstruction(
     DEX_ID,
-    aaob.AAOB_ID,
+    TOKEN_PROGRAM_ID,
+    SystemProgram.programId,
     market.address,
-    marketSigner,
     market.orderbookAddress,
     market.eventQueueAddress,
     market.bidsAddress,
@@ -240,7 +234,7 @@ export const settle = async (
     DEX_ID
   );
 
-  const instruction = new settleInstruction({}).getInstruction(
+  const instruction = new settleInstruction().getInstruction(
     DEX_ID,
     TOKEN_PROGRAM_ID,
     market.address,
@@ -287,7 +281,7 @@ export const closeAccount = async (market: PublicKey, owner: PublicKey) => {
     DEX_ID
   );
 
-  const instruction = new closeAccountInstruction({}).getInstruction(
+  const instruction = new closeAccountInstruction().getInstruction(
     DEX_ID,
     userAccount,
     owner,
