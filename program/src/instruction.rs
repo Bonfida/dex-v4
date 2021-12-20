@@ -7,7 +7,7 @@ use solana_program::{instruction::Instruction, pubkey::Pubkey};
 use crate::processor::close_account;
 pub use crate::processor::{
     cancel_order, close_market, consume_events, create_market, initialize_account, new_order,
-    settle, sweep_fees,
+    settle, swap, sweep_fees,
 };
 #[derive(Clone, Copy, FromPrimitive, ToPrimitive)]
 /// Describes all possible instructions and their required accounts
@@ -43,6 +43,25 @@ pub enum DexInstruction {
     /// | 11    | ✅        | ✅      | The user's wallet                                                                  |
     /// | 12    | ❌        | ❌      | The optional SRM or MSRM discount token account (must be owned by the user wallet) |
     NewOrder,
+    /// Execute a swap instruction. A swap is a FOK order that does not require a DEX user account.
+    ///
+    /// | index | writable | signer | description                                                                        |
+    /// |-------|----------|--------|------------------------------------------------------------------------------------|
+    /// | 0     | ❌        | ❌      | The SPL token program                                                              |
+    /// | 1     | ❌        | ❌      | The system program                                                                 |
+    /// | 2     | ✅        | ❌      | The DEX market                                                                     |
+    /// | 3     | ✅        | ❌      | The orderbook                                                                      |
+    /// | 4     | ✅        | ❌      | The event queue                                                                    |
+    /// | 5     | ✅        | ❌      | The bids shared memory                                                             |
+    /// | 6     | ✅        | ❌      | The asks shared memory                                                             |
+    /// | 7     | ✅        | ❌      | The base token vault                                                               |
+    /// | 8     | ✅        | ❌      | The quote token vault                                                              |
+    /// | 9     | ❌        | ❌      | The DEX market signer account                                                      |
+    /// | 10    | ✅        | ❌      | The user's base token account                                                      |
+    /// | 11    | ✅        | ❌      | The user's quote token account                                                     |
+    /// | 12    | ✅        | ✅      | The user's wallet                                                                  |
+    /// | 13    | ❌        | ❌      | The optional SRM or MSRM discount token account (must be owned by the user wallet) |
+    Swap,
     /// Cancel an existing order and remove it from the orderbook.
     ///
     /// | index | writable | signer | description                          |
@@ -146,6 +165,15 @@ pub fn new_order(
     params: new_order::Params,
 ) -> Instruction {
     accounts.get_instruction_cast(program_id, DexInstruction::NewOrder as u8, params)
+}
+
+/// Execute a swap on the orderbook.
+pub fn swap(
+    program_id: Pubkey,
+    accounts: swap::Accounts<Pubkey>,
+    params: swap::Params,
+) -> Instruction {
+    accounts.get_instruction_cast(program_id, DexInstruction::Swap as u8, params)
 }
 
 /// Cancel an existing order and remove it from the orderbook.

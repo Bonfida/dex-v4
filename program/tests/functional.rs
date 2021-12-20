@@ -10,6 +10,7 @@ use dex_v4::instruction::create_market;
 use dex_v4::instruction::initialize_account;
 use dex_v4::instruction::new_order;
 use dex_v4::instruction::settle;
+use dex_v4::instruction::swap;
 use dex_v4::state::UserAccountHeader;
 use dex_v4::state::DEX_STATE_LEN;
 use dex_v4::state::USER_ACCOUNT_HEADER_LEN;
@@ -95,7 +96,7 @@ async fn test_dex() {
         },
         create_market::Params {
             signer_nonce: signer_nonce as u64,
-            min_base_order_size: 1000,
+            min_base_order_size: 10,
             tick_size: 1,
             cranker_reward: 0,
             fee_tier_thresholds: DEFAULT_FEE_TIER_THRESHOLDS,
@@ -226,7 +227,7 @@ async fn test_dex() {
         },
         new_order::Params {
             side: agnostic_orderbook::state::Side::Ask as u8,
-            limit_price: 1000,
+            limit_price: 1 << 32,
             max_base_qty: 100_000,
             max_quote_qty: 100_000,
             order_type: new_order::OrderType::Limit as u8,
@@ -302,7 +303,7 @@ async fn test_dex() {
         },
         new_order::Params {
             side: agnostic_orderbook::state::Side::Ask as u8,
-            limit_price: 1000,
+            limit_price: 1 << 32,
             max_base_qty: 1100,
             max_quote_qty: 1000,
             order_type: new_order::OrderType::Limit as u8,
@@ -339,9 +340,9 @@ async fn test_dex() {
         },
         new_order::Params {
             side: agnostic_orderbook::state::Side::Bid as u8,
-            limit_price: 1000,
-            max_base_qty: 1000,
-            max_quote_qty: 1000,
+            limit_price: 1 << 32,
+            max_base_qty: 100,
+            max_quote_qty: 100,
             order_type: new_order::OrderType::Limit as u8,
             self_trade_behavior: agnostic_orderbook::state::SelfTradeBehavior::DecrementTake as u8,
             match_limit: 10,
@@ -393,6 +394,41 @@ async fn test_dex() {
     sign_send_instructions(
         &mut prg_test_ctx,
         vec![settle_instruction],
+        vec![&user_account_owner],
+    )
+    .await
+    .unwrap();
+
+    let new_order_instruction = swap(
+        dex_program_id,
+        swap::Accounts {
+            spl_token_program: &spl_token::ID,
+            system_program: &system_program::ID,
+            market: &market_account.pubkey(),
+            orderbook: &aaob_accounts.market,
+            event_queue: &Pubkey::new(&aaob_market_state.event_queue),
+            bids: &Pubkey::new(&aaob_market_state.bids),
+            asks: &Pubkey::new(&aaob_market_state.asks),
+            base_vault: &base_vault,
+            quote_vault: &quote_vault,
+            market_signer: &market_signer,
+            user_base_account: &user_base_token_account,
+            user_quote_account: &user_quote_token_account,
+            user_owner: &user_account_owner.pubkey(),
+            discount_token_account: None,
+        },
+        swap::Params {
+            side: agnostic_orderbook::state::Side::Bid as u8,
+            base_qty: 100,
+            quote_qty: 100,
+            self_trade_behavior: agnostic_orderbook::state::SelfTradeBehavior::DecrementTake as u8,
+            match_limit: 10,
+            _padding: [0; 6],
+        },
+    );
+    sign_send_instructions(
+        &mut prg_test_ctx,
+        vec![new_order_instruction],
         vec![&user_account_owner],
     )
     .await

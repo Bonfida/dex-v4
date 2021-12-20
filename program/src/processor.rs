@@ -52,6 +52,8 @@ pub mod new_order;
 #[allow(missing_docs)]
 pub mod settle;
 #[allow(missing_docs)]
+pub mod swap;
+#[allow(missing_docs)]
 pub mod sweep_fees;
 
 #[allow(missing_docs)]
@@ -83,6 +85,10 @@ impl Processor {
             DexInstruction::NewOrder => {
                 msg!("Instruction: New Order");
                 new_order::process(program_id, accounts, instruction_data)?;
+            }
+            DexInstruction::Swap => {
+                msg!("Instruction: Swap");
+                swap::process(program_id, accounts, instruction_data)?;
             }
             DexInstruction::ConsumeEvents => {
                 msg!("Instruction: Consume Events");
