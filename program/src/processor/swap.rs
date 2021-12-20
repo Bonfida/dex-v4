@@ -148,7 +148,7 @@ pub(crate) fn process(
         return Err(ProgramError::InvalidArgument);
     }
 
-    check_accounts(&market_state, &accounts).unwrap();
+    check_accounts(program_id, &market_state, &accounts).unwrap();
     let callback_info = CallBackInfo {
         user_account: Pubkey::default(),
         fee_tier: accounts
@@ -327,7 +327,23 @@ pub(crate) fn process(
     Ok(())
 }
 
-fn check_accounts(market_state: &DexState, accounts: &Accounts<AccountInfo>) -> ProgramResult {
+fn check_accounts(
+    program_id: &Pubkey,
+    market_state: &DexState,
+    accounts: &Accounts<AccountInfo>,
+) -> ProgramResult {
+    let market_signer = Pubkey::create_program_address(
+        &[
+            &accounts.market.key.to_bytes(),
+            &[market_state.signer_nonce as u8],
+        ],
+        program_id,
+    )?;
+    check_account_key(
+        accounts.market_signer,
+        &market_signer.to_bytes(),
+        DexError::InvalidMarketSignerAccount,
+    )?;
     check_account_key(
         accounts.orderbook,
         &market_state.orderbook,

@@ -419,7 +419,7 @@ async fn test_dex() {
         },
         swap::Params {
             side: agnostic_orderbook::state::Side::Bid as u8,
-            base_qty: 100,
+            base_qty: 90,
             quote_qty: 100,
             self_trade_behavior: agnostic_orderbook::state::SelfTradeBehavior::DecrementTake as u8,
             match_limit: 10,
