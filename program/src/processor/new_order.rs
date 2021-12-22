@@ -303,8 +303,11 @@ pub(crate) fn process(
     let abort = match FromPrimitive::from_u8(*order_type).unwrap() {
         OrderType::ImmediateOrCancel => order_summary.total_base_qty == 0,
         OrderType::FillOrKill => {
-            (&order_summary.total_base_qty != max_base_qty)
-                || (order_summary.total_quote_qty != max_quote_qty)
+            if *side == Side::Bid as u8 {
+                order_summary.total_quote_qty < max_quote_qty
+            } else {
+                &order_summary.total_base_qty < max_base_qty
+            }
         }
         OrderType::PostOnly => order_summary.posted_order_id.is_none(),
         _ => false,
