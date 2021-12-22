@@ -290,3 +290,52 @@ export const closeAccount = async (market: PublicKey, owner: PublicKey) => {
 
   return instruction;
 };
+
+export const swap = async (
+  market: Market,
+  side: Side,
+  minOutputQuantity: number,
+  inputQuantity: number,
+  selfTradeBehaviour: SelfTradeBehavior,
+  ownerBaseTokenAccount: PublicKey,
+  ownerQuoteTokenAccount: PublicKey,
+  owner: PublicKey,
+  discountTokenAccount?: PublicKey
+) => {
+  // Market signer
+  const [marketSigner] = await PublicKey.findProgramAddress(
+    [market.address.toBuffer()],
+    DEX_ID
+  );
+
+  // Uncomment for mainnet
+  // if (!discountTokenAccount) {
+  //   discountTokenAccount = await findAssociatedTokenAddress(owner, SRM_MINT);
+  // }
+
+  const instruction = new swapInstruction({
+    side: side as number,
+    baseQty: side === Side.Bid ? minOutputQuantity : inputQuantity,
+    quoteQty: side === Side.Bid ? inputQuantity : minOutputQuantity,
+    selfTradeBehavior: selfTradeBehaviour,
+    matchLimit: new BN(Number.MAX_SAFE_INTEGER), // TODO Change
+  }).getInstruction(
+    DEX_ID,
+    TOKEN_PROGRAM_ID,
+    SystemProgram.programId,
+    market.address,
+    market.orderbookAddress,
+    market.eventQueueAddress,
+    market.bidsAddress,
+    market.asksAddress,
+    market.baseVault,
+    market.quoteVault,
+    marketSigner,
+    ownerBaseTokenAccount,
+    ownerQuoteTokenAccount,
+    owner,
+    discountTokenAccount
+  );
+
+  return instruction;
+};
