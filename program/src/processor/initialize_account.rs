@@ -1,3 +1,4 @@
+//! Initialize a new user account
 use bonfida_utils::BorshSize;
 use bonfida_utils::InstructionsAccount;
 use borsh::BorshDeserialize;
@@ -36,11 +37,18 @@ pub struct Params {
 
 #[derive(InstructionsAccount)]
 pub struct Accounts<'a, T> {
+    /// The system program
     pub system_program: &'a T,
+
+    /// The user account to initialize
     #[cons(writable)]
     pub user: &'a T,
+
+    /// The owner of the user account
     #[cons(signer)]
     pub user_owner: &'a T,
+
+    /// The fee payer
     #[cons(writable, signer)]
     pub fee_payer: &'a T,
 }
