@@ -1,3 +1,4 @@
+//! Cancel an existing order and remove it from the orderbook.
 use std::rc::Rc;
 
 use crate::{
@@ -39,17 +40,30 @@ pub struct Params {
 
 #[derive(InstructionsAccount)]
 pub struct Accounts<'a, T> {
+    /// The DEX market
     pub market: &'a T,
+
+    /// The orderbook
     #[cons(writable)]
     pub orderbook: &'a T,
+
+    /// The AOB event queue
     #[cons(writable)]
     pub event_queue: &'a T,
+
+    /// The AOB bids shared memory
     #[cons(writable)]
     pub bids: &'a T,
+
+    /// The AOB asks shared memory
     #[cons(writable)]
     pub asks: &'a T,
+
+    /// The DEX user account
     #[cons(writable)]
     pub user: &'a T,
+
+    /// The user wallet
     #[cons(signer)]
     pub user_owner: &'a T,
 }

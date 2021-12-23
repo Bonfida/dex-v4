@@ -1,3 +1,4 @@
+//! Execute a new order instruction. Supported types include Limit, IOC, FOK, or Post only.
 use crate::{
     error::DexError,
     state::{CallBackInfo, DexState, FeeTier, UserAccount},
@@ -67,28 +68,53 @@ pub enum OrderType {
 
 #[derive(InstructionsAccount)]
 pub struct Accounts<'a, T> {
+    /// The SPL token program
     pub spl_token_program: &'a T,
+
+    /// The system program
     pub system_program: &'a T,
+
+    /// The DEX market
     #[cons(writable)]
     pub market: &'a T,
+
+    /// The orderbook
     #[cons(writable)]
     pub orderbook: &'a T,
+
+    /// The AOB event queue
     #[cons(writable)]
     pub event_queue: &'a T,
+
+    /// The AOB bids shared memory
     #[cons(writable)]
     pub bids: &'a T,
+
+    /// The AOB asks shared memory
     #[cons(writable)]
     pub asks: &'a T,
+
+    /// The base token vault
     #[cons(writable)]
     pub base_vault: &'a T,
+
+    /// The quote token vault
     #[cons(writable)]
     pub quote_vault: &'a T,
+
+    /// The DEX user account
     #[cons(writable)]
     pub user: &'a T,
+
+    /// The user source token account
     #[cons(writable)]
     pub user_token_account: &'a T,
+
+    /// The user wallet
     #[cons(writable, signer)]
     pub user_owner: &'a T,
+
+    /// The optional SRM or MSRM discount token account (must be owned by the user wallet)
     pub discount_token_account: Option<&'a T>,
 }
 

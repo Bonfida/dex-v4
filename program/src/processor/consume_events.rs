@@ -1,3 +1,4 @@
+//! Crank the processing of DEX events.
 use std::rc::Rc;
 
 use crate::{
@@ -36,14 +37,23 @@ pub struct Params {
 
 #[derive(InstructionsAccount)]
 pub struct Accounts<'a, T> {
+    /// The DEX market
     #[cons(writable)]
     pub market: &'a T,
+
+    /// The orderbook
     #[cons(writable)]
     pub orderbook: &'a T,
+
+    /// The AOB event queue
     #[cons(writable)]
     pub event_queue: &'a T,
+
+    /// The reward target
     #[cons(writable)]
     pub reward_target: &'a T,
+
+    /// The relevant user accounts
     #[cons(writable)]
     pub user_accounts: &'a [T],
 }
