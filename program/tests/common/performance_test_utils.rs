@@ -436,6 +436,7 @@ pub async fn aob_dex_new_order(
             },
             user_owner: &dex_test_ctx.user_owners[user_account_index].pubkey(),
             discount_token_account: None,
+            fee_referral_account: None,
         },
         new_order::Params {
             side: side as u8,
@@ -445,7 +446,8 @@ pub async fn aob_dex_new_order(
             order_type: new_order::OrderType::Limit as u8,
             self_trade_behavior: agnostic_orderbook::state::SelfTradeBehavior::DecrementTake as u8,
             match_limit: 10,
-            _padding: [0; 5],
+            has_discount_token_account: false as u8,
+            _padding: 0,
         },
     );
     sign_send_instructions(

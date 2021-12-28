@@ -27,6 +27,8 @@ use solana_program::{
     sysvar::Sysvar,
 };
 
+use super::REFERRAL_MASK;
+
 #[derive(Copy, Clone, Zeroable, Pod, BorshDeserialize, BorshSerialize, BorshSize)]
 #[repr(C)]
 /**
@@ -50,7 +52,8 @@ pub struct Params {
     /// Configures what happens when this order is at least partially matched against an order belonging to the same user account
     pub self_trade_behavior: u8,
     /// To eliminate implicit padding
-    pub _padding: [u8; 5],
+    pub has_discount_token_account: u8,
+    pub _padding: u32,
 }
 
 /// This enum describes all supported order types
@@ -116,12 +119,17 @@ pub struct Accounts<'a, T> {
 
     /// The optional SRM or MSRM discount token account (must be owned by the user wallet)
     pub discount_token_account: Option<&'a T>,
+
+    /// The optional referrer's token account which will receive a 20% cut of the fees
+    #[cons(writable)]
+    pub fee_referral_account: Option<&'a T>,
 }
 
 impl<'a, 'b: 'a> Accounts<'a, AccountInfo<'b>> {
     pub fn parse(
         program_id: &Pubkey,
         accounts: &'a [AccountInfo<'b>],
+        has_discount_token_account: bool,
     ) -> Result<Self, ProgramError> {
         let accounts_iter = &mut accounts.iter();
         let a = Self {
@@ -137,7 +145,12 @@ impl<'a, 'b: 'a> Accounts<'a, AccountInfo<'b>> {
             user: next_account_info(accounts_iter)?,
             user_token_account: next_account_info(accounts_iter)?,
             user_owner: next_account_info(accounts_iter)?,
-            discount_token_account: next_account_info(accounts_iter).ok(),
+            discount_token_account: if has_discount_token_account {
+                next_account_info(accounts_iter).ok()
+            } else {
+                None
+            },
+            fee_referral_account: next_account_info(accounts_iter).ok(),
         };
         check_signer(a.user_owner).map_err(|e| {
             msg!("The user account owner should be a signer for this transaction!");
@@ -193,8 +206,6 @@ pub(crate) fn process(
     accounts: &[AccountInfo],
     instruction_data: &[u8],
 ) -> ProgramResult {
-    let accounts = Accounts::parse(program_id, accounts)?;
-
     let Params {
         side,
         limit_price,
@@ -203,8 +214,11 @@ pub(crate) fn process(
         order_type,
         self_trade_behavior,
         match_limit,
+        has_discount_token_account,
         _padding: _,
     } = try_from_bytes(instruction_data).map_err(|_| ProgramError::InvalidInstructionData)?;
+    let accounts = Accounts::parse(program_id, accounts, *has_discount_token_account != 0)?;
+
     let market_state = DexState::get(accounts.market)?;
     let mut user_account = accounts.load_user_account()?;
 
@@ -220,16 +234,18 @@ pub(crate) fn process(
         OrderType::ImmediateOrCancel | OrderType::FillOrKill => (false, false),
         OrderType::PostOnly => (true, true),
     };
+    let fee_tier = accounts
+        .discount_token_account
+        .map(|a| FeeTier::get(&market_state, a, accounts.user_owner.key))
+        .unwrap_or(Ok(FeeTier::Base))?;
     let callback_info = CallBackInfo {
         user_account: *accounts.user.key,
-        fee_tier: accounts
-            .discount_token_account
-            .map(|a| FeeTier::get(&market_state, a, accounts.user_owner.key))
-            .unwrap_or(Ok(FeeTier::Base))?,
+        fee_tier: fee_tier as u8
+            | ((accounts.fee_referral_account.is_some() as u8) * REFERRAL_MASK),
     };
     if *side == Side::Bid as u8 && *order_type != OrderType::PostOnly as u8 {
         // We make sure to leave enough quote quantity to pay for taker fees in the worst case
-        max_quote_qty = callback_info.fee_tier.remove_taker_fee(max_quote_qty);
+        max_quote_qty = fee_tier.remove_taker_fee(max_quote_qty, &market_state);
     }
 
     let orderbook = agnostic_orderbook::state::MarketState::get(accounts.orderbook)?;
@@ -287,44 +303,47 @@ pub(crate) fn process(
 
     let mut order_summary: OrderSummary = read_register(accounts.event_queue).unwrap().unwrap();
 
-    let (qty_to_transfer, transfer_destination) = match FromPrimitive::from_u8(*side).unwrap() {
-        Side::Bid => {
-            // We update the order summary to properly handle the FOK order type
-            let posted_quote_qty =
-                fp32_mul(order_summary.total_base_qty_posted, *limit_price).unwrap();
-            order_summary.total_quote_qty += callback_info
-                .fee_tier
-                .taker_fee(order_summary.total_quote_qty - posted_quote_qty);
-            let q = order_summary
-                .total_quote_qty
-                .saturating_sub(user_account.header.quote_token_free);
-            user_account.header.quote_token_free = user_account
-                .header
-                .quote_token_free
-                .saturating_sub(order_summary.total_quote_qty);
-            user_account.header.quote_token_locked += posted_quote_qty;
-            user_account.header.base_token_free +=
-                order_summary.total_base_qty - order_summary.total_base_qty_posted;
+    let (qty_to_transfer, transfer_destination, referral_fee) =
+        match FromPrimitive::from_u8(*side).unwrap() {
+            Side::Bid => {
+                // We update the order summary to properly handle the FOK order type
+                let posted_quote_qty =
+                    fp32_mul(order_summary.total_base_qty_posted, *limit_price).unwrap();
+                let matched_quote_qty = order_summary.total_quote_qty - posted_quote_qty;
+                let taker_fee = fee_tier.taker_fee(matched_quote_qty, &market_state);
+                order_summary.total_quote_qty += taker_fee;
+                let referral_fee = fee_tier.referral_fee(matched_quote_qty, &market_state);
+                let q = order_summary
+                    .total_quote_qty
+                    .saturating_sub(user_account.header.quote_token_free);
+                user_account.header.quote_token_free = user_account
+                    .header
+                    .quote_token_free
+                    .saturating_sub(order_summary.total_quote_qty);
+                user_account.header.quote_token_locked += posted_quote_qty;
+                user_account.header.base_token_free +=
+                    order_summary.total_base_qty - order_summary.total_base_qty_posted;
 
-            (q, accounts.quote_vault)
-        }
-        Side::Ask => {
-            let q = order_summary
-                .total_base_qty
-                .saturating_sub(user_account.header.base_token_free);
-            user_account.header.base_token_free = user_account
-                .header
-                .base_token_free
-                .saturating_sub(order_summary.total_base_qty);
-            user_account.header.base_token_locked += order_summary.total_base_qty_posted;
-            let posted_quote_qty =
-                fp32_mul(order_summary.total_base_qty_posted, *limit_price).unwrap();
-            let taken_quote_qty = order_summary.total_quote_qty - posted_quote_qty;
-            let taker_fee = callback_info.fee_tier.taker_fee(taken_quote_qty);
-            user_account.header.quote_token_free += taken_quote_qty - taker_fee;
-            (q, accounts.base_vault)
-        }
-    };
+                (q, accounts.quote_vault, referral_fee)
+            }
+            Side::Ask => {
+                let q = order_summary
+                    .total_base_qty
+                    .saturating_sub(user_account.header.base_token_free);
+                user_account.header.base_token_free = user_account
+                    .header
+                    .base_token_free
+                    .saturating_sub(order_summary.total_base_qty);
+                user_account.header.base_token_locked += order_summary.total_base_qty_posted;
+                let posted_quote_qty =
+                    fp32_mul(order_summary.total_base_qty_posted, *limit_price).unwrap();
+                let taken_quote_qty = order_summary.total_quote_qty - posted_quote_qty;
+                let taker_fee = fee_tier.taker_fee(taken_quote_qty, &market_state);
+                let referral_fee = fee_tier.referral_fee(taken_quote_qty, &market_state);
+                user_account.header.quote_token_free += taken_quote_qty - taker_fee;
+                (q, accounts.base_vault, referral_fee)
+            }
+        };
 
     let abort = match FromPrimitive::from_u8(*order_type).unwrap() {
         OrderType::ImmediateOrCancel => order_summary.total_base_qty == 0,
@@ -365,6 +384,27 @@ pub(crate) fn process(
             accounts.user_owner.clone(),
         ],
     )?;
+
+    if let Some(a) = accounts.fee_referral_account {
+        let referral_fee_transfer_instruction = spl_token::instruction::transfer(
+            accounts.spl_token_program.key,
+            accounts.user_token_account.key,
+            a.key,
+            accounts.user_owner.key,
+            &[],
+            referral_fee,
+        )?;
+
+        invoke(
+            &referral_fee_transfer_instruction,
+            &[
+                accounts.spl_token_program.clone(),
+                accounts.user_token_account.clone(),
+                a.clone(),
+                accounts.user_owner.clone(),
+            ],
+        )?;
+    }
 
     if let Some(order_id) = order_summary.posted_order_id {
         user_account.add_order(order_id)?;

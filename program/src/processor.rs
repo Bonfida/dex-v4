@@ -25,6 +25,8 @@ pub static MSRM_MINT: Pubkey = msrm_token::ID;
 pub static CALLBACK_INFO_LEN: u64 = 33;
 /// The length in bytes of the callback identifer prefix in the associated asset agnostic orderbook
 pub static CALLBACK_ID_LEN: u64 = 32;
+/// The most significant bit of the fee tier field in CallBack Info indicates if the transaction is referred
+pub static REFERRAL_MASK: u8 = 1 << 7;
 
 #[cfg(not(target = "bpf"))]
 pub mod fee_defaults {
