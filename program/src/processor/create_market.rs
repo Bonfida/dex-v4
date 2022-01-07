@@ -1,3 +1,4 @@
+//! Creates a new DEX market
 use crate::{
     error::DexError,
     state::{AccountTag, DexState},
@@ -43,17 +44,32 @@ pub struct Params {
 
 #[derive(InstructionsAccount)]
 pub struct Accounts<'a, T> {
+    /// The market account
     #[cons(writable)]
     pub market: &'a T,
+
+    /// The orderbook account
     #[cons(writable)]
     pub orderbook: &'a T,
+
+    /// The base vault account
     pub base_vault: &'a T,
+
+    /// The quote vault account
     pub quote_vault: &'a T,
+
+    /// The market admin account
     pub market_admin: &'a T,
+
     #[cons(writable)]
+    /// The AOB event queue account
     pub event_queue: &'a T,
+
+    /// The AOB asks account
     #[cons(writable)]
     pub asks: &'a T,
+
+    /// The AOB bids account
     #[cons(writable)]
     pub bids: &'a T,
 }

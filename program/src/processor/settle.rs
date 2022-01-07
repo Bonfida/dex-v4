@@ -1,3 +1,4 @@
+//! Extract available base and quote token assets from a user account
 use crate::{
     error::DexError,
     state::{DexState, UserAccount},
@@ -23,19 +24,36 @@ pub struct Params {}
 
 #[derive(InstructionsAccount)]
 pub struct Accounts<'a, T> {
+    /// The spl token program
     pub spl_token_program: &'a T,
+
+    /// The DEX market
     pub market: &'a T,
+
+    /// The base token vault
     #[cons(writable)]
     pub base_vault: &'a T,
+
+    /// The quote token vault
     #[cons(writable)]
     pub quote_vault: &'a T,
+
+    /// The DEX market signer account
     pub market_signer: &'a T,
+
+    /// The DEX user account  
     #[cons(writable)]
     pub user: &'a T,
+
+    /// The DEX user account owner wallet
     #[cons(signer)]
     pub user_owner: &'a T,
+
+    /// The destination base token account
     #[cons(writable)]
     pub destination_base_account: &'a T,
+
+    /// The destination quote token account
     #[cons(writable)]
     pub destination_quote_account: &'a T,
 }
