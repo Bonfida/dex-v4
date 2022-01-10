@@ -8,6 +8,7 @@ import {
   newOrderInstruction,
   settleInstruction,
   closeAccountInstruction,
+  swapInstruction,
 } from "./raw_instructions";
 import { OrderType, PrimedTransaction, Side } from "./types";
 import * as aaob from "@bonfida/aaob";
