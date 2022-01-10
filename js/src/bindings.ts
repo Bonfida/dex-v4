@@ -318,7 +318,6 @@ export const swap = async (
     side: side as number,
     baseQty: side === Side.Bid ? minOutputQuantity : inputQuantity,
     quoteQty: side === Side.Bid ? inputQuantity : minOutputQuantity,
-    selfTradeBehavior: selfTradeBehaviour,
     matchLimit: new BN(Number.MAX_SAFE_INTEGER), // TODO Change
   }).getInstruction(
     DEX_ID,

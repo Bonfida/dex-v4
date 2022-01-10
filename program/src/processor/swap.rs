@@ -6,7 +6,7 @@ use crate::{
 };
 use agnostic_orderbook::error::AoError;
 use agnostic_orderbook::state::read_register;
-use agnostic_orderbook::state::{OrderSummary, Side};
+use agnostic_orderbook::state::{OrderSummary, SelfTradeBehavior, Side};
 use bonfida_utils::BorshSize;
 use bonfida_utils::InstructionsAccount;
 use borsh::BorshDeserialize;
@@ -42,10 +42,8 @@ pub struct Params {
     pub match_limit: u64,
     /// The order's side (Bid or Ask)
     pub side: u8,
-    /// Configures what happens when this order is at least partially matched against an order belonging to the same user account
-    pub self_trade_behavior: u8,
     /// To eliminate implicit padding
-    pub _padding: [u8; 6],
+    pub _padding: [u8; 7],
 }
 
 #[derive(InstructionsAccount)]
@@ -136,7 +134,6 @@ pub(crate) fn process(
         side,
         base_qty,
         mut quote_qty,
-        self_trade_behavior,
         match_limit,
         _padding: _,
     } = try_from_bytes(instruction_data).map_err(|_| ProgramError::InvalidInstructionData)?;
@@ -200,7 +197,8 @@ pub(crate) fn process(
         callback_info: callback_info.try_to_vec()?,
         post_only: false,
         post_allowed: false,
-        self_trade_behavior: FromPrimitive::from_u8(*self_trade_behavior).unwrap(),
+        // No impact as user is Pubkey::default()
+        self_trade_behavior: SelfTradeBehavior::DecrementTake,
     };
     let invoke_accounts = agnostic_orderbook::instruction::new_order::Accounts {
         market: accounts.orderbook,

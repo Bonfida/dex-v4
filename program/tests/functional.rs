@@ -421,9 +421,8 @@ async fn test_dex() {
             side: agnostic_orderbook::state::Side::Bid as u8,
             base_qty: 90,
             quote_qty: 100,
-            self_trade_behavior: agnostic_orderbook::state::SelfTradeBehavior::DecrementTake as u8,
             match_limit: 10,
-            _padding: [0; 6],
+            _padding: [0; 7],
         },
     );
     sign_send_instructions(
