@@ -74,8 +74,10 @@ pub struct DexState {
     pub min_base_order_size: u64,
     /// The signer nonce is necessary for the market to perform as a signing entity
     pub signer_nonce: u64,
-    /// Fee type. Normal fee schedule = 0, Stable fee schedule = 1.
-    pub fee_type: u64,
+    /// Fee type (e.g. default or stable)
+    pub fee_type: u8,
+    /// Padding
+    pub _padding: [u8; 7],
 }
 
 /// Size in bytes of the dex state object
@@ -245,6 +247,13 @@ impl Order for u128 {
 
 #[doc(hidden)]
 #[derive(BorshDeserialize, BorshSerialize, Debug, Clone, Copy)]
+pub enum MarketFeeType {
+    Default,
+    Stable,
+}
+
+#[doc(hidden)]
+#[derive(BorshDeserialize, BorshSerialize, Debug, Clone, Copy)]
 pub enum FeeTier {
     Base,
     Srm2,
@@ -265,7 +274,7 @@ impl FeeTier {
     ) -> FeeTier {
         let one_srm = 1_000_000;
 
-        if dex_state.fee_type == 1 {
+        if dex_state.fee_type == MarketFeeType::Stable as u8 {
             return FeeTier::Stable;
         }
 

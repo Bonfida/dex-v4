@@ -33,12 +33,6 @@ pub struct Params {
     pub min_base_order_size: u64,
     pub tick_size: u64,
     pub cranker_reward: u64,
-    // /// Fee tier thresholds
-    // pub fee_tier_thresholds: [u64; 6],
-    // /// Fee tier taker rates
-    // pub fee_tier_taker_bps_rates: [u64; 7],
-    // /// Fee tier maker rates
-    // pub fee_tier_maker_bps_rebates: [u64; 7],
 }
 
 #[derive(InstructionsAccount)]
@@ -125,6 +119,7 @@ pub(crate) fn process(
         accumulated_fees: 0,
         min_base_order_size: *min_base_order_size,
         fee_type: 0,
+        _padding: [0; 7],
     };
 
     let invoke_params = agnostic_orderbook::instruction::create_market::Params {
