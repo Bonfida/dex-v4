@@ -1,6 +1,6 @@
 use crate::{
     error::DexError,
-    state::{AccountTag, DexState},
+    state::{AccountTag, DexState, MarketFeeType},
     utils::check_account_owner,
     CALLBACK_ID_LEN, CALLBACK_INFO_LEN,
 };
@@ -118,7 +118,7 @@ pub(crate) fn process(
         quote_volume: 0,
         accumulated_fees: 0,
         min_base_order_size: *min_base_order_size,
-        fee_type: 0,
+        fee_type: MarketFeeType::Default as u8,
         _padding: [0; 7],
     };
 
