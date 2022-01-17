@@ -19,7 +19,7 @@ use solana_program::{
     account_info::{next_account_info, AccountInfo},
     entrypoint::ProgramResult,
     msg,
-    program::invoke,
+    program::{invoke, invoke_signed},
     program_error::{PrintProgramError, ProgramError},
     pubkey::Pubkey,
     rent::Rent,
@@ -388,21 +388,25 @@ pub(crate) fn process(
     if let Some(a) = accounts.fee_referral_account {
         let referral_fee_transfer_instruction = spl_token::instruction::transfer(
             accounts.spl_token_program.key,
-            accounts.user_token_account.key,
+            accounts.quote_vault.key,
             a.key,
             accounts.user_owner.key,
             &[],
             referral_fee,
         )?;
 
-        invoke(
+        invoke_signed(
             &referral_fee_transfer_instruction,
             &[
                 accounts.spl_token_program.clone(),
-                accounts.user_token_account.clone(),
+                accounts.quote_vault.clone(),
                 a.clone(),
                 accounts.user_owner.clone(),
             ],
+            &[&[
+                &accounts.market.key.to_bytes(),
+                &[market_state.signer_nonce as u8],
+            ]],
         )?;
     }
 
