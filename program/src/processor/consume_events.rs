@@ -166,16 +166,16 @@ fn consume_event(
             let maker_account_info = &accounts[accounts
                 .binary_search_by_key(&maker_info.user_account, |k| *k.key)
                 .map_err(|_| DexError::MissingUserAccount)?];
-            let mut taker_account = UserAccount::get(maker_account_info).unwrap();
+            let mut maker_account = UserAccount::get(maker_account_info).unwrap();
             let (taker_fee_tier, is_referred) = FeeTier::from_u8(taker_info.fee_tier);
             if taker_info.user_account == maker_info.user_account {
                 let maker_rebate = taker_fee_tier.maker_rebate(quote_size, market_state);
-                taker_account.header.quote_token_free = taker_account
+                maker_account.header.quote_token_free = maker_account
                     .header
                     .quote_token_free
                     .checked_add(maker_rebate)
                     .unwrap();
-                taker_account.header.accumulated_rebates = taker_account
+                maker_account.header.accumulated_rebates = maker_account
                     .header
                     .accumulated_rebates
                     .checked_add(maker_rebate)
@@ -194,14 +194,14 @@ fn consume_event(
 
                 match taker_side {
                     Side::Bid => {
-                        taker_account.header.base_token_locked = taker_account
+                        maker_account.header.base_token_locked = maker_account
                             .header
                             .base_token_locked
                             .checked_sub(base_size)
                             .unwrap();
                     }
                     Side::Ask => {
-                        taker_account.header.quote_token_locked = taker_account
+                        maker_account.header.quote_token_locked = maker_account
                             .header
                             .quote_token_locked
                             .checked_sub(quote_size)
@@ -210,28 +210,27 @@ fn consume_event(
                 };
 
                 // Update user accounts metrics
-                taker_account.header.accumulated_maker_quote_volume = taker_account
+                maker_account.header.accumulated_maker_quote_volume = maker_account
                     .header
                     .accumulated_maker_quote_volume
                     .checked_add(quote_size)
                     .unwrap();
-                taker_account.header.accumulated_maker_base_volume = taker_account
+                maker_account.header.accumulated_maker_base_volume = maker_account
                     .header
                     .accumulated_maker_base_volume
                     .checked_add(base_size)
                     .unwrap();
-                taker_account.header.accumulated_taker_quote_volume = taker_account
+                maker_account.header.accumulated_taker_quote_volume = maker_account
                     .header
                     .accumulated_taker_quote_volume
                     .checked_add(quote_size)
                     .unwrap();
-                taker_account.header.accumulated_taker_base_volume = taker_account
+                maker_account.header.accumulated_taker_base_volume = maker_account
                     .header
                     .accumulated_taker_base_volume
                     .checked_add(base_size)
                     .unwrap();
             } else {
-                let mut maker_account = UserAccount::get(maker_account_info).unwrap();
                 let (maker_fee_tier, _) = FeeTier::from_u8(maker_info.fee_tier);
                 let taker_fee = taker_fee_tier.taker_fee(quote_size, market_state);
                 let maker_rebate = maker_fee_tier.maker_rebate(quote_size, market_state);
