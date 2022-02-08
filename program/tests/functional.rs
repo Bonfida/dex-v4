@@ -217,6 +217,7 @@ async fn test_dex() {
             user_token_account: &user_base_token_account,
             user_owner: &user_account_owner.pubkey(),
             discount_token_account: None,
+            fee_referral_account: None,
         },
         new_order::Params {
             side: agnostic_orderbook::state::Side::Ask as u8,
@@ -226,7 +227,8 @@ async fn test_dex() {
             order_type: new_order::OrderType::Limit as u8,
             self_trade_behavior: agnostic_orderbook::state::SelfTradeBehavior::DecrementTake as u8,
             match_limit: 10,
-            _padding: [0; 5],
+            has_discount_token_account: false as u8,
+            _padding: 0,
         },
     );
     sign_send_instructions(
@@ -293,6 +295,7 @@ async fn test_dex() {
             user_token_account: &user_base_token_account,
             user_owner: &user_account_owner.pubkey(),
             discount_token_account: None,
+            fee_referral_account: None,
         },
         new_order::Params {
             side: agnostic_orderbook::state::Side::Ask as u8,
@@ -302,7 +305,8 @@ async fn test_dex() {
             order_type: new_order::OrderType::Limit as u8,
             self_trade_behavior: agnostic_orderbook::state::SelfTradeBehavior::DecrementTake as u8,
             match_limit: 10,
-            _padding: [0; 5],
+            has_discount_token_account: false as u8,
+            _padding: 0,
         },
     );
     sign_send_instructions(
@@ -330,6 +334,7 @@ async fn test_dex() {
             user_token_account: &user_quote_token_account,
             user_owner: &user_account_owner.pubkey(),
             discount_token_account: None,
+            fee_referral_account: None,
         },
         new_order::Params {
             side: agnostic_orderbook::state::Side::Bid as u8,
@@ -339,7 +344,8 @@ async fn test_dex() {
             order_type: new_order::OrderType::Limit as u8,
             self_trade_behavior: agnostic_orderbook::state::SelfTradeBehavior::DecrementTake as u8,
             match_limit: 10,
-            _padding: [0; 5],
+            has_discount_token_account: false as u8,
+            _padding: 0,
         },
     );
     sign_send_instructions(

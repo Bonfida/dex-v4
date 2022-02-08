@@ -18,7 +18,6 @@ export enum SelfTradeBehavior {
 
 export class MarketState {
   tag: AccountTag;
-  signerNonce: number;
   baseMint: PublicKey;
   quoteMint: PublicKey;
   baseVault: PublicKey;
@@ -30,6 +29,10 @@ export class MarketState {
   quoteVolume: BN;
   accumulatedFees: BN;
   minBaseOrderSize: BN;
+  signerNonce: number;
+  feeTierThresholds: BN[];
+  feeTierTakerBpsRates: BN[];
+  feeTierMakerBpsRates: BN[];
 
   static schema: Schema = new Map([
     [
@@ -50,6 +53,9 @@ export class MarketState {
           ["accumulatedFees", "u64"],
           ["minBaseOrderSize", "u64"],
           ["signerNonce", "u64"],
+          ["feeTierThresholds", ["u64", 6]],
+          ["feeTierTakerBpsRates", ["u64", 7]],
+          ["feeTierMakerBpsRates", ["u64", 7]],
         ],
       },
     ],
@@ -69,6 +75,9 @@ export class MarketState {
     quoteVolume: BN;
     accumulatedFees: BN;
     minBaseOrderSize: BN;
+    feeTierThresholds: BN[];
+    feeTierTakerBpsRates: BN[];
+    feeTierMakerBpsRates: BN[];
   }) {
     this.tag = obj.tag.toNumber() as AccountTag;
     this.signerNonce = obj.signerNonce.toNumber();
@@ -83,6 +92,9 @@ export class MarketState {
     this.quoteVolume = obj.quoteVolume;
     this.accumulatedFees = obj.accumulatedFees;
     this.minBaseOrderSize = obj.minBaseOrderSize;
+    this.feeTierThresholds = obj.feeTierThresholds;
+    this.feeTierTakerBpsRates = obj.feeTierTakerBpsRates;
+    this.feeTierMakerBpsRates = obj.feeTierMakerBpsRates;
   }
 
   static async retrieve(connection: Connection, market: PublicKey) {

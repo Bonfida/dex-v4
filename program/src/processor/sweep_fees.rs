@@ -1,3 +1,4 @@
+//! Extract accumulated fees from the market. This is an admin instruction
 use crate::{
     error::DexError,
     state::DexState,
@@ -23,15 +24,26 @@ pub struct Params {}
 
 #[derive(InstructionsAccount)]
 pub struct Accounts<'a, T> {
+    /// The DEX market
     #[cons(writable)]
     market: &'a T,
+
+    /// The DEX market signer
     market_signer: &'a T,
+
+    /// The market admin
     #[cons(signer)]
     market_admin: &'a T,
+
+    /// The market quote token vault
     #[cons(writable)]
     quote_vault: &'a T,
+
+    /// The destination token account
     #[cons(writable)]
     destination_token_account: &'a T,
+
+    /// The spl token program
     spl_token_program: &'a T,
 }
 

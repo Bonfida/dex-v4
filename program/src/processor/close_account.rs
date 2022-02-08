@@ -1,3 +1,4 @@
+//! Close an inactive and empty user account
 use crate::{
     error::DexError,
     state::UserAccount,
@@ -21,10 +22,15 @@ pub struct Params {}
 
 #[derive(InstructionsAccount)]
 pub struct Accounts<'a, T> {
+    /// The user account to close
     #[cons(writable)]
     user: &'a T,
+
+    /// The owner of the user account to close
     #[cons(signer)]
     user_owner: &'a T,
+
+    /// The target lamports account
     #[cons(writable)]
     target_lamports_account: &'a T,
 }
