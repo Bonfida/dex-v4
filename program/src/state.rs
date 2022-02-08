@@ -78,6 +78,8 @@ pub struct DexState {
     pub fee_type: u8,
     /// Padding
     pub _padding: [u8; 7],
+    /// Padding 2
+    pub _padding2: [u64; 25],
 }
 
 /// Size in bytes of the dex state object

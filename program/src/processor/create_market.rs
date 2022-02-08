@@ -120,6 +120,7 @@ pub(crate) fn process(
         min_base_order_size: *min_base_order_size,
         fee_type: MarketFeeType::Default as u8,
         _padding: [0; 7],
+        _padding2: [0; 25],
     };
 
     let invoke_params = agnostic_orderbook::instruction::create_market::Params {
