@@ -1,3 +1,4 @@
+//! Close an existing market
 use crate::{
     error::DexError,
     state::{AccountTag, DexState},
@@ -25,22 +26,39 @@ pub struct Params {}
 
 #[derive(InstructionsAccount)]
 pub struct Accounts<'a, T> {
+    /// The market account
     #[cons(writable)]
     market: &'a T,
+
+    /// The market base vault account
     #[cons(writable)]
     base_vault: &'a T,
+
+    /// The market quote vault account
     #[cons(writable)]
     quote_vault: &'a T,
+
+    /// The AOB orderbook account
     #[cons(writable)]
     orderbook: &'a T,
+
+    /// The AOB event queue account
     #[cons(writable)]
     event_queue: &'a T,
+
+    /// The AOB bids account
     #[cons(writable)]
     bids: &'a T,
+
+    /// The AOB asks account
     #[cons(writable)]
     asks: &'a T,
+
+    /// The makret admin account
     #[cons(signer)]
     market_admin: &'a T,
+
+    /// The target lamports account
     #[cons(writable)]
     target_lamports_account: &'a T,
 }

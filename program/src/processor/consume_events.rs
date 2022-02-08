@@ -1,8 +1,9 @@
+//! Crank the processing of DEX events.
 use std::rc::Rc;
 
 use crate::{
     error::DexError,
-    state::{CallBackInfo, DexState, UserAccount},
+    state::{CallBackInfo, DexState, FeeTier, UserAccount},
     utils::{check_account_key, check_account_owner, fp32_mul},
 };
 use agnostic_orderbook::{
@@ -36,14 +37,23 @@ pub struct Params {
 
 #[derive(InstructionsAccount)]
 pub struct Accounts<'a, T> {
+    /// The DEX market
     #[cons(writable)]
     pub market: &'a T,
+
+    /// The orderbook
     #[cons(writable)]
     pub orderbook: &'a T,
+
+    /// The AOB event queue
     #[cons(writable)]
     pub event_queue: &'a T,
+
+    /// The reward target
     #[cons(writable)]
     pub reward_target: &'a T,
+
+    /// The relevant user accounts
     #[cons(writable)]
     pub user_accounts: &'a [T],
 }
@@ -156,25 +166,42 @@ fn consume_event(
             let maker_account_info = &accounts[accounts
                 .binary_search_by_key(&maker_info.user_account, |k| *k.key)
                 .map_err(|_| DexError::MissingUserAccount)?];
-            let mut taker_account = UserAccount::get(maker_account_info).unwrap();
+            let mut maker_account = UserAccount::get(maker_account_info).unwrap();
+            let (taker_fee_tier, is_referred) = FeeTier::from_u8(taker_info.fee_tier);
             if taker_info.user_account == maker_info.user_account {
-                let maker_rebate = taker_info.fee_tier.maker_rebate(quote_size);
-                taker_account.header.quote_token_free = taker_account
+                let maker_rebate = taker_fee_tier.maker_rebate(quote_size, market_state);
+                maker_account.header.quote_token_free = maker_account
                     .header
                     .quote_token_free
                     .checked_add(maker_rebate)
                     .unwrap();
+                maker_account.header.accumulated_rebates = maker_account
+                    .header
+                    .accumulated_rebates
+                    .checked_add(maker_rebate)
+                    .unwrap();
+                let taker_fee = taker_fee_tier.taker_fee(quote_size, market_state);
+                let mut total_fees = taker_fee.checked_sub(maker_rebate).unwrap();
+                if is_referred {
+                    total_fees = total_fees
+                        .checked_sub(taker_fee_tier.referral_fee(quote_size, market_state))
+                        .unwrap();
+                }
+                market_state.accumulated_fees = market_state
+                    .accumulated_fees
+                    .checked_add(total_fees)
+                    .unwrap();
 
                 match taker_side {
                     Side::Bid => {
-                        taker_account.header.base_token_locked = taker_account
+                        maker_account.header.base_token_locked = maker_account
                             .header
                             .base_token_locked
                             .checked_sub(base_size)
                             .unwrap();
                     }
                     Side::Ask => {
-                        taker_account.header.quote_token_locked = taker_account
+                        maker_account.header.quote_token_locked = maker_account
                             .header
                             .quote_token_locked
                             .checked_sub(quote_size)
@@ -183,31 +210,47 @@ fn consume_event(
                 };
 
                 // Update user accounts metrics
-                taker_account.header.accumulated_maker_quote_volume = taker_account
+                maker_account.header.accumulated_maker_quote_volume = maker_account
                     .header
                     .accumulated_maker_quote_volume
                     .checked_add(quote_size)
                     .unwrap();
-                taker_account.header.accumulated_maker_base_volume = taker_account
+                maker_account.header.accumulated_maker_base_volume = maker_account
                     .header
                     .accumulated_maker_base_volume
                     .checked_add(base_size)
                     .unwrap();
-                taker_account.header.accumulated_taker_quote_volume = taker_account
+                maker_account.header.accumulated_taker_quote_volume = maker_account
                     .header
                     .accumulated_taker_quote_volume
                     .checked_add(quote_size)
                     .unwrap();
-                taker_account.header.accumulated_taker_base_volume = taker_account
+                maker_account.header.accumulated_taker_base_volume = maker_account
                     .header
                     .accumulated_taker_base_volume
                     .checked_add(base_size)
                     .unwrap();
             } else {
-                let mut maker_account = UserAccount::get(maker_account_info).unwrap();
+                let (maker_fee_tier, _) = FeeTier::from_u8(maker_info.fee_tier);
+                let taker_fee = taker_fee_tier.taker_fee(quote_size, market_state);
+                let maker_rebate = maker_fee_tier.maker_rebate(quote_size, market_state);
+                let referral_fee = if is_referred {
+                    taker_fee_tier.referral_fee(quote_size, market_state)
+                } else {
+                    0
+                };
+                let total_fees = taker_fee
+                    .checked_sub(maker_rebate)
+                    .and_then(|n| n.checked_sub(referral_fee))
+                    .unwrap();
+
+                market_state.accumulated_fees = market_state
+                    .accumulated_fees
+                    .checked_add(total_fees)
+                    .unwrap();
+
                 match taker_side {
                     Side::Bid => {
-                        let maker_rebate = maker_info.fee_tier.maker_rebate(quote_size);
                         maker_account.header.quote_token_free = maker_account
                             .header
                             .quote_token_free
@@ -219,15 +262,8 @@ fn consume_event(
                             .base_token_locked
                             .checked_sub(base_size)
                             .unwrap();
-                        market_state.accumulated_fees += taker_info
-                            .fee_tier
-                            .taker_fee(quote_size)
-                            .checked_sub(maker_rebate)
-                            .unwrap();
                     }
                     Side::Ask => {
-                        let taker_fee = taker_info.fee_tier.taker_fee(quote_size);
-                        let maker_rebate = maker_info.fee_tier.maker_rebate(quote_size);
                         maker_account.header.base_token_free = maker_account
                             .header
                             .base_token_free
@@ -244,8 +280,6 @@ fn consume_event(
                             .checked_add(maker_rebate)
                             .unwrap();
                         maker_account.header.accumulated_rebates += maker_rebate;
-                        market_state.accumulated_fees +=
-                            taker_fee.checked_sub(maker_rebate).unwrap();
                     }
                 };
 

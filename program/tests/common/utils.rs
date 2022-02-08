@@ -90,7 +90,7 @@ pub async fn create_aob_market_and_accounts(
         &prg_test_ctx.payer.pubkey(),
         &market_account.pubkey(),
         1_000_000,
-        250,
+        agnostic_orderbook::state::MARKET_STATE_LEN as u64,
         &dex_program_id,
     );
     sign_send_instructions(
