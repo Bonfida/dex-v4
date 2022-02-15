@@ -28,17 +28,6 @@ pub static CALLBACK_ID_LEN: u64 = 32;
 /// The most significant bit of the fee tier field in CallBack Info indicates if the transaction is referred
 pub static REFERRAL_MASK: u8 = 1 << 7;
 
-#[cfg(not(target = "bpf"))]
-pub mod fee_defaults {
-    //! This module gives the default values in use for past Serum markets
-    #[allow(missing_docs)]
-    pub const DEFAULT_FEE_TIER_THRESHOLDS: [u64; 6] = [100, 1_000, 10_000, 100_000, 1_000_000, 1];
-    #[allow(missing_docs)]
-    pub const DEFAULT_FEE_TIER_TAKER_BPS_RATES: [u64; 7] = [22, 20, 18, 16, 14, 12, 10];
-    #[allow(missing_docs)]
-    pub const DEFAULT_FEE_TIER_MAKER_BPS_REBATES: [u64; 7] = [3, 3, 3, 3, 3, 3, 5];
-}
-
 ////////////////////////////////////////////////////////////
 
 #[allow(missing_docs)]

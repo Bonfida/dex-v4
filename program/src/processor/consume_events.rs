@@ -169,7 +169,7 @@ fn consume_event(
             let mut maker_account = UserAccount::get(maker_account_info).unwrap();
             let (taker_fee_tier, is_referred) = FeeTier::from_u8(taker_info.fee_tier);
             if taker_info.user_account == maker_info.user_account {
-                let maker_rebate = taker_fee_tier.maker_rebate(quote_size, market_state);
+                let maker_rebate = taker_fee_tier.maker_rebate(quote_size);
                 maker_account.header.quote_token_free = maker_account
                     .header
                     .quote_token_free
@@ -180,11 +180,11 @@ fn consume_event(
                     .accumulated_rebates
                     .checked_add(maker_rebate)
                     .unwrap();
-                let taker_fee = taker_fee_tier.taker_fee(quote_size, market_state);
+                let taker_fee = taker_fee_tier.taker_fee(quote_size);
                 let mut total_fees = taker_fee.checked_sub(maker_rebate).unwrap();
                 if is_referred {
                     total_fees = total_fees
-                        .checked_sub(taker_fee_tier.referral_fee(quote_size, market_state))
+                        .checked_sub(taker_fee_tier.referral_fee(quote_size))
                         .unwrap();
                 }
                 market_state.accumulated_fees = market_state
@@ -232,10 +232,10 @@ fn consume_event(
                     .unwrap();
             } else {
                 let (maker_fee_tier, _) = FeeTier::from_u8(maker_info.fee_tier);
-                let taker_fee = taker_fee_tier.taker_fee(quote_size, market_state);
-                let maker_rebate = maker_fee_tier.maker_rebate(quote_size, market_state);
+                let taker_fee = taker_fee_tier.taker_fee(quote_size);
+                let maker_rebate = maker_fee_tier.maker_rebate(quote_size);
                 let referral_fee = if is_referred {
-                    taker_fee_tier.referral_fee(quote_size, market_state)
+                    taker_fee_tier.referral_fee(quote_size)
                 } else {
                     0
                 };

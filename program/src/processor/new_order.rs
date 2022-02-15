@@ -245,7 +245,7 @@ pub(crate) fn process(
     };
     if *side == Side::Bid as u8 && *order_type != OrderType::PostOnly as u8 {
         // We make sure to leave enough quote quantity to pay for taker fees in the worst case
-        max_quote_qty = fee_tier.remove_taker_fee(max_quote_qty, &market_state);
+        max_quote_qty = fee_tier.remove_taker_fee(max_quote_qty);
     }
 
     let orderbook = agnostic_orderbook::state::MarketState::get(accounts.orderbook)?;
@@ -310,9 +310,9 @@ pub(crate) fn process(
                 let posted_quote_qty =
                     fp32_mul(order_summary.total_base_qty_posted, *limit_price).unwrap();
                 let matched_quote_qty = order_summary.total_quote_qty - posted_quote_qty;
-                let taker_fee = fee_tier.taker_fee(matched_quote_qty, &market_state);
+                let taker_fee = fee_tier.taker_fee(matched_quote_qty);
                 order_summary.total_quote_qty += taker_fee;
-                let referral_fee = fee_tier.referral_fee(matched_quote_qty, &market_state);
+                let referral_fee = fee_tier.referral_fee(matched_quote_qty);
                 let q = order_summary
                     .total_quote_qty
                     .saturating_sub(user_account.header.quote_token_free);
@@ -338,8 +338,8 @@ pub(crate) fn process(
                 let posted_quote_qty =
                     fp32_mul(order_summary.total_base_qty_posted, *limit_price).unwrap();
                 let taken_quote_qty = order_summary.total_quote_qty - posted_quote_qty;
-                let taker_fee = fee_tier.taker_fee(taken_quote_qty, &market_state);
-                let referral_fee = fee_tier.referral_fee(taken_quote_qty, &market_state);
+                let taker_fee = fee_tier.taker_fee(taken_quote_qty);
+                let referral_fee = fee_tier.referral_fee(taken_quote_qty);
                 user_account.header.quote_token_free += taken_quote_qty - taker_fee;
                 (q, accounts.base_vault, referral_fee)
             }

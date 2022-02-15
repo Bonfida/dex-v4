@@ -30,9 +30,7 @@ export class MarketState {
   accumulatedFees: BN;
   minBaseOrderSize: BN;
   signerNonce: number;
-  feeTierThresholds: BN[];
-  feeTierTakerBpsRates: BN[];
-  feeTierMakerBpsRates: BN[];
+  feeType: number;
 
   static schema: Schema = new Map([
     [
@@ -52,10 +50,9 @@ export class MarketState {
           ["quoteVolume", "u64"],
           ["accumulatedFees", "u64"],
           ["minBaseOrderSize", "u64"],
-          ["signerNonce", "u64"],
-          ["feeTierThresholds", ["u64", 6]],
-          ["feeTierTakerBpsRates", ["u64", 7]],
-          ["feeTierMakerBpsRates", ["u64", 7]],
+          ["signerNonce", "u8"],
+          ["feeType", "u8"],
+          ["padding", [6]],
         ],
       },
     ],
@@ -63,7 +60,7 @@ export class MarketState {
 
   constructor(obj: {
     tag: BN;
-    signerNonce: BN;
+    signerNonce: number;
     baseMint: Uint8Array;
     quoteMint: Uint8Array;
     baseVault: Uint8Array;
@@ -75,12 +72,10 @@ export class MarketState {
     quoteVolume: BN;
     accumulatedFees: BN;
     minBaseOrderSize: BN;
-    feeTierThresholds: BN[];
-    feeTierTakerBpsRates: BN[];
-    feeTierMakerBpsRates: BN[];
+    feeType: number;
   }) {
     this.tag = obj.tag.toNumber() as AccountTag;
-    this.signerNonce = obj.signerNonce.toNumber();
+    this.signerNonce = obj.signerNonce;
     this.baseMint = new PublicKey(obj.baseMint);
     this.quoteMint = new PublicKey(obj.quoteMint);
     this.baseVault = new PublicKey(obj.baseVault);
@@ -92,9 +87,7 @@ export class MarketState {
     this.quoteVolume = obj.quoteVolume;
     this.accumulatedFees = obj.accumulatedFees;
     this.minBaseOrderSize = obj.minBaseOrderSize;
-    this.feeTierThresholds = obj.feeTierThresholds;
-    this.feeTierTakerBpsRates = obj.feeTierTakerBpsRates;
-    this.feeTierMakerBpsRates = obj.feeTierMakerBpsRates;
+    this.feeType = obj.feeType;
   }
 
   static async retrieve(connection: Connection, market: PublicKey) {

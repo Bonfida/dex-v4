@@ -17,7 +17,6 @@ pub mod state;
 pub(crate) mod processor;
 pub(crate) mod utils;
 
-pub use processor::fee_defaults;
 pub use processor::{CALLBACK_ID_LEN, CALLBACK_INFO_LEN};
 use solana_program::declare_id;
 

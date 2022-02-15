@@ -1,7 +1,7 @@
 //! Creates a new DEX market
 use crate::{
     error::DexError,
-    state::{AccountTag, DexState},
+    state::{AccountTag, DexState, MarketFeeType},
     utils::check_account_owner,
     CALLBACK_ID_LEN, CALLBACK_INFO_LEN,
 };
@@ -34,12 +34,6 @@ pub struct Params {
     pub min_base_order_size: u64,
     pub tick_size: u64,
     pub cranker_reward: u64,
-    /// Fee tier thresholds
-    pub fee_tier_thresholds: [u64; 6],
-    /// Fee tier taker rates
-    pub fee_tier_taker_bps_rates: [u64; 7],
-    /// Fee tier maker rates
-    pub fee_tier_maker_bps_rebates: [u64; 7],
 }
 
 #[derive(InstructionsAccount)]
@@ -110,9 +104,6 @@ pub(crate) fn process(
         min_base_order_size,
         tick_size,
         cranker_reward,
-        fee_tier_thresholds,
-        fee_tier_maker_bps_rebates: fee_tier_maker_rates,
-        fee_tier_taker_bps_rates: fee_tier_taker_rates,
     } = try_from_bytes(instruction_data).map_err(|_| ProgramError::InvalidInstructionData)?;
     let market_signer = Pubkey::create_program_address(
         &[&accounts.market.key.to_bytes(), &[*signer_nonce as u8]],
@@ -131,7 +122,7 @@ pub(crate) fn process(
 
     *market_state = DexState {
         tag: AccountTag::DexState as u64,
-        signer_nonce: *signer_nonce,
+        signer_nonce: *signer_nonce as u8,
         base_mint: base_mint.to_bytes(),
         quote_mint: quote_mint.to_bytes(),
         base_vault: accounts.base_vault.key.to_bytes(),
@@ -143,9 +134,8 @@ pub(crate) fn process(
         quote_volume: 0,
         accumulated_fees: 0,
         min_base_order_size: *min_base_order_size,
-        fee_tier_thresholds: *fee_tier_thresholds,
-        fee_tier_taker_bps_rates: *fee_tier_taker_rates,
-        fee_tier_maker_bps_rebates: *fee_tier_maker_rates,
+        fee_type: MarketFeeType::Default as u8,
+        _padding: [0; 6],
     };
 
     let invoke_params = agnostic_orderbook::instruction::create_market::Params {
