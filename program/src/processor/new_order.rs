@@ -289,7 +289,6 @@ pub(crate) fn process(
         event_queue: accounts.event_queue,
         bids: accounts.bids,
         asks: accounts.asks,
-        authority: accounts.system_program, // No impact with AOB as a lib
     };
 
     if let Err(error) = agnostic_orderbook::instruction::new_order::process(

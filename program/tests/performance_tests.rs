@@ -107,7 +107,7 @@ async fn test_dex_perf() {
 
         pgr_test_ctx.last_blockhash = pgr_test_ctx
             .banks_client
-            .get_recent_blockhash()
+            .get_latest_blockhash()
             .await
             .unwrap();
     }

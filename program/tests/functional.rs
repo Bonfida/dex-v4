@@ -43,13 +43,15 @@ async fn test_dex() {
 
     // Create test context
     let mut prg_test_ctx = program_test.start_with_context().await;
+    let rent = prg_test_ctx.banks_client.get_rent().await.unwrap();
 
     // Create market account
+    let market_rent = rent.minimum_balance(dex_v4::state::DEX_STATE_LEN);
     let market_account = Keypair::new();
     let create_market_account_instruction = create_account(
         &prg_test_ctx.payer.pubkey(),
         &market_account.pubkey(),
-        1_000_000,
+        market_rent,
         DEX_STATE_LEN as u64,
         &dex_program_id,
     );
@@ -299,9 +301,9 @@ async fn test_dex() {
         },
         new_order::Params {
             side: agnostic_orderbook::state::Side::Ask as u8,
-            limit_price: 1000,
-            max_base_qty: 1100,
-            max_quote_qty: 1000,
+            limit_price: 1000 << 32,
+            max_base_qty: 110000,
+            max_quote_qty: 1000000,
             order_type: new_order::OrderType::Limit as u8,
             self_trade_behavior: agnostic_orderbook::state::SelfTradeBehavior::DecrementTake as u8,
             match_limit: 10,
@@ -338,9 +340,9 @@ async fn test_dex() {
         },
         new_order::Params {
             side: agnostic_orderbook::state::Side::Bid as u8,
-            limit_price: 1000,
-            max_base_qty: 1000,
-            max_quote_qty: 1000,
+            limit_price: 1000 << 32,
+            max_base_qty: 100000,
+            max_quote_qty: 100000,
             order_type: new_order::OrderType::Limit as u8,
             self_trade_behavior: agnostic_orderbook::state::SelfTradeBehavior::DecrementTake as u8,
             match_limit: 10,

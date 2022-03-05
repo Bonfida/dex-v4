@@ -120,7 +120,6 @@ pub(crate) fn process(
     let invoke_accounts = agnostic_orderbook::instruction::consume_events::Accounts {
         market: accounts.orderbook,
         event_queue: accounts.event_queue,
-        authority: accounts.market, // No impact with AOB as a lib
         reward_target: accounts.reward_target,
     };
 
