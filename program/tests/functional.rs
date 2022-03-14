@@ -1,9 +1,6 @@
 use agnostic_orderbook::state::MarketState;
 use bytemuck::try_from_bytes;
 use bytemuck::try_from_bytes_mut;
-use dex_v4::fee_defaults::DEFAULT_FEE_TIER_MAKER_BPS_REBATES;
-use dex_v4::fee_defaults::DEFAULT_FEE_TIER_TAKER_BPS_RATES;
-use dex_v4::fee_defaults::DEFAULT_FEE_TIER_THRESHOLDS;
 use dex_v4::instruction::cancel_order;
 use dex_v4::instruction::consume_events;
 use dex_v4::instruction::create_market;
@@ -47,13 +44,15 @@ async fn test_dex() {
 
     // Create test context
     let mut prg_test_ctx = program_test.start_with_context().await;
+    let rent = prg_test_ctx.banks_client.get_rent().await.unwrap();
 
     // Create market account
+    let market_rent = rent.minimum_balance(dex_v4::state::DEX_STATE_LEN);
     let market_account = Keypair::new();
     let create_market_account_instruction = create_account(
         &prg_test_ctx.payer.pubkey(),
         &market_account.pubkey(),
-        1_000_000,
+        market_rent,
         DEX_STATE_LEN as u64,
         &dex_program_id,
     );
@@ -99,9 +98,6 @@ async fn test_dex() {
             min_base_order_size: 10,
             tick_size: 1,
             cranker_reward: 0,
-            fee_tier_thresholds: DEFAULT_FEE_TIER_THRESHOLDS,
-            fee_tier_maker_bps_rebates: DEFAULT_FEE_TIER_MAKER_BPS_REBATES,
-            fee_tier_taker_bps_rates: DEFAULT_FEE_TIER_TAKER_BPS_RATES,
         },
     );
     sign_send_instructions(&mut prg_test_ctx, vec![create_market_instruction], vec![])
@@ -224,6 +220,7 @@ async fn test_dex() {
             user_token_account: &user_base_token_account,
             user_owner: &user_account_owner.pubkey(),
             discount_token_account: None,
+            fee_referral_account: None,
         },
         new_order::Params {
             side: agnostic_orderbook::state::Side::Ask as u8,
@@ -233,7 +230,8 @@ async fn test_dex() {
             order_type: new_order::OrderType::Limit as u8,
             self_trade_behavior: agnostic_orderbook::state::SelfTradeBehavior::DecrementTake as u8,
             match_limit: 10,
-            _padding: [0; 5],
+            has_discount_token_account: false as u8,
+            _padding: 0,
         },
     );
     sign_send_instructions(
@@ -300,16 +298,18 @@ async fn test_dex() {
             user_token_account: &user_base_token_account,
             user_owner: &user_account_owner.pubkey(),
             discount_token_account: None,
+            fee_referral_account: None,
         },
         new_order::Params {
             side: agnostic_orderbook::state::Side::Ask as u8,
-            limit_price: 1 << 32,
-            max_base_qty: 1100,
-            max_quote_qty: 1000,
+            limit_price: 1000 << 32,
+            max_base_qty: 110000,
+            max_quote_qty: 1000000,
             order_type: new_order::OrderType::Limit as u8,
             self_trade_behavior: agnostic_orderbook::state::SelfTradeBehavior::DecrementTake as u8,
             match_limit: 10,
-            _padding: [0; 5],
+            has_discount_token_account: false as u8,
+            _padding: 0,
         },
     );
     sign_send_instructions(
@@ -337,16 +337,18 @@ async fn test_dex() {
             user_token_account: &user_quote_token_account,
             user_owner: &user_account_owner.pubkey(),
             discount_token_account: None,
+            fee_referral_account: None,
         },
         new_order::Params {
             side: agnostic_orderbook::state::Side::Bid as u8,
-            limit_price: 1 << 32,
-            max_base_qty: 100,
-            max_quote_qty: 100,
+            limit_price: 1000 << 32,
+            max_base_qty: 100000,
+            max_quote_qty: 100000,
             order_type: new_order::OrderType::Limit as u8,
             self_trade_behavior: agnostic_orderbook::state::SelfTradeBehavior::DecrementTake as u8,
             match_limit: 10,
-            _padding: [0; 5],
+            has_discount_token_account: false as u8,
+            _padding: 0,
         },
     );
     sign_send_instructions(

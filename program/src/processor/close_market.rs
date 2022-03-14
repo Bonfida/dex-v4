@@ -120,7 +120,6 @@ pub(crate) fn process(program_id: &Pubkey, accounts: &[AccountInfo]) -> ProgramR
         event_queue: accounts.event_queue,
         bids: accounts.bids,
         asks: accounts.asks,
-        authority: accounts.market, // No impact with AOB as a lib
         lamports_target_account: accounts.target_lamports_account,
     };
     let invoke_params = agnostic_orderbook::instruction::close_market::Params {};

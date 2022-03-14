@@ -8,7 +8,7 @@ use std::{cell::RefMut, mem::size_of};
 
 use crate::{
     error::DexError,
-    processor::{MSRM_MINT, SRM_MINT},
+    processor::{MSRM_MINT, REFERRAL_MASK, SRM_MINT},
     utils::{fp32_div, fp32_mul, FP_32_ONE},
 };
 
@@ -73,13 +73,11 @@ pub struct DexState {
     /// The market's minimum allowed order size in base token amount
     pub min_base_order_size: u64,
     /// The signer nonce is necessary for the market to perform as a signing entity
-    pub signer_nonce: u64,
-    /// Fee tier thresholds (last element is a MSRM threshold)
-    pub fee_tier_thresholds: [u64; 6],
-    /// Fee tier taker rates (last element is a MSRM rate)
-    pub fee_tier_taker_bps_rates: [u64; 7],
-    /// Fee tier maker rates (last element is a MSRM rate)
-    pub fee_tier_maker_bps_rebates: [u64; 7],
+    pub signer_nonce: u8,
+    /// Fee type (e.g. default or stable)
+    pub fee_type: u8,
+    /// Padding
+    pub _padding: [u8; 6],
 }
 
 /// Size in bytes of the dex state object
@@ -249,6 +247,13 @@ impl Order for u128 {
 
 #[doc(hidden)]
 #[derive(BorshDeserialize, BorshSerialize, Debug, Clone, Copy)]
+pub enum MarketFeeType {
+    Default,
+    Stable,
+}
+
+#[doc(hidden)]
+#[derive(BorshDeserialize, BorshSerialize, Debug, Clone, Copy)]
 pub enum FeeTier {
     Base,
     Srm2,
@@ -257,6 +262,7 @@ pub enum FeeTier {
     Srm5,
     Srm6,
     MSrm,
+    Stable,
 }
 
 #[doc(hidden)]
@@ -266,17 +272,26 @@ impl FeeTier {
         srm_held: u64,
         msrm_held: u64,
     ) -> FeeTier {
-        if msrm_held >= dex_state.fee_tier_thresholds[5] {
-            return FeeTier::MSrm;
-        }
         let one_srm = 1_000_000;
-        let idx = match dex_state.fee_tier_thresholds[..5]
-            .binary_search_by_key(&srm_held, |n| (one_srm * n))
-        {
-            Ok(idx) => idx + 1,
-            Err(idx) => idx,
-        };
-        match idx {
+
+        if dex_state.fee_type == MarketFeeType::Stable as u8 {
+            return FeeTier::Stable;
+        }
+
+        match () {
+            () if msrm_held >= 1 => FeeTier::MSrm,
+            () if srm_held >= one_srm * 1_000_000 => FeeTier::Srm6,
+            () if srm_held >= one_srm * 100_000 => FeeTier::Srm5,
+            () if srm_held >= one_srm * 10_000 => FeeTier::Srm4,
+            () if srm_held >= one_srm * 1_000 => FeeTier::Srm3,
+            () if srm_held >= one_srm * 100 => FeeTier::Srm2,
+            () => FeeTier::Base,
+        }
+    }
+
+    pub fn from_u8(tag: u8) -> (Self, bool) {
+        let is_referred = (tag & REFERRAL_MASK) != 0;
+        let fee_tier = match tag & (!REFERRAL_MASK) {
             0 => FeeTier::Base,
             1 => FeeTier::Srm2,
             2 => FeeTier::Srm3,
@@ -284,7 +299,8 @@ impl FeeTier {
             4 => FeeTier::Srm5,
             5 => FeeTier::Srm6,
             _ => unreachable!(),
-        }
+        };
+        (fee_tier, is_referred)
     }
 
     pub fn get(
@@ -312,22 +328,23 @@ impl FeeTier {
 
     pub fn taker_rate(self) -> u64 {
         match self {
-            FeeTier::Base => (22 << 32) / 10_000,
-            FeeTier::Srm2 => (20 << 32) / 10_000,
-            FeeTier::Srm3 => (18 << 32) / 10_000,
-            FeeTier::Srm4 => (16 << 32) / 10_000,
-            FeeTier::Srm5 => (14 << 32) / 10_000,
-            FeeTier::Srm6 => (12 << 32) / 10_000,
-            FeeTier::MSrm => (10 << 32) / 10_000,
+            FeeTier::Base => (40 << 32) / 100_000,
+            FeeTier::Srm2 => (39 << 32) / 100_000,
+            FeeTier::Srm3 => (38 << 32) / 100_000,
+            FeeTier::Srm4 => (36 << 32) / 100_000,
+            FeeTier::Srm5 => (34 << 32) / 100_000,
+            FeeTier::Srm6 => (32 << 32) / 100_000,
+            FeeTier::MSrm => (30 << 32) / 100_000,
+            FeeTier::Stable => (10 << 32) / 100_000,
         }
     }
 
-    pub fn maker_rebate(self, quote_qty: u64) -> u64 {
-        let rate = match self {
-            FeeTier::MSrm => (5 << 32) / 10_000,
-            _ => (3 << 32) / 10_000,
-        };
-        fp32_mul(quote_qty, rate).unwrap()
+    pub fn maker_rate(self) -> u64 {
+        0
+    }
+
+    pub fn maker_rebate(self, _quote_qty: u64) -> u64 {
+        0
     }
 
     pub fn remove_taker_fee(self, quote_qty: u64) -> u64 {
@@ -339,10 +356,21 @@ impl FeeTier {
         let rate = self.taker_rate();
         fp32_mul(quote_qty, rate).unwrap()
     }
+
+    pub fn referral_rate(self) -> u64 {
+        let taker_rate = self.taker_rate();
+        let min_maker_rebate = Self::Base.maker_rate();
+        taker_rate.saturating_sub(min_maker_rebate) / 5
+    }
+
+    pub fn referral_fee(self, quote_qty: u64) -> u64 {
+        let rate = self.referral_rate();
+        fp32_mul(quote_qty, rate).unwrap()
+    }
 }
 #[doc(hidden)]
 #[derive(BorshDeserialize, BorshSerialize, Debug)]
 pub struct CallBackInfo {
     pub user_account: Pubkey,
-    pub fee_tier: FeeTier,
+    pub fee_tier: u8,
 }
