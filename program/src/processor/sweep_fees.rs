@@ -32,7 +32,7 @@ pub struct Accounts<'a, T> {
     /// The DEX market signer
     market_signer: &'a T,
 
-    /// The upgrade authority for `program_id`
+    /// The sweep authority for the DEX program
     #[cons(signer)]
     sweep_authority: &'a T,
 
