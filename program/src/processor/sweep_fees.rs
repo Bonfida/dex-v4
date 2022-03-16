@@ -3,6 +3,7 @@ use crate::{
     error::DexError,
     state::DexState,
     utils::{check_account_key, check_account_owner, check_signer, check_program_upgrade_authority},
+    ID,
 };
 use bonfida_utils::BorshSize;
 use bonfida_utils::InstructionsAccount;
@@ -81,6 +82,11 @@ impl<'a, 'b: 'a> Accounts<'a, AccountInfo<'b>> {
             DexError::InvalidSplTokenProgram,
         )?;
         check_account_owner(a.market, program_id, DexError::InvalidStateAccountOwner)?;
+        check_account_key(
+            a.program_id,
+            &ID.to_bytes(),
+            DexError::InvalidDexProgram,
+        )?;
         check_program_upgrade_authority(a.program_id, a.program_data, a.upgrade_authority)?;
 
         Ok(a)

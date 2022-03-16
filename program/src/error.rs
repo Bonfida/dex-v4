@@ -46,6 +46,8 @@ pub enum DexError {
     InvalidStateAccountOwner,
     #[error("The AOB instruction call returned an error")]
     AOBError,
+    #[error("Invalid DEX program account provided")]
+    InvalidDexProgram,
 }
 
 impl From<DexError> for ProgramError {
