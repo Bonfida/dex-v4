@@ -2,7 +2,7 @@
 use crate::{
     error::DexError,
     state::DexState,
-    utils::{check_account_key, check_account_owner, check_signer},
+    utils::{check_account_key, check_account_owner, check_signer, check_program_upgrade_authority},
 };
 use bonfida_utils::BorshSize;
 use bonfida_utils::InstructionsAccount;
@@ -31,9 +31,15 @@ pub struct Accounts<'a, T> {
     /// The DEX market signer
     market_signer: &'a T,
 
-    /// The market admin
+    /// The dex program
+    program_id: &'a T,
+
+    /// The program data for `program_id`
+    program_data: &'a T,
+
+    /// The upgrade authority for `program_id`
     #[cons(signer)]
-    market_admin: &'a T,
+    upgrade_authority: &'a T,
 
     /// The market quote token vault
     #[cons(writable)]
@@ -57,14 +63,16 @@ impl<'a, 'b: 'a> Accounts<'a, AccountInfo<'b>> {
         let a = Self {
             market: next_account_info(accounts_iter)?,
             market_signer: next_account_info(accounts_iter)?,
-            market_admin: next_account_info(accounts_iter)?,
+            program_id: next_account_info(accounts_iter)?,
+            program_data: next_account_info(accounts_iter)?,
+            upgrade_authority: next_account_info(accounts_iter)?,
             quote_vault: next_account_info(accounts_iter)?,
             destination_token_account: next_account_info(accounts_iter)?,
             spl_token_program: next_account_info(accounts_iter)?,
         };
 
-        check_signer(a.market_admin).map_err(|e| {
-            msg!("The market admin should be a signer for this instruction!");
+        check_signer(a.upgrade_authority).map_err(|e| {
+            msg!("The upgrade authority of the program should be a signer for this instruction!");
             e
         })?;
         check_account_key(
@@ -73,6 +81,7 @@ impl<'a, 'b: 'a> Accounts<'a, AccountInfo<'b>> {
             DexError::InvalidSplTokenProgram,
         )?;
         check_account_owner(a.market, program_id, DexError::InvalidStateAccountOwner)?;
+        check_program_upgrade_authority(a.program_id, a.program_data, a.upgrade_authority)?;
 
         Ok(a)
     }
@@ -139,10 +148,10 @@ fn check_accounts(
         &market_state.quote_vault,
         DexError::InvalidQuoteVaultAccount,
     )?;
-    check_account_key(
-        accounts.market_admin,
-        &market_state.admin,
-        DexError::InvalidMarketAdminAccount,
-    )?;
+    // check_account_key(
+    //     accounts.market_admin,
+    //     &market_state.admin,
+    //     DexError::InvalidMarketAdminAccount,
+    // )?;
     Ok(())
 }
