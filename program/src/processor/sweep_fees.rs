@@ -65,7 +65,7 @@ impl<'a, 'b: 'a> Accounts<'a, AccountInfo<'b>> {
         };
 
         check_signer(a.sweep_authority).map_err(|e| {
-            msg!("The upgrade authority of the program should be a signer for this instruction!");
+            msg!("The sweep authority of the program should be a signer for this instruction!");
             e
         })?;
         check_account_key(
