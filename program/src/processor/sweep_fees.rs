@@ -2,8 +2,8 @@
 use crate::{
     error::DexError,
     state::DexState,
-    utils::{check_account_key, check_account_owner, check_signer, check_program_upgrade_authority},
-    ID,
+    utils::{check_account_key, check_account_owner, check_signer},
+    processor,
 };
 use bonfida_utils::BorshSize;
 use bonfida_utils::InstructionsAccount;
@@ -32,15 +32,9 @@ pub struct Accounts<'a, T> {
     /// The DEX market signer
     market_signer: &'a T,
 
-    /// The dex program
-    program_id: &'a T,
-
-    /// The program data for `program_id`
-    program_data: &'a T,
-
     /// The upgrade authority for `program_id`
     #[cons(signer)]
-    upgrade_authority: &'a T,
+    sweep_authority: &'a T,
 
     /// The market quote token vault
     #[cons(writable)]
@@ -64,15 +58,13 @@ impl<'a, 'b: 'a> Accounts<'a, AccountInfo<'b>> {
         let a = Self {
             market: next_account_info(accounts_iter)?,
             market_signer: next_account_info(accounts_iter)?,
-            program_id: next_account_info(accounts_iter)?,
-            program_data: next_account_info(accounts_iter)?,
-            upgrade_authority: next_account_info(accounts_iter)?,
+            sweep_authority: next_account_info(accounts_iter)?,
             quote_vault: next_account_info(accounts_iter)?,
             destination_token_account: next_account_info(accounts_iter)?,
             spl_token_program: next_account_info(accounts_iter)?,
         };
 
-        check_signer(a.upgrade_authority).map_err(|e| {
+        check_signer(a.sweep_authority).map_err(|e| {
             msg!("The upgrade authority of the program should be a signer for this instruction!");
             e
         })?;
@@ -81,13 +73,12 @@ impl<'a, 'b: 'a> Accounts<'a, AccountInfo<'b>> {
             &spl_token::ID.to_bytes(),
             DexError::InvalidSplTokenProgram,
         )?;
-        check_account_owner(a.market, program_id, DexError::InvalidStateAccountOwner)?;
         check_account_key(
-            a.program_id,
-            &ID.to_bytes(),
-            DexError::InvalidDexProgram,
+            a.sweep_authority,
+            &processor::SWEEP_AUTHORITY.to_bytes(),
+            DexError::InvalidSweepAuthority,
         )?;
-        check_program_upgrade_authority(a.program_id, a.program_data, a.upgrade_authority)?;
+        check_account_owner(a.market, program_id, DexError::InvalidStateAccountOwner)?;
 
         Ok(a)
     }

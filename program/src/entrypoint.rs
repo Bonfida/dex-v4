@@ -67,8 +67,8 @@ impl PrintProgramError for DexError {
             DexError::AOBError => {
                 msg!("Error: The AOB instruction call returned an error.")
             }
-            DexError::InvalidDexProgram => {
-                msg!("Error: Invalid DEX program account provided")
+            DexError::InvalidSweepAuthority => {
+                msg!("Error: Invalid sweep authority account provided")
             }
         }
     }

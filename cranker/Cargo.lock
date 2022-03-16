@@ -707,7 +707,6 @@ name = "dex-v4"
 version = "0.1.0"
 dependencies = [
  "agnostic-orderbook",
- "bincode",
  "bonfida-utils",
  "borsh",
  "bytemuck",

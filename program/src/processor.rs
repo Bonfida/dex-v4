@@ -1,3 +1,4 @@
+use std::str::FromStr;
 use num_traits::FromPrimitive;
 use solana_program::{
     account_info::AccountInfo, entrypoint::ProgramResult, msg, program_error::ProgramError,
@@ -18,8 +19,16 @@ mod msrm_token {
 
     declare_id!("MSRMcoVyrFxnSgo5uXwone5SKcGhT1KEJMFEkMEWf9L");
 }
+mod sweep_authority {
+    use solana_program::declare_id;
+
+    declare_id!("DjXsn34uz8hnC4KLiSkEVNmzqX5ZFP2Q7aErTBH8LWxe");
+}
 pub static SRM_MINT: Pubkey = srm_token::ID;
 pub static MSRM_MINT: Pubkey = msrm_token::ID;
+
+/// The sweep authority for the DEX program
+pub static SWEEP_AUTHORITY: Pubkey = sweep_authority::ID;
 
 /// The length in bytes of the callback information in the associated asset agnostic orderbook
 pub static CALLBACK_INFO_LEN: u64 = 33;
