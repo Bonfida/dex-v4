@@ -111,7 +111,8 @@ const test = async () => {
     OrderType.Limit,
     SelfTradeBehavior.CancelProvide,
     await findAssociatedTokenAddress(wallet.publicKey, market.baseMintAddress),
-    wallet.publicKey
+    wallet.publicKey,
+    new BN(0)
   );
   const tx = await signAndSendTransactionInstructions(
     connection,

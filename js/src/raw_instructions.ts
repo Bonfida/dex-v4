@@ -80,6 +80,7 @@ export class newOrderInstruction {
   maxBaseQty: BN;
   maxQuoteQty: BN;
   matchLimit: BN;
+  clientOrderId: BN;
   side: number;
   orderType: number;
   selfTradeBehavior: number;
@@ -96,6 +97,7 @@ export class newOrderInstruction {
           ["maxBaseQty", "u64"],
           ["maxQuoteQty", "u64"],
           ["matchLimit", "u64"],
+          ["clientOrderId", "u128"],
           ["side", "u8"],
           ["orderType", "u8"],
           ["selfTradeBehavior", "u8"],
@@ -110,6 +112,7 @@ export class newOrderInstruction {
     maxBaseQty: BN;
     maxQuoteQty: BN;
     matchLimit: BN;
+    clientOrderId: BN;
     side: number;
     orderType: number;
     selfTradeBehavior: number;
@@ -120,11 +123,12 @@ export class newOrderInstruction {
     this.maxBaseQty = obj.maxBaseQty;
     this.maxQuoteQty = obj.maxQuoteQty;
     this.matchLimit = obj.matchLimit;
+    this.clientOrderId = obj.clientOrderId;
     this.side = obj.side;
     this.orderType = obj.orderType;
     this.selfTradeBehavior = obj.selfTradeBehavior;
     this.hasDiscountTokenAccount = obj.hasDiscountTokenAccount;
-    this.padding = new Uint8Array(4).fill(0);
+    this.padding = 0;
   }
   serialize(): Uint8Array {
     return serialize(newOrderInstruction.schema, this);

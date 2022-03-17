@@ -1,7 +1,7 @@
 //! Execute a new order instruction. Supported types include Limit, IOC, FOK, or Post only.
 use crate::{
     error::DexError,
-    state::{CallBackInfo, DexState, FeeTier, UserAccount},
+    state::{CallBackInfo, DexState, FeeTier, Order, UserAccount},
     utils::{check_account_key, check_signer},
     utils::{check_account_owner, fp32_mul},
 };
@@ -45,6 +45,7 @@ pub struct Params {
     ///
     /// Setting this number too high can sometimes lead to excessive resource consumption which can cause a failure.
     pub match_limit: u64,
+    pub client_order_id: u128,
     /// The order's side (Bid or Ask)
     pub side: u8,
     /// The order type (supported types include Limit, FOK, IOC and PostOnly)
@@ -216,6 +217,7 @@ pub(crate) fn process(
         self_trade_behavior,
         match_limit,
         has_discount_token_account,
+        client_order_id,
         _padding: _,
     } = try_from_bytes(instruction_data).map_err(|_| ProgramError::InvalidInstructionData)?;
     let accounts = Accounts::parse(program_id, accounts, *has_discount_token_account != 0)?;
@@ -411,7 +413,10 @@ pub(crate) fn process(
     }
 
     if let Some(order_id) = order_summary.posted_order_id {
-        user_account.add_order(order_id)?;
+        user_account.add_order(Order {
+            id: order_id,
+            client_id: *client_order_id,
+        })?;
         msg!("Added new order with order_id {:?}", order_id);
     }
 

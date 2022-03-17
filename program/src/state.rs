@@ -138,10 +138,25 @@ pub struct UserAccountHeader {
     pub number_of_orders: u32,
 }
 
+/// Represents and order in the user account. The client id offers an alias which can be used off-chain to map custom ids to an actual order id.
+#[derive(Copy, Clone, Pod, Zeroable)]
+#[repr(C)]
+pub struct Order {
+    /// The raw order id
+    pub id: u128,
+    /// The client-defined order id. Care should be taken off-chain to only create new orders with new client_ids.
+    pub client_id: u128,
+}
+
+impl Order {
+    /// The length in bytes of the order's binary representation
+    pub const LEN: usize = 32;
+}
+
 #[allow(missing_docs)]
 pub struct UserAccount<'a> {
     pub header: RefMut<'a, UserAccountHeader>,
-    orders: RefMut<'a, [u128]>,
+    orders: RefMut<'a, [Order]>,
 }
 
 /// Size in bytes of the user account header object
@@ -194,7 +209,7 @@ impl<'a> UserAccount<'a> {
 
 impl<'a> UserAccount<'a> {
     #[allow(missing_docs)]
-    pub fn read_order(&self, order_index: usize) -> Result<u128, DexError> {
+    pub fn read_order(&self, order_index: usize) -> Result<Order, DexError> {
         if order_index >= self.header.number_of_orders as usize {
             return Err(DexError::InvalidOrderIndex);
         }
@@ -214,7 +229,7 @@ impl<'a> UserAccount<'a> {
     }
 
     #[allow(missing_docs)]
-    pub fn add_order(&mut self, order: u128) -> Result<(), DexError> {
+    pub fn add_order(&mut self, order: Order) -> Result<(), DexError> {
         let slot = self
             .orders
             .get_mut(self.header.number_of_orders as usize)
@@ -230,19 +245,11 @@ impl<'a> UserAccount<'a> {
             .orders
             .iter()
             .enumerate()
-            .find(|(_, b)| b == &&order_id)
+            .find(|(_, b)| b.id == order_id)
             .ok_or(DexError::OrderNotFound)?
             .0;
         Ok(res)
     }
-}
-
-pub(crate) trait Order {
-    const LEN: usize;
-}
-
-impl Order for u128 {
-    const LEN: usize = 16;
 }
 
 #[doc(hidden)]

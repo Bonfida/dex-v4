@@ -1,7 +1,7 @@
 import { Connection, PublicKey } from "@solana/web3.js";
 import BN from "bn.js";
 import { DEX_ID } from "./ids";
-import { UserAccount } from "./state";
+import { Order, UserAccount } from "./state";
 import { closeAccount, initializeAccount } from "./bindings";
 
 /**
@@ -53,7 +53,7 @@ export class OpenOrders {
    * List of orders of the open order account
    * @private
    */
-  private _orders: BN[];
+  private _orders: Order[];
 
   /**
    * Amount of accumulated rebates
@@ -69,7 +69,7 @@ export class OpenOrders {
     baseTokenTotal: BN,
     quoteTokenFree: BN,
     quoteTokenTotal: BN,
-    orders: BN[],
+    orders: Order[],
     accumulatedRebates: BN
   ) {
     this._address = address;
@@ -134,7 +134,7 @@ export class OpenOrders {
   /**
    * Returns the list of orders of the open orders account
    */
-  get orders(): BN[] {
+  get orders(): Order[] {
     return this._orders;
   }
 

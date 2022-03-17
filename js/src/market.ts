@@ -378,6 +378,7 @@ export class Market {
     selfTradeBehavior: SelfTradeBehavior,
     ownerTokenAccount: PublicKey,
     owner: Keypair,
+    clientOrderId: BN,
     discountTokenAccount?: PublicKey
   ) {
     const inst = await this.makePlaceOrderTransaction(
@@ -388,6 +389,7 @@ export class Market {
       selfTradeBehavior,
       ownerTokenAccount,
       owner.publicKey,
+      clientOrderId,
       discountTokenAccount
     );
     const tx = new Transaction().add(inst);
@@ -414,6 +416,7 @@ export class Market {
     selfTradeBehavior: SelfTradeBehavior,
     ownerTokenAccount: PublicKey,
     owner: PublicKey,
+    clientOrderId: BN,
     discountTokenAccount?: PublicKey
   ) {
     return await placeOrder(
@@ -425,6 +428,7 @@ export class Market {
       selfTradeBehavior,
       ownerTokenAccount,
       owner,
+      clientOrderId,
       discountTokenAccount
     );
   }
@@ -516,7 +520,7 @@ export class Market {
       this.address,
       owner.publicKey
     );
-    const orderId = openOrders.orders[orderIndex];
+    const orderId = openOrders.orders[orderIndex].id;
     if (!orderId) {
       throw new Error(`Invalid order index ${orderIndex}`);
     }
@@ -547,7 +551,7 @@ export class Market {
       owner.publicKey
     );
     const orderIndex = openOrders.orders
-      .map((o) => o.eq(orderId))
+      .map((o) => o.id.eq(orderId))
       .indexOf(true);
     if (orderIndex === -1) {
       throw new Error("Invalid order id");
@@ -661,7 +665,9 @@ export class Market {
   filterForOpenOrdersFromSlab(slab: Slab, openOrders: OpenOrders, side: Side) {
     return [...slab]
       .filter((o) =>
-        openOrders?.address.equals(new PublicKey(slab.getCallBackInfo(o.callBackInfoPt).slice(0, 32)))
+        openOrders?.address.equals(
+          new PublicKey(slab.getCallBackInfo(o.callBackInfoPt).slice(0, 32))
+        )
       )
       .map((o) => {
         return {
@@ -669,7 +675,9 @@ export class Market {
           price: getPriceFromKey(o.key).toNumber(),
           feeTier: slab.getCallBackInfo(o.callBackInfoPt).slice(32)[0],
           size: o.baseQuantity.toNumber(),
-          openOrdersAddress: new PublicKey(slab.getCallBackInfo(o.callBackInfoPt).slice(0, 32)),
+          openOrdersAddress: new PublicKey(
+            slab.getCallBackInfo(o.callBackInfoPt).slice(0, 32)
+          ),
           side: side,
         };
       });
