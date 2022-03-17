@@ -1,34 +1,18 @@
-use std::str::FromStr;
 use num_traits::FromPrimitive;
 use solana_program::{
     account_info::AccountInfo, entrypoint::ProgramResult, msg, program_error::ProgramError,
-    pubkey::Pubkey,
+    pubkey::{Pubkey}
 };
 
 use crate::instruction_auto::DexInstruction;
 
 ////////////////////////////////////////////////////////////
 // Constants
-mod srm_token {
-    use solana_program::declare_id;
-
-    declare_id!("SRMuApVNdxXokk5GT7XD5cUUgXMBCoAz2LHeuAoKWRt");
-}
-mod msrm_token {
-    use solana_program::declare_id;
-
-    declare_id!("MSRMcoVyrFxnSgo5uXwone5SKcGhT1KEJMFEkMEWf9L");
-}
-mod sweep_authority {
-    use solana_program::declare_id;
-
-    declare_id!("DjXsn34uz8hnC4KLiSkEVNmzqX5ZFP2Q7aErTBH8LWxe");
-}
-pub static SRM_MINT: Pubkey = srm_token::ID;
-pub static MSRM_MINT: Pubkey = msrm_token::ID;
+pub static SRM_MINT: Pubkey = solana_program::pubkey!("SRMuApVNdxXokk5GT7XD5cUUgXMBCoAz2LHeuAoKWRt");
+pub static MSRM_MINT: Pubkey = solana_program::pubkey!("MSRMcoVyrFxnSgo5uXwone5SKcGhT1KEJMFEkMEWf9L");
 
 /// The sweep authority for the DEX program
-pub static SWEEP_AUTHORITY: Pubkey = sweep_authority::ID;
+pub static SWEEP_AUTHORITY: Pubkey = solana_program::pubkey!("DjXsn34uz8hnC4KLiSkEVNmzqX5ZFP2Q7aErTBH8LWxe");
 
 /// The length in bytes of the callback information in the associated asset agnostic orderbook
 pub static CALLBACK_INFO_LEN: u64 = 33;
