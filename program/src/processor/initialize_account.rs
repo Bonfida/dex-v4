@@ -106,7 +106,7 @@ pub(crate) fn process(
         msg!("The minimum number of orders an account should be able to hold is 1");
         return Err(ProgramError::InvalidArgument);
     }
-    let space = (USER_ACCOUNT_HEADER_LEN as u64) + max_orders * (u128::LEN as u64);
+    let space = (USER_ACCOUNT_HEADER_LEN as u64) + max_orders * (Order::LEN as u64);
 
     let lamports = Rent::get()?.minimum_balance(space as usize);
 

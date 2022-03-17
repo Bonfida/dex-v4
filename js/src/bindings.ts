@@ -97,9 +97,6 @@ export const createMarket = async (
     minBaseOrderSize: new BN(minBaseOrderSize),
     tickSize: tickSize,
     crankerReward: new BN(crankerReward),
-    feeTierThresholds,
-    feeTierTakerBpsRates,
-    feeTierMakerBpsRebates,
   }).getInstruction(
     DEX_ID,
     marketAccount.publicKey,
@@ -128,6 +125,7 @@ export const placeOrder = async (
   selfTradeBehaviour: SelfTradeBehavior,
   ownerTokenAccount: PublicKey,
   owner: PublicKey,
+  clientOrderId: BN,
   discountTokenAccount?: PublicKey
 ) => {
   const [userAccount] = await PublicKey.findProgramAddress(
@@ -147,7 +145,9 @@ export const placeOrder = async (
     maxQuoteQty: new BN(Math.ceil(size * limitPrice)),
     orderType: type,
     selfTradeBehavior: selfTradeBehaviour,
-    matchLimit: new BN(Number.MAX_SAFE_INTEGER), // TODO Change
+    matchLimit: new BN(Number.MAX_SAFE_INTEGER),
+    clientOrderId,
+    hasDiscountTokenAccount: discountTokenAccount === undefined ? 0 : 1, // TODO Change
   }).getInstruction(
     DEX_ID,
     TOKEN_PROGRAM_ID,
