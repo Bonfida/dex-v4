@@ -103,6 +103,16 @@ export class MarketState {
   }
 }
 
+export class Order {
+  id: BN;
+  clientId: BN;
+
+  constructor(obj: { id: BN; clientId: BN }) {
+    this.clientId = obj.clientId;
+    this.id = obj.id;
+  }
+}
+
 export class UserAccount {
   tag: AccountTag;
   market: PublicKey;
@@ -116,8 +126,9 @@ export class UserAccount {
   accumulatedMakerBaseVolume: BN;
   accumulatedTakerQuoteVolume: BN;
   accumulatedTakerBaseVolume: BN;
-  orders: BN[];
+  orders: Order[];
 
+  // @ts-ignore
   static schema: Schema = new Map([
     [
       UserAccount,
@@ -137,7 +148,17 @@ export class UserAccount {
           ["accumulatedTakerQuoteVolume", "u64"],
           ["accumulatedTakerBaseVolume", "u64"],
           ["_padding", "u32"],
-          ["orders", ["u128"]],
+          ["orders", [Order]],
+        ],
+      },
+    ],
+    [
+      Order,
+      {
+        kind: "struct",
+        fields: [
+          ["id", "u128"],
+          ["clientId", "u128"],
         ],
       },
     ],
@@ -151,7 +172,7 @@ export class UserAccount {
     baseTokenLocked: BN;
     quoteTokenFree: BN;
     quoteTokenLocked: BN;
-    orders: BN[];
+    orders: Order[];
     accumulatedRebates: BN;
     accumulatedMakerQuoteVolume: BN;
     accumulatedMakerBaseVolume: BN;

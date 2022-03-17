@@ -222,6 +222,7 @@ async fn test_dex() {
             fee_referral_account: None,
         },
         new_order::Params {
+            client_order_id: 0,
             side: agnostic_orderbook::state::Side::Ask as u8,
             limit_price: 1000,
             max_base_qty: 100_000,
@@ -300,6 +301,7 @@ async fn test_dex() {
             fee_referral_account: None,
         },
         new_order::Params {
+            client_order_id: 0,
             side: agnostic_orderbook::state::Side::Ask as u8,
             limit_price: 1000 << 32,
             max_base_qty: 110000,
@@ -339,6 +341,7 @@ async fn test_dex() {
             fee_referral_account: None,
         },
         new_order::Params {
+            client_order_id: 0,
             side: agnostic_orderbook::state::Side::Bid as u8,
             limit_price: 1000 << 32,
             max_base_qty: 100000,

@@ -61,9 +61,11 @@ export class newOrderInstruction {
   maxBaseQty: BN;
   maxQuoteQty: BN;
   matchLimit: BN;
+  clientOrderId: BN;
   side: number;
   orderType: number;
   selfTradeBehavior: number;
+  hasDiscountTokenAccount: number;
   padding: Uint8Array;
   static schema: Schema = new Map([
     [
@@ -76,10 +78,12 @@ export class newOrderInstruction {
           ["maxBaseQty", "u64"],
           ["maxQuoteQty", "u64"],
           ["matchLimit", "u64"],
+          ["clientOrderId", "u128"],
           ["side", "u8"],
           ["orderType", "u8"],
           ["selfTradeBehavior", "u8"],
-          ["padding", [5]],
+          ["hasDiscountTokenAccount", "u8"],
+          ["padding", [4]],
         ],
       },
     ],
@@ -89,19 +93,23 @@ export class newOrderInstruction {
     maxBaseQty: BN;
     maxQuoteQty: BN;
     matchLimit: BN;
+    clientOrderId: BN;
     side: number;
     orderType: number;
     selfTradeBehavior: number;
+    hasDiscountTokenAccount: number;
   }) {
     this.tag = new BN(1);
     this.limitPrice = obj.limitPrice;
     this.maxBaseQty = obj.maxBaseQty;
     this.maxQuoteQty = obj.maxQuoteQty;
     this.matchLimit = obj.matchLimit;
+    this.clientOrderId = obj.clientOrderId;
     this.side = obj.side;
     this.orderType = obj.orderType;
     this.selfTradeBehavior = obj.selfTradeBehavior;
-    this.padding = new Uint8Array(5).fill(0);
+    this.hasDiscountTokenAccount = obj.hasDiscountTokenAccount;
+    this.padding = new Uint8Array(4).fill(0);
   }
   serialize(): Uint8Array {
     return serialize(newOrderInstruction.schema, this);
@@ -120,7 +128,8 @@ export class newOrderInstruction {
     user: PublicKey,
     userTokenAccount: PublicKey,
     userOwner: PublicKey,
-    discountTokenAccount?: PublicKey
+    discountTokenAccount?: PublicKey,
+    feeReferralAccount?: PublicKey
   ): TransactionInstruction {
     const data = Buffer.from(this.serialize());
     let keys: AccountKey[] = [];
@@ -189,6 +198,13 @@ export class newOrderInstruction {
         pubkey: discountTokenAccount,
         isSigner: false,
         isWritable: false,
+      });
+    }
+    if (!!feeReferralAccount) {
+      keys.push({
+        pubkey: feeReferralAccount,
+        isSigner: false,
+        isWritable: true,
       });
     }
     return new TransactionInstruction({
@@ -641,9 +657,6 @@ export class createMarketInstruction {
   minBaseOrderSize: BN;
   tickSize: BN;
   crankerReward: BN;
-  feeTierThresholds: BN[];
-  feeTierTakerBpsRates: BN[];
-  feeTierMakerBpsRebates: BN[];
   static schema: Schema = new Map([
     [
       createMarketInstruction,
@@ -655,9 +668,6 @@ export class createMarketInstruction {
           ["minBaseOrderSize", "u64"],
           ["tickSize", "u64"],
           ["crankerReward", "u64"],
-          ["feeTierThresholds", ["u64", 6]],
-          ["feeTierTakerBpsRates", ["u64", 7]],
-          ["feeTierMakerBpsRebates", ["u64", 7]],
         ],
       },
     ],
@@ -667,18 +677,12 @@ export class createMarketInstruction {
     minBaseOrderSize: BN;
     tickSize: BN;
     crankerReward: BN;
-    feeTierThresholds: BN[];
-    feeTierTakerBpsRates: BN[];
-    feeTierMakerBpsRebates: BN[];
   }) {
     this.tag = new BN(0);
     this.signerNonce = obj.signerNonce;
     this.minBaseOrderSize = obj.minBaseOrderSize;
     this.tickSize = obj.tickSize;
     this.crankerReward = obj.crankerReward;
-    this.feeTierThresholds = obj.feeTierThresholds;
-    this.feeTierTakerBpsRates = obj.feeTierTakerBpsRates;
-    this.feeTierMakerBpsRebates = obj.feeTierMakerBpsRebates;
   }
   serialize(): Uint8Array {
     return serialize(createMarketInstruction.schema, this);

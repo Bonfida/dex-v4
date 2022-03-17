@@ -126,7 +126,7 @@ pub(crate) fn process(
 
     check_accounts(&market_state, &accounts).unwrap();
 
-    let order_id_from_index = user_account.read_order(*order_index as usize)?;
+    let order_id_from_index = user_account.read_order(*order_index as usize)?.id;
 
     if order_id != &order_id_from_index {
         msg!("Order id does not match with the order at the given index!");
