@@ -205,4 +205,12 @@ export class UserAccount {
       accountInfo.data
     ) as UserAccount;
   }
+
+  getOrderId(clientOrderId: BN): BN | undefined {
+    return this.orders.find((o) => o.clientId === clientOrderId)?.id;
+  }
+
+  getClientOrderId(orderId: BN): BN | undefined {
+    return this.orders.find((o) => o.id === orderId)?.clientId;
+  }
 }
