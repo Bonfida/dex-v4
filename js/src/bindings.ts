@@ -19,6 +19,7 @@ import {
 import { SelfTradeBehavior } from "./state";
 import { Market } from "./market";
 import { TOKEN_PROGRAM_ID } from "@solana/spl-token";
+import { randomBytes } from "crypto";
 
 /**
  * Constants
@@ -35,10 +36,7 @@ export const createMarket = async (
   feePayer: PublicKey,
   marketAdmin: PublicKey,
   tickSize: BN,
-  crankerReward: BN,
-  feeTierThresholds: BN[],
-  feeTierTakerBpsRates: BN[],
-  feeTierMakerBpsRebates: BN[]
+  crankerReward: BN
 ): Promise<PrimedTransaction[]> => {
   // Market Account
   const marketAccount = new Keypair();
@@ -124,7 +122,7 @@ export const placeOrder = async (
   selfTradeBehaviour: SelfTradeBehavior,
   ownerTokenAccount: PublicKey,
   owner: PublicKey,
-  clientOrderId: BN,
+  clientOrderId?: BN,
   discountTokenAccount?: PublicKey
 ) => {
   const [userAccount] = await PublicKey.findProgramAddress(
@@ -136,6 +134,10 @@ export const placeOrder = async (
   // if (!discountTokenAccount) {
   //   discountTokenAccount = await findAssociatedTokenAddress(owner, SRM_MINT);
   // }
+
+  if (!clientOrderId) {
+    clientOrderId = new BN(randomBytes(16));
+  }
 
   const instruction = new newOrderInstruction({
     side: side as number,

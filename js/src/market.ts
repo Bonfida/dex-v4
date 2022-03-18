@@ -25,8 +25,9 @@ import { getFeeTier } from "./fees";
 import { OpenOrders } from "./openOrders";
 import { cancelOrder, placeOrder, settle } from "./bindings";
 import BN from "bn.js";
-import { Order, OrderType, Side, OrderInfo, MarketOptions } from "./types";
+import { OrderType, Side, OrderInfo, MarketOptions } from "./types";
 import { Orderbook } from "./orderbook";
+import { randomBytes } from "crypto";
 
 /**
  * A Serum DEX Market object
@@ -378,9 +379,13 @@ export class Market {
     selfTradeBehavior: SelfTradeBehavior,
     ownerTokenAccount: PublicKey,
     owner: Keypair,
-    clientOrderId: BN,
+    clientOrderId?: BN,
     discountTokenAccount?: PublicKey
   ) {
+    if (!clientOrderId) {
+      clientOrderId = new BN(randomBytes(16));
+    }
+
     const inst = await this.makePlaceOrderTransaction(
       side,
       limitPrice,
