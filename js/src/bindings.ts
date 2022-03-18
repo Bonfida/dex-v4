@@ -20,6 +20,7 @@ import {
 import { SelfTradeBehavior } from "./state";
 import { Market } from "./market";
 import { TOKEN_PROGRAM_ID } from "@solana/spl-token";
+import crypto from "crypto";
 
 /**
  * Constants
@@ -125,7 +126,7 @@ export const placeOrder = async (
   selfTradeBehaviour: SelfTradeBehavior,
   ownerTokenAccount: PublicKey,
   owner: PublicKey,
-  clientOrderId: BN,
+  clientOrderId?: BN,
   discountTokenAccount?: PublicKey
 ) => {
   const [userAccount] = await PublicKey.findProgramAddress(
@@ -137,6 +138,10 @@ export const placeOrder = async (
   // if (!discountTokenAccount) {
   //   discountTokenAccount = await findAssociatedTokenAddress(owner, SRM_MINT);
   // }
+
+  if (!clientOrderId) {
+    clientOrderId = new BN(crypto.randomBytes(16));
+  }
 
   const instruction = new newOrderInstruction({
     side: side as number,
