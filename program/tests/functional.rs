@@ -281,7 +281,7 @@ async fn test_dex() {
     .await
     .unwrap();
 
-    // New Order, to be matched
+    // New Order, to be matched, places 1000 units @ 1000 price
     let new_order_instruction = new_order(
         dex_program_id,
         new_order::Accounts {
@@ -320,7 +320,7 @@ async fn test_dex() {
     .await
     .unwrap();
 
-    // New Order, matching
+    // New Order, matching, takes 100 units @ 1000 price
     let new_order_instruction = new_order(
         dex_program_id,
         new_order::Accounts {
@@ -344,7 +344,7 @@ async fn test_dex() {
             limit_price: 1000 << 32,
             max_base_qty: 100000,
             max_quote_qty: 100000,
-            order_type: new_order::OrderType::Limit as u8,
+            order_type: new_order::OrderType::ImmediateOrCancel as u8,
             self_trade_behavior: agnostic_orderbook::state::SelfTradeBehavior::DecrementTake as u8,
             match_limit: 10,
             has_discount_token_account: false as u8,
@@ -401,6 +401,7 @@ async fn test_dex() {
     .await
     .unwrap();
 
+    // Swap, matching, takes 10 units @ 1000 price
     let new_order_instruction = swap(
         dex_program_id,
         swap::Accounts {
@@ -418,13 +419,15 @@ async fn test_dex() {
             user_quote_account: &user_quote_token_account,
             user_owner: &user_account_owner.pubkey(),
             discount_token_account: None,
+            fee_referral_account: None,
         },
         swap::Params {
             side: agnostic_orderbook::state::Side::Bid as u8,
-            base_qty: 90,
-            quote_qty: 100,
+            base_qty: 10,
+            quote_qty: 100000,
             match_limit: 10,
-            _padding: [0; 7],
+            has_discount_token_account: 0,
+            _padding: [0; 6],
         },
     );
     sign_send_instructions(

@@ -51,8 +51,9 @@ pub struct Params {
     pub order_type: u8,
     /// Configures what happens when this order is at least partially matched against an order belonging to the same user account
     pub self_trade_behavior: u8,
-    /// To eliminate implicit padding
+    /// Whether or not the optional discount token account was given
     pub has_discount_token_account: u8,
+    /// To eliminate implicit padding
     pub _padding: u32,
 }
 

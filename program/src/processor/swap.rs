@@ -26,6 +26,8 @@ use solana_program::{
     sysvar::Sysvar,
 };
 
+use super::REFERRAL_MASK;
+
 #[derive(Copy, Clone, Zeroable, Pod, BorshDeserialize, BorshSerialize, BorshSize)]
 #[repr(C)]
 /**
@@ -42,42 +44,76 @@ pub struct Params {
     pub match_limit: u64,
     /// The order's side (Bid or Ask)
     pub side: u8,
+    /// Whether or not the optional discount token account was given
+    pub has_discount_token_account: u8,
     /// To eliminate implicit padding
-    pub _padding: [u8; 7],
+    pub _padding: [u8; 6],
 }
 
 #[derive(InstructionsAccount)]
 pub struct Accounts<'a, T> {
+    /// The SPL token program
     pub spl_token_program: &'a T,
+
+    /// The system program
     pub system_program: &'a T,
+
+    /// The DEX market
     #[cons(writable)]
     pub market: &'a T,
+
+    /// The orderbook
     #[cons(writable)]
     pub orderbook: &'a T,
+
+    /// The AOB event queue
     #[cons(writable)]
     pub event_queue: &'a T,
+
+    /// The AOB bids shared memory
     #[cons(writable)]
     pub bids: &'a T,
+
+    /// The AOB asks shared memory
     #[cons(writable)]
     pub asks: &'a T,
+
+    /// The base token vault
     #[cons(writable)]
     pub base_vault: &'a T,
+
+    /// The quote token vault
     #[cons(writable)]
     pub quote_vault: &'a T,
+
+    /// The DEX market signer
     pub market_signer: &'a T,
+
+    /// The user base token account
     #[cons(writable)]
     pub user_base_account: &'a T,
+
+    /// The user quote token account
     #[cons(writable)]
     pub user_quote_account: &'a T,
+
+    /// The user wallet
     #[cons(writable, signer)]
     pub user_owner: &'a T,
+
+    /// The optional SRM or MSRM discount token account (must be owned by the user wallet)
     pub discount_token_account: Option<&'a T>,
+
+    /// The optional referrer's token account which will receive a 20% cut of the fees
+    #[cons(writable)]
+    pub fee_referral_account: Option<&'a T>,
 }
 
 impl<'a, 'b: 'a> Accounts<'a, AccountInfo<'b>> {
     pub fn parse(
         program_id: &Pubkey,
         accounts: &'a [AccountInfo<'b>],
+        has_discount_token_account: bool,
     ) -> Result<Self, ProgramError> {
         let accounts_iter = &mut accounts.iter();
         let a = Self {
@@ -94,7 +130,12 @@ impl<'a, 'b: 'a> Accounts<'a, AccountInfo<'b>> {
             user_base_account: next_account_info(accounts_iter)?,
             user_quote_account: next_account_info(accounts_iter)?,
             user_owner: next_account_info(accounts_iter)?,
-            discount_token_account: next_account_info(accounts_iter).ok(),
+            discount_token_account: if has_discount_token_account {
+                next_account_info(accounts_iter).ok()
+            } else {
+                None
+            },
+            fee_referral_account: next_account_info(accounts_iter).ok(),
         };
         check_signer(a.user_owner).map_err(|e| {
             msg!("The user account owner should be a signer for this transaction!");
@@ -128,15 +169,16 @@ pub(crate) fn process(
     accounts: &[AccountInfo],
     instruction_data: &[u8],
 ) -> ProgramResult {
-    let accounts = Accounts::parse(program_id, accounts)?;
-
     let Params {
         side,
         base_qty,
         mut quote_qty,
         match_limit,
+        has_discount_token_account,
         _padding: _,
     } = try_from_bytes(instruction_data).map_err(|_| ProgramError::InvalidInstructionData)?;
+    let accounts = Accounts::parse(program_id, accounts, *has_discount_token_account != 0)?;
+
     let market_state = DexState::get(accounts.market)?;
 
     // Check the order size
@@ -146,16 +188,18 @@ pub(crate) fn process(
     }
 
     check_accounts(program_id, &market_state, &accounts).unwrap();
+    let fee_tier = accounts
+        .discount_token_account
+        .map(|a| FeeTier::get(&market_state, a, accounts.user_owner.key))
+        .unwrap_or(Ok(FeeTier::Base))?;
     let callback_info = CallBackInfo {
         user_account: Pubkey::default(),
-        fee_tier: accounts
-            .discount_token_account
-            .map(|a| FeeTier::get(&market_state, a, accounts.user_owner.key))
-            .unwrap_or(Ok(FeeTier::Base))?,
+        fee_tier: fee_tier as u8
+            | ((accounts.fee_referral_account.is_some() as u8) * REFERRAL_MASK),
     };
     if *side == Side::Bid as u8 {
         // We make sure to leave enough quote quantity to pay for taker fees in the worst case
-        quote_qty = callback_info.fee_tier.remove_taker_fee(quote_qty);
+        quote_qty = fee_tier.remove_taker_fee(quote_qty);
     }
 
     let orderbook = agnostic_orderbook::state::MarketState::get(accounts.orderbook)?;
@@ -205,7 +249,6 @@ pub(crate) fn process(
         event_queue: accounts.event_queue,
         bids: accounts.bids,
         asks: accounts.asks,
-        authority: accounts.system_program, // No impact with AOB as a lib
     };
 
     if let Err(error) = agnostic_orderbook::instruction::new_order::process(
@@ -219,35 +262,30 @@ pub(crate) fn process(
 
     let mut order_summary: OrderSummary = read_register(accounts.event_queue).unwrap().unwrap();
 
-    let (base_transfer_qty, quote_transfer_qty, is_valid) =
+    let referral_fee = fee_tier.referral_fee(order_summary.total_quote_qty);
+    let (is_valid, base_transfer_qty, quote_transfer_qty) =
         match FromPrimitive::from_u8(*side).unwrap() {
             Side::Bid => {
                 // We update the order summary to properly handle the FOK order type
-                order_summary.total_quote_qty += callback_info
-                    .fee_tier
-                    .taker_fee(order_summary.total_quote_qty);
+                order_summary.total_quote_qty += fee_tier.taker_fee(order_summary.total_quote_qty);
 
-                let is_valid = order_summary.total_quote_qty == quote_qty
-                    && order_summary.total_base_qty >= *base_qty;
+                let is_valid = order_summary.total_base_qty >= *base_qty;
 
                 (
+                    is_valid,
                     order_summary.total_base_qty,
                     order_summary.total_quote_qty,
-                    is_valid,
                 )
             }
             Side::Ask => {
-                let taker_fee = callback_info
-                    .fee_tier
-                    .taker_fee(order_summary.total_quote_qty);
+                let taker_fee = fee_tier.taker_fee(order_summary.total_quote_qty);
 
-                let is_valid = order_summary.total_base_qty == *base_qty
-                    && order_summary.total_quote_qty >= quote_qty;
+                let is_valid = order_summary.total_quote_qty >= quote_qty;
 
                 (
+                    is_valid,
                     order_summary.total_base_qty,
                     order_summary.total_quote_qty - taker_fee,
-                    is_valid,
                 )
             }
         };
@@ -321,6 +359,31 @@ pub(crate) fn process(
             &[market_state.signer_nonce as u8],
         ]],
     )?;
+
+    if let Some(fee_token_account) = accounts.fee_referral_account {
+        let referral_fee_transfer_instruction = spl_token::instruction::transfer(
+            accounts.spl_token_program.key,
+            accounts.quote_vault.key,
+            fee_token_account.key,
+            accounts.user_owner.key,
+            &[],
+            referral_fee,
+        )?;
+
+        invoke_signed(
+            &referral_fee_transfer_instruction,
+            &[
+                accounts.spl_token_program.clone(),
+                accounts.quote_vault.clone(),
+                fee_token_account.clone(),
+                accounts.user_owner.clone(),
+            ],
+            &[&[
+                &accounts.market.key.to_bytes(),
+                &[market_state.signer_nonce as u8],
+            ]],
+        )?;
+    }
 
     Ok(())
 }

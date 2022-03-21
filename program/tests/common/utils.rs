@@ -1,4 +1,4 @@
-use agnostic_orderbook::state::{EVENT_QUEUE_HEADER_LEN, MARKET_STATE_LEN, REGISTER_SIZE};
+use agnostic_orderbook::state::{MARKET_STATE_LEN, REGISTER_SIZE};
 use dex_v4::CALLBACK_INFO_LEN;
 use solana_program::instruction::Instruction;
 use solana_program::program_pack::Pack;
