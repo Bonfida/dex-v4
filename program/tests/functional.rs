@@ -1,13 +1,13 @@
 use agnostic_orderbook::state::MarketState;
 use bytemuck::try_from_bytes;
 use bytemuck::try_from_bytes_mut;
-use dex_v4::instruction::cancel_order;
-use dex_v4::instruction::consume_events;
-use dex_v4::instruction::create_market;
-use dex_v4::instruction::initialize_account;
-use dex_v4::instruction::new_order;
-use dex_v4::instruction::settle;
-use dex_v4::instruction::swap;
+use dex_v4::instruction_auto::cancel_order;
+use dex_v4::instruction_auto::consume_events;
+use dex_v4::instruction_auto::create_market;
+use dex_v4::instruction_auto::initialize_account;
+use dex_v4::instruction_auto::new_order;
+use dex_v4::instruction_auto::settle;
+use dex_v4::instruction_auto::swap;
 use dex_v4::state::UserAccountHeader;
 use dex_v4::state::DEX_STATE_LEN;
 use dex_v4::state::USER_ACCOUNT_HEADER_LEN;
@@ -83,7 +83,7 @@ async fn test_dex() {
     let market_admin = Keypair::new();
     let create_market_instruction = create_market(
         dex_program_id,
-        dex_v4::instruction::create_market::Accounts {
+        dex_v4::instruction_auto::create_market::Accounts {
             base_vault: &base_vault,
             quote_vault: &quote_vault,
             market: &market_account.pubkey(),
