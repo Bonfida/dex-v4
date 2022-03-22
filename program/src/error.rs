@@ -46,6 +46,8 @@ pub enum DexError {
     InvalidStateAccountOwner,
     #[error("The AOB instruction call returned an error")]
     AOBError,
+    #[error("Invalid sweep authority account provided")]
+    InvalidSweepAuthority,
 }
 
 impl From<DexError> for ProgramError {

@@ -2,7 +2,6 @@ use solana_program::{
     account_info::AccountInfo, entrypoint::ProgramResult, program_error::ProgramError,
     pubkey::Pubkey,
 };
-
 use crate::error::DexError;
 
 // Safety verification functions

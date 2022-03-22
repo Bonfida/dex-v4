@@ -3,6 +3,7 @@ use crate::{
     error::DexError,
     state::DexState,
     utils::{check_account_key, check_account_owner, check_signer},
+    processor,
 };
 use bonfida_utils::BorshSize;
 use bonfida_utils::InstructionsAccount;
@@ -31,9 +32,9 @@ pub struct Accounts<'a, T> {
     /// The DEX market signer
     market_signer: &'a T,
 
-    /// The market admin
+    /// The sweep authority for the DEX program
     #[cons(signer)]
-    market_admin: &'a T,
+    sweep_authority: &'a T,
 
     /// The market quote token vault
     #[cons(writable)]
@@ -57,20 +58,25 @@ impl<'a, 'b: 'a> Accounts<'a, AccountInfo<'b>> {
         let a = Self {
             market: next_account_info(accounts_iter)?,
             market_signer: next_account_info(accounts_iter)?,
-            market_admin: next_account_info(accounts_iter)?,
+            sweep_authority: next_account_info(accounts_iter)?,
             quote_vault: next_account_info(accounts_iter)?,
             destination_token_account: next_account_info(accounts_iter)?,
             spl_token_program: next_account_info(accounts_iter)?,
         };
 
-        check_signer(a.market_admin).map_err(|e| {
-            msg!("The market admin should be a signer for this instruction!");
+        check_signer(a.sweep_authority).map_err(|e| {
+            msg!("The sweep authority of the program should be a signer for this instruction!");
             e
         })?;
         check_account_key(
             a.spl_token_program,
             &spl_token::ID.to_bytes(),
             DexError::InvalidSplTokenProgram,
+        )?;
+        check_account_key(
+            a.sweep_authority,
+            &processor::SWEEP_AUTHORITY.to_bytes(),
+            DexError::InvalidSweepAuthority,
         )?;
         check_account_owner(a.market, program_id, DexError::InvalidStateAccountOwner)?;
 
@@ -139,10 +145,10 @@ fn check_accounts(
         &market_state.quote_vault,
         DexError::InvalidQuoteVaultAccount,
     )?;
-    check_account_key(
-        accounts.market_admin,
-        &market_state.admin,
-        DexError::InvalidMarketAdminAccount,
-    )?;
+    // check_account_key(
+    //     accounts.market_admin,
+    //     &market_state.admin,
+    //     DexError::InvalidMarketAdminAccount,
+    // )?;
     Ok(())
 }

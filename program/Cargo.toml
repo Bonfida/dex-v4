@@ -11,7 +11,7 @@ no-entrypoint = []
 
 [dependencies]
 num-derive = "0.3.3"
-solana-program = "1.8.0"
+solana-program = "1.10.2"
 bytemuck = {version = "1.7.2", features = ["derive"]}
 num_enum = "0.5.4"
 borsh = "0.9.1"
