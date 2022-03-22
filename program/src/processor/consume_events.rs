@@ -165,8 +165,8 @@ fn consume_event(
             let maker_account_info = &accounts[accounts
                 .binary_search_by_key(&maker_info.user_account, |k| *k.key)
                 .map_err(|_| DexError::MissingUserAccount)?];
-            let mut maker_account = UserAccount::get(maker_account_info).unwrap();
             let (taker_fee_tier, is_referred) = FeeTier::from_u8(taker_info.fee_tier);
+            let mut maker_account = UserAccount::get(maker_account_info).unwrap();
             if taker_info.user_account == maker_info.user_account {
                 let maker_rebate = taker_fee_tier.maker_rebate(quote_size);
                 maker_account.header.quote_token_free = maker_account

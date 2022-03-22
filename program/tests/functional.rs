@@ -1,12 +1,13 @@
 use agnostic_orderbook::state::MarketState;
 use bytemuck::try_from_bytes;
 use bytemuck::try_from_bytes_mut;
-use dex_v4::instruction::cancel_order;
-use dex_v4::instruction::consume_events;
-use dex_v4::instruction::create_market;
-use dex_v4::instruction::initialize_account;
-use dex_v4::instruction::new_order;
-use dex_v4::instruction::settle;
+use dex_v4::instruction_auto::cancel_order;
+use dex_v4::instruction_auto::consume_events;
+use dex_v4::instruction_auto::create_market;
+use dex_v4::instruction_auto::initialize_account;
+use dex_v4::instruction_auto::new_order;
+use dex_v4::instruction_auto::settle;
+use dex_v4::instruction_auto::swap;
 use dex_v4::state::UserAccountHeader;
 use dex_v4::state::DEX_STATE_LEN;
 use dex_v4::state::USER_ACCOUNT_HEADER_LEN;
@@ -82,7 +83,7 @@ async fn test_dex() {
     let market_admin = Keypair::new();
     let create_market_instruction = create_market(
         dex_program_id,
-        dex_v4::instruction::create_market::Accounts {
+        dex_v4::instruction_auto::create_market::Accounts {
             base_vault: &base_vault,
             quote_vault: &quote_vault,
             market: &market_account.pubkey(),
@@ -94,7 +95,7 @@ async fn test_dex() {
         },
         create_market::Params {
             signer_nonce: signer_nonce as u64,
-            min_base_order_size: 1000,
+            min_base_order_size: 10,
             tick_size: 1,
             cranker_reward: 0,
         },
@@ -223,7 +224,7 @@ async fn test_dex() {
         },
         new_order::Params {
             side: agnostic_orderbook::state::Side::Ask as u8,
-            limit_price: 1000,
+            limit_price: 1 << 32,
             max_base_qty: 100_000,
             max_quote_qty: 100_000,
             order_type: new_order::OrderType::Limit as u8,
@@ -280,7 +281,7 @@ async fn test_dex() {
     .await
     .unwrap();
 
-    // New Order, to be matched
+    // New Order, to be matched, places 1000 units @ 1000 price
     let new_order_instruction = new_order(
         dex_program_id,
         new_order::Accounts {
@@ -319,7 +320,7 @@ async fn test_dex() {
     .await
     .unwrap();
 
-    // New Order, matching
+    // New Order, matching, takes 100 units @ 1000 price
     let new_order_instruction = new_order(
         dex_program_id,
         new_order::Accounts {
@@ -343,7 +344,7 @@ async fn test_dex() {
             limit_price: 1000 << 32,
             max_base_qty: 100000,
             max_quote_qty: 100000,
-            order_type: new_order::OrderType::Limit as u8,
+            order_type: new_order::OrderType::ImmediateOrCancel as u8,
             self_trade_behavior: agnostic_orderbook::state::SelfTradeBehavior::DecrementTake as u8,
             match_limit: 10,
             has_discount_token_account: false as u8,
@@ -395,6 +396,43 @@ async fn test_dex() {
     sign_send_instructions(
         &mut prg_test_ctx,
         vec![settle_instruction],
+        vec![&user_account_owner],
+    )
+    .await
+    .unwrap();
+
+    // Swap, matching, takes 10 units @ 1000 price
+    let new_order_instruction = swap(
+        dex_program_id,
+        swap::Accounts {
+            spl_token_program: &spl_token::ID,
+            system_program: &system_program::ID,
+            market: &market_account.pubkey(),
+            orderbook: &aaob_accounts.market,
+            event_queue: &Pubkey::new(&aaob_market_state.event_queue),
+            bids: &Pubkey::new(&aaob_market_state.bids),
+            asks: &Pubkey::new(&aaob_market_state.asks),
+            base_vault: &base_vault,
+            quote_vault: &quote_vault,
+            market_signer: &market_signer,
+            user_base_account: &user_base_token_account,
+            user_quote_account: &user_quote_token_account,
+            user_owner: &user_account_owner.pubkey(),
+            discount_token_account: None,
+            fee_referral_account: None,
+        },
+        swap::Params {
+            side: agnostic_orderbook::state::Side::Bid as u8,
+            base_qty: 10,
+            quote_qty: 100000,
+            match_limit: 10,
+            has_discount_token_account: 0,
+            _padding: [0; 6],
+        },
+    );
+    sign_send_instructions(
+        &mut prg_test_ctx,
+        vec![new_order_instruction],
         vec![&user_account_owner],
     )
     .await
