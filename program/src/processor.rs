@@ -4,7 +4,7 @@ use solana_program::{
     pubkey::Pubkey,
 };
 
-use crate::instruction::DexInstruction;
+use crate::instruction_auto::DexInstruction;
 
 ////////////////////////////////////////////////////////////
 // Constants

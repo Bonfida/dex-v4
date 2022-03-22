@@ -2,7 +2,7 @@
 use crate::processor::close_account;
 pub use crate::processor::{
     cancel_order, close_market, consume_events, create_market, initialize_account, new_order,
-    settle, sweep_fees,
+    settle, swap, sweep_fees,
 };
 use bonfida_utils::InstructionsAccount;
 use num_derive::{FromPrimitive, ToPrimitive};
@@ -40,7 +40,27 @@ pub enum DexInstruction {
     /// | 10    | ✅        | ❌      | The user source token account                                                      |
     /// | 11    | ✅        | ✅      | The user wallet                                                                    |
     /// | 12    | ❌        | ❌      | The optional SRM or MSRM discount token account (must be owned by the user wallet) |
+    /// | 13    | ✅        | ❌      | The optional referrer's token account which will receive a 20% cut of the fees     |
     NewOrder,
+    /// 
+    /// | Index | Writable | Signer | Description                                                                        |
+    /// | -------------------------------------------------------------------------------------------------------------- |
+    /// | 0     | ❌        | ❌      | The SPL token program                                                              |
+    /// | 1     | ❌        | ❌      | The system program                                                                 |
+    /// | 2     | ✅        | ❌      | The DEX market                                                                     |
+    /// | 3     | ✅        | ❌      | The orderbook                                                                      |
+    /// | 4     | ✅        | ❌      | The AOB event queue                                                                |
+    /// | 5     | ✅        | ❌      | The AOB bids shared memory                                                         |
+    /// | 6     | ✅        | ❌      | The AOB asks shared memory                                                         |
+    /// | 7     | ✅        | ❌      | The base token vault                                                               |
+    /// | 8     | ✅        | ❌      | The quote token vault                                                              |
+    /// | 9     | ❌        | ❌      | The DEX market signer                                                              |
+    /// | 10    | ✅        | ❌      | The user base token account                                                        |
+    /// | 11    | ✅        | ❌      | The user quote token account                                                       |
+    /// | 12    | ✅        | ✅      | The user wallet                                                                    |
+    /// | 13    | ❌        | ❌      | The optional SRM or MSRM discount token account (must be owned by the user wallet) |
+    /// | 14    | ✅        | ❌      | The optional referrer's token account which will receive a 20% cut of the fees     |
+    Swap,
     /// Cancel an existing order and remove it from the orderbook.
     /// 
     /// | Index | Writable | Signer | Description                |
@@ -137,6 +157,14 @@ pub fn new_order(
     params: new_order::Params,
 ) -> Instruction {
     accounts.get_instruction_cast(program_id, DexInstruction::NewOrder as u8, params)
+}
+///  Execute a swap on the orderbook.
+pub fn swap(
+    program_id: Pubkey,
+    accounts: swap::Accounts<Pubkey>,
+    params: swap::Params,
+) -> Instruction {
+    accounts.get_instruction_cast(program_id, DexInstruction::Swap as u8, params)
 }
 ///  Cancel an existing order and remove it from the orderbook.
 pub fn cancel_order(

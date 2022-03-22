@@ -10,7 +10,7 @@ pub mod entrypoint;
 #[doc(hidden)]
 pub mod error;
 /// Program instructions and their CPI-compatible bindings
-pub mod instruction;
+pub mod instruction_auto;
 /// Describes the different data structres that the program uses to encode state
 pub mod state;
 
