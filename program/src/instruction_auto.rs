@@ -81,7 +81,7 @@ pub enum DexInstruction {
     /// | 1     | ✅        | ❌      | The orderbook              |
     /// | 2     | ✅        | ❌      | The AOB event queue        |
     /// | 3     | ✅        | ❌      | The reward target          |
-    /// | 4     | ✅        | ❌      | The relevant user accounts |
+    /// | 4..4 + N | ✅        | ❌      | The relevant user accounts |
     ConsumeEvents,
     /// Extract available base and quote token assets from a user account
     /// 
