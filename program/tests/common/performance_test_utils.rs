@@ -493,6 +493,7 @@ pub async fn serum_dex_new_order(
         serum_dex::instruction::SelfTradeBehavior::DecrementTake,
         10,
         max_native_pc_qty_including_fees.try_into().unwrap(),
+        10,
     )
     .unwrap();
     sign_send_instructions(
