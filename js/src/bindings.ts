@@ -307,7 +307,7 @@ export const swap = async (
   ownerQuoteTokenAccount: PublicKey,
   owner: PublicKey,
   discountTokenAccount?: PublicKey,
-  referralFeeAccount?: PublicKey,
+  referralFeeAccount?: PublicKey
 ) => {
   // Market signer
   const [marketSigner] = await PublicKey.findProgramAddress(
@@ -322,10 +322,12 @@ export const swap = async (
 
   const instruction = new swapInstruction({
     side: side as number,
-    baseQty: side === Side.Bid ? minOutputQuantity : inputQuantity,
-    quoteQty: side === Side.Bid ? inputQuantity : minOutputQuantity,
+    baseQty:
+      side === Side.Bid ? new BN(minOutputQuantity) : new BN(inputQuantity),
+    quoteQty:
+      side === Side.Bid ? new BN(inputQuantity) : new BN(minOutputQuantity),
     matchLimit: new BN(Number.MAX_SAFE_INTEGER), // TODO Change
-    hasDiscountTokenAccount: discountTokenAccount !== undefined,
+    hasDiscountTokenAccount: Number(discountTokenAccount !== undefined),
   }).getInstruction(
     DEX_ID,
     TOKEN_PROGRAM_ID,
@@ -342,7 +344,7 @@ export const swap = async (
     ownerQuoteTokenAccount,
     owner,
     discountTokenAccount,
-    referralFeeAccount,
+    referralFeeAccount
   );
 
   return instruction;
