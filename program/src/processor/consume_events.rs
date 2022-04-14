@@ -331,7 +331,12 @@ fn consume_event(
                             .header
                             .base_token_free
                             .checked_add(base_size)
-                            .unwrap()
+                            .unwrap();
+                        user_account.header.base_token_locked = user_account
+                            .header
+                            .base_token_locked
+                            .checked_sub(base_size)
+                            .unwrap();
                     }
                     Side::Bid => {
                         let price = (order_id >> 64) as u64;
@@ -340,6 +345,11 @@ fn consume_event(
                             .header
                             .quote_token_free
                             .checked_add(qty_to_transfer.unwrap())
+                            .unwrap();
+                        user_account.header.quote_token_locked = user_account
+                            .header
+                            .quote_token_locked
+                            .checked_sub(qty_to_transfer.unwrap())
                             .unwrap();
                     }
                 }
