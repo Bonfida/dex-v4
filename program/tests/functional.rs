@@ -374,7 +374,10 @@ async fn test_dex() {
             reward_target: &reward_target.pubkey(),
             user_accounts: &[user_account],
         },
-        consume_events::Params { max_iterations: 10 },
+        consume_events::Params {
+            max_iterations: 10,
+            no_op_err: 1,
+        },
     );
     sign_send_instructions(&mut prg_test_ctx, vec![consume_events_instruction], vec![])
         .await

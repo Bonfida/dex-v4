@@ -33,6 +33,11 @@ The required arguments for a consume_events instruction.
 pub struct Params {
     /// The maximum number of events to consume
     pub max_iterations: u64,
+    /// Decide if the transaction will fail when there are no events to consume.
+    /// Useful for preflight verification.
+    /// Value should be 0 or 1.
+    /// Is u64 to allow for type casting.
+    pub no_op_err: u64,
 }
 
 #[derive(InstructionsAccount)]
@@ -85,8 +90,10 @@ pub(crate) fn process(
 ) -> ProgramResult {
     let accounts = Accounts::parse(program_id, accounts)?;
 
-    let Params { max_iterations } =
-        try_from_bytes(instruction_data).map_err(|_| ProgramError::InvalidInstructionData)?;
+    let Params {
+        max_iterations,
+        no_op_err,
+    } = try_from_bytes(instruction_data).map_err(|_| ProgramError::InvalidInstructionData)?;
 
     let mut market_state = DexState::get(accounts.market)?;
 
@@ -109,7 +116,7 @@ pub(crate) fn process(
         total_iterations += 1;
     }
 
-    if total_iterations == 0 {
+    if total_iterations == 0 && *no_op_err == 1 {
         msg!("Failed to complete one iteration");
         return Err(DexError::NoOp.into());
     }
