@@ -217,72 +217,6 @@ export class closeMarketInstruction {
     });
   }
 }
-export class consumeEventsInstruction {
-  tag: BN;
-  maxIterations: BN;
-  static schema: Schema = new Map([
-    [
-      consumeEventsInstruction,
-      {
-        kind: "struct",
-        fields: [
-          ["tag", "u64"],
-          ["maxIterations", "u64"],
-        ],
-      },
-    ],
-  ]);
-  constructor(obj: { maxIterations: BN }) {
-    this.tag = new BN(4);
-    this.maxIterations = obj.maxIterations;
-  }
-  serialize(): Uint8Array {
-    return serialize(consumeEventsInstruction.schema, this);
-  }
-  getInstruction(
-    programId: PublicKey,
-    market: PublicKey,
-    orderbook: PublicKey,
-    eventQueue: PublicKey,
-    rewardTarget: PublicKey,
-    userAccounts: PublicKey[]
-  ): TransactionInstruction {
-    const data = Buffer.from(this.serialize());
-    let keys: AccountKey[] = [];
-    keys.push({
-      pubkey: market,
-      isSigner: false,
-      isWritable: true,
-    });
-    keys.push({
-      pubkey: orderbook,
-      isSigner: false,
-      isWritable: true,
-    });
-    keys.push({
-      pubkey: eventQueue,
-      isSigner: false,
-      isWritable: true,
-    });
-    keys.push({
-      pubkey: rewardTarget,
-      isSigner: false,
-      isWritable: true,
-    });
-    for (let k of userAccounts) {
-      keys.push({
-        pubkey: k,
-        isSigner: false,
-        isWritable: true,
-      });
-    }
-    return new TransactionInstruction({
-      keys,
-      programId,
-      data,
-    });
-  }
-}
 export class createMarketInstruction {
   tag: BN;
   signerNonce: BN;
@@ -889,6 +823,75 @@ export class sweepFeesInstruction {
       isSigner: false,
       isWritable: false,
     });
+    return new TransactionInstruction({
+      keys,
+      programId,
+      data,
+    });
+  }
+}
+export class consumeEventsInstruction {
+  tag: BN;
+  maxIterations: BN;
+  noOpErr: BN;
+  static schema: Schema = new Map([
+    [
+      consumeEventsInstruction,
+      {
+        kind: "struct",
+        fields: [
+          ["tag", "u64"],
+          ["maxIterations", "u64"],
+          ["noOpErr", "u64"],
+        ],
+      },
+    ],
+  ]);
+  constructor(obj: { maxIterations: BN; noOpErr: BN }) {
+    this.tag = new BN(4);
+    this.maxIterations = obj.maxIterations;
+    this.noOpErr = obj.noOpErr;
+  }
+  serialize(): Uint8Array {
+    return serialize(consumeEventsInstruction.schema, this);
+  }
+  getInstruction(
+    programId: PublicKey,
+    market: PublicKey,
+    orderbook: PublicKey,
+    eventQueue: PublicKey,
+    rewardTarget: PublicKey,
+    userAccounts: PublicKey[]
+  ): TransactionInstruction {
+    const data = Buffer.from(this.serialize());
+    let keys: AccountKey[] = [];
+    keys.push({
+      pubkey: market,
+      isSigner: false,
+      isWritable: true,
+    });
+    keys.push({
+      pubkey: orderbook,
+      isSigner: false,
+      isWritable: true,
+    });
+    keys.push({
+      pubkey: eventQueue,
+      isSigner: false,
+      isWritable: true,
+    });
+    keys.push({
+      pubkey: rewardTarget,
+      isSigner: false,
+      isWritable: true,
+    });
+    for (let k of userAccounts) {
+      keys.push({
+        pubkey: k,
+        isSigner: false,
+        isWritable: true,
+      });
+    }
     return new TransactionInstruction({
       keys,
       programId,
