@@ -2,7 +2,7 @@
 use crate::{
     error::DexError,
     state::{CallBackInfo, DexState, FeeTier, Order, UserAccount},
-    utils::{check_account_key, check_signer},
+    utils::{check_account_key, check_signer, check_token_account_owner},
     utils::{check_account_owner, fp32_mul},
 };
 use agnostic_orderbook::error::AoError;
@@ -169,11 +169,7 @@ impl<'a, 'b: 'a> Accounts<'a, AccountInfo<'b>> {
             DexError::InvalidSystemProgramAccount,
         )?;
         if let Some(discount_account) = a.discount_token_account {
-            check_account_owner(
-                discount_account,
-                a.user_owner.key,
-                DexError::InvalidStateAccountOwner,
-            )?;
+            check_token_account_owner(discount_account, a.user_owner.key)?
         }
         check_account_owner(a.user, program_id, DexError::InvalidStateAccountOwner)?;
         check_account_owner(a.market, program_id, DexError::InvalidStateAccountOwner)?;
