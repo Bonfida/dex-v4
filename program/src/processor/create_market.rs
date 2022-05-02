@@ -87,6 +87,16 @@ impl<'a, 'b: 'a> Accounts<'a, AccountInfo<'b>> {
         };
         check_account_owner(a.market, program_id, DexError::InvalidStateAccountOwner)?;
         check_account_owner(a.orderbook, program_id, DexError::InvalidStateAccountOwner)?;
+        check_account_owner(
+            a.base_vault,
+            &spl_token::ID,
+            DexError::InvalidStateAccountOwner,
+        )?;
+        check_account_owner(
+            a.quote_vault,
+            &spl_token::ID,
+            DexError::InvalidStateAccountOwner,
+        )?;
 
         Ok(a)
     }
