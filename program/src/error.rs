@@ -48,6 +48,8 @@ pub enum DexError {
     AOBError,
     #[error("Invalid sweep authority account provided")]
     InvalidSweepAuthority,
+    #[error("Numerical overflow")]
+    NumericalOverflow,
 }
 
 impl From<DexError> for ProgramError {

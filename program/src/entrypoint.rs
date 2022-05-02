@@ -70,6 +70,9 @@ impl PrintProgramError for DexError {
             DexError::InvalidSweepAuthority => {
                 msg!("Error: Invalid sweep authority account provided")
             }
+            DexError::NumericalOverflow => {
+                msg!("Error: Numerical overflow")
+            }
         }
     }
 }
