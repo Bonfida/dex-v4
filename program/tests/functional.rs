@@ -2,6 +2,7 @@ use agnostic_orderbook::state::MarketState;
 use bytemuck::try_from_bytes;
 use bytemuck::try_from_bytes_mut;
 use dex_v4::instruction_auto::cancel_order;
+use dex_v4::instruction_auto::close_market;
 use dex_v4::instruction_auto::consume_events;
 use dex_v4::instruction_auto::create_market;
 use dex_v4::instruction_auto::initialize_account;
@@ -103,6 +104,32 @@ async fn test_dex() {
     sign_send_instructions(&mut prg_test_ctx, vec![create_market_instruction], vec![])
         .await
         .unwrap();
+
+    // close the market
+    // let close_market_instruction = close_market(
+    //     dex_program_id,
+    //     dex_v4::instruction_auto::close_market::Accounts {
+    //         base_vault: &base_vault,
+    //         quote_vault: &quote_vault,
+    //         market: &market_account.pubkey(),
+    //         orderbook: &aaob_accounts.market,
+    //         market_admin: &market_admin.pubkey(),
+    //         event_queue: &aaob_accounts.event_queue,
+    //         asks: &aaob_accounts.asks,
+    //         bids: &aaob_accounts.bids,
+    //         target_lamports_account: &Pubkey::new_unique(),
+    //         market_signer: &market_signer,
+    //         spl_token_program: &spl_token::ID,
+    //     },
+    //     close_market::Params {},
+    // );
+    // sign_send_instructions(
+    //     &mut prg_test_ctx,
+    //     vec![close_market_instruction],
+    //     vec![&market_admin],
+    // )
+    // .await
+    // .unwrap();
 
     // Create User accounts
     let user_account_owner = Keypair::new();
