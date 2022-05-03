@@ -16,7 +16,7 @@ use crate::{
 #[allow(missing_docs)]
 #[repr(u64)]
 pub enum AccountTag {
-    Uninitialized,
+    Uninitialized = 1 << 63,
     DexState,
     UserAccount,
     Closed,
