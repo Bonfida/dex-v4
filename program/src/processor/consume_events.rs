@@ -205,12 +205,22 @@ fn consume_event(
                             .base_token_locked
                             .checked_sub(base_size)
                             .unwrap();
+                        maker_account.header.base_token_free = maker_account
+                            .header
+                            .base_token_free
+                            .checked_add(base_size)
+                            .unwrap();
                     }
                     Side::Ask => {
                         maker_account.header.quote_token_locked = maker_account
                             .header
                             .quote_token_locked
                             .checked_sub(quote_size)
+                            .unwrap();
+                        maker_account.header.quote_token_free = maker_account
+                            .header
+                            .quote_token_free
+                            .checked_add(quote_size)
                             .unwrap();
                     }
                 };
