@@ -174,137 +174,72 @@ fn consume_event(
                 .map_err(|_| DexError::MissingUserAccount)?];
             let (taker_fee_tier, is_referred) = FeeTier::from_u8(taker_info.fee_tier);
             let mut maker_account = UserAccount::get(maker_account_info).unwrap();
-            if taker_info.user_account == maker_info.user_account {
-                let maker_rebate = taker_fee_tier.maker_rebate(quote_size);
-                maker_account.header.quote_token_free = maker_account
-                    .header
-                    .quote_token_free
-                    .checked_add(maker_rebate)
-                    .unwrap();
-                maker_account.header.accumulated_rebates = maker_account
-                    .header
-                    .accumulated_rebates
-                    .checked_add(maker_rebate)
-                    .unwrap();
-                let taker_fee = taker_fee_tier.taker_fee(quote_size);
-                let mut total_fees = taker_fee.checked_sub(maker_rebate).unwrap();
-                if is_referred {
-                    total_fees = total_fees
-                        .checked_sub(taker_fee_tier.referral_fee(quote_size))
+            let (maker_fee_tier, _) = FeeTier::from_u8(maker_info.fee_tier);
+            let taker_fee = taker_fee_tier.taker_fee(quote_size);
+            let maker_rebate = maker_fee_tier.maker_rebate(quote_size);
+            let referral_fee = if is_referred {
+                taker_fee_tier.referral_fee(quote_size)
+            } else {
+                0
+            };
+            let total_fees = taker_fee
+                .checked_sub(maker_rebate)
+                .and_then(|n| n.checked_sub(referral_fee))
+                .unwrap();
+
+            market_state.accumulated_fees = market_state
+                .accumulated_fees
+                .checked_add(total_fees)
+                .unwrap();
+
+            match taker_side {
+                Side::Bid => {
+                    maker_account.header.quote_token_free = maker_account
+                        .header
+                        .quote_token_free
+                        .checked_add(quote_size + maker_rebate)
+                        .unwrap();
+                    maker_account.header.accumulated_rebates += maker_rebate;
+                    maker_account.header.base_token_locked = maker_account
+                        .header
+                        .base_token_locked
+                        .checked_sub(base_size)
                         .unwrap();
                 }
-                market_state.accumulated_fees = market_state
-                    .accumulated_fees
-                    .checked_add(total_fees)
-                    .unwrap();
+                Side::Ask => {
+                    maker_account.header.base_token_free = maker_account
+                        .header
+                        .base_token_free
+                        .checked_add(base_size)
+                        .unwrap();
+                    maker_account.header.quote_token_locked = maker_account
+                        .header
+                        .quote_token_locked
+                        .checked_sub(quote_size)
+                        .unwrap();
+                    maker_account
+                        .header
+                        .quote_token_free
+                        .checked_add(maker_rebate)
+                        .unwrap();
+                    maker_account.header.accumulated_rebates += maker_rebate;
+                }
+            };
 
-                match taker_side {
-                    Side::Bid => {
-                        maker_account.header.base_token_locked = maker_account
-                            .header
-                            .base_token_locked
-                            .checked_sub(base_size)
-                            .unwrap();
-                    }
-                    Side::Ask => {
-                        maker_account.header.quote_token_locked = maker_account
-                            .header
-                            .quote_token_locked
-                            .checked_sub(quote_size)
-                            .unwrap();
-                    }
-                };
+            // Update user accounts metrics
+            maker_account.header.accumulated_maker_quote_volume = maker_account
+                .header
+                .accumulated_maker_quote_volume
+                .checked_add(quote_size)
+                .unwrap();
+            maker_account.header.accumulated_maker_base_volume = maker_account
+                .header
+                .accumulated_maker_base_volume
+                .checked_add(base_size)
+                .unwrap();
 
-                // Update user accounts metrics
-                maker_account.header.accumulated_maker_quote_volume = maker_account
-                    .header
-                    .accumulated_maker_quote_volume
-                    .checked_add(quote_size)
-                    .unwrap();
-                maker_account.header.accumulated_maker_base_volume = maker_account
-                    .header
-                    .accumulated_maker_base_volume
-                    .checked_add(base_size)
-                    .unwrap();
-                maker_account.header.accumulated_taker_quote_volume = maker_account
-                    .header
-                    .accumulated_taker_quote_volume
-                    .checked_add(quote_size)
-                    .unwrap();
-                maker_account.header.accumulated_taker_base_volume = maker_account
-                    .header
-                    .accumulated_taker_base_volume
-                    .checked_add(base_size)
-                    .unwrap();
-            } else {
-                let (maker_fee_tier, _) = FeeTier::from_u8(maker_info.fee_tier);
-                let taker_fee = taker_fee_tier.taker_fee(quote_size);
-                let maker_rebate = maker_fee_tier.maker_rebate(quote_size);
-                let referral_fee = if is_referred {
-                    taker_fee_tier.referral_fee(quote_size)
-                } else {
-                    0
-                };
-                let total_fees = taker_fee
-                    .checked_sub(maker_rebate)
-                    .and_then(|n| n.checked_sub(referral_fee))
-                    .unwrap();
-
-                market_state.accumulated_fees = market_state
-                    .accumulated_fees
-                    .checked_add(total_fees)
-                    .unwrap();
-
-                match taker_side {
-                    Side::Bid => {
-                        maker_account.header.quote_token_free = maker_account
-                            .header
-                            .quote_token_free
-                            .checked_add(quote_size + maker_rebate)
-                            .unwrap();
-                        maker_account.header.accumulated_rebates += maker_rebate;
-                        maker_account.header.base_token_locked = maker_account
-                            .header
-                            .base_token_locked
-                            .checked_sub(base_size)
-                            .unwrap();
-                    }
-                    Side::Ask => {
-                        maker_account.header.base_token_free = maker_account
-                            .header
-                            .base_token_free
-                            .checked_add(base_size)
-                            .unwrap();
-                        maker_account.header.quote_token_locked = maker_account
-                            .header
-                            .quote_token_locked
-                            .checked_sub(quote_size)
-                            .unwrap();
-                        maker_account
-                            .header
-                            .quote_token_free
-                            .checked_add(maker_rebate)
-                            .unwrap();
-                        maker_account.header.accumulated_rebates += maker_rebate;
-                    }
-                };
-
-                // Update user accounts metrics
-                maker_account.header.accumulated_maker_quote_volume = maker_account
-                    .header
-                    .accumulated_maker_quote_volume
-                    .checked_add(quote_size)
-                    .unwrap();
-                maker_account.header.accumulated_maker_base_volume = maker_account
-                    .header
-                    .accumulated_maker_base_volume
-                    .checked_add(base_size)
-                    .unwrap();
-
-                market_state.quote_volume =
-                    market_state.quote_volume.checked_add(quote_size).unwrap();
-                market_state.base_volume = market_state.base_volume.checked_add(base_size).unwrap();
-            }
+            market_state.quote_volume = market_state.quote_volume.checked_add(quote_size).unwrap();
+            market_state.base_volume = market_state.base_volume.checked_add(base_size).unwrap();
         }
         Event::Out {
             side,
