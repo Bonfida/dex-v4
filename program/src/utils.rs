@@ -1,9 +1,8 @@
 use crate::error::DexError;
 use solana_program::{
-    account_info::AccountInfo, entrypoint::ProgramResult, msg, program_error::ProgramError,
-    program_pack::Pack, pubkey::Pubkey,
+    account_info::AccountInfo, entrypoint::ProgramResult, program_error::ProgramError,
+    pubkey::Pubkey,
 };
-use spl_token::state::Account;
 
 // Safety verification functions
 pub fn check_account_key(
@@ -58,14 +57,4 @@ fn safe_downcast(n: u128) -> Option<u64> {
     } else {
         Some(n as u64)
     }
-}
-
-pub fn check_token_account_owner(account: &AccountInfo, owner: &Pubkey) -> Result<(), DexError> {
-    check_account_owner(account, &spl_token::ID, DexError::InvalidStateAccountOwner)?;
-    let token_acc = Account::unpack_from_slice(&account.data.borrow()).unwrap();
-    if token_acc.owner != *owner {
-        msg!("Invalid fee account owner");
-        return Err(DexError::InvalidStateAccountOwner);
-    }
-    Ok(())
 }

@@ -117,7 +117,7 @@ pub(crate) fn process(program_id: &Pubkey, accounts: &[AccountInfo]) -> ProgramR
 
     let mut market_state = DexState::get(accounts.market)?;
 
-    check_accounts(&program_id, &market_state, &accounts).unwrap();
+    check_accounts(program_id, &market_state, &accounts).unwrap();
 
     let base_vault_data = Account::unpack_from_slice(&accounts.base_vault.data.borrow_mut())?;
     let quote_vault_data = Account::unpack_from_slice(&accounts.quote_vault.data.borrow_mut())?;
