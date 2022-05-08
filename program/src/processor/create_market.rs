@@ -6,6 +6,7 @@ use crate::{
     CALLBACK_ID_LEN, CALLBACK_INFO_LEN,
 };
 use agnostic_orderbook::error::AoError;
+use bonfida_utils::checks::check_rent_exempt;
 use bonfida_utils::BorshSize;
 use bonfida_utils::InstructionsAccount;
 use borsh::BorshDeserialize;
@@ -85,6 +86,7 @@ impl<'a, 'b: 'a> Accounts<'a, AccountInfo<'b>> {
             asks: next_account_info(accounts_iter)?,
             bids: next_account_info(accounts_iter)?,
         };
+
         check_account_owner(a.market, program_id, DexError::InvalidStateAccountOwner)?;
         check_account_owner(a.orderbook, program_id, DexError::InvalidStateAccountOwner)?;
         check_account_owner(
@@ -108,6 +110,8 @@ pub(crate) fn process(
     instruction_data: &[u8],
 ) -> ProgramResult {
     let accounts = Accounts::parse(program_id, accounts)?;
+
+    check_rent(&accounts)?;
 
     let Params {
         signer_nonce,
@@ -189,4 +193,15 @@ fn check_vault_account_and_get_mint(
         return Err(ProgramError::InvalidArgument);
     }
     Ok(acc.mint)
+}
+
+fn check_rent<'a>(accounts: &Accounts<'a, AccountInfo>) -> ProgramResult {
+    check_rent_exempt(accounts.market)?;
+    check_rent_exempt(accounts.orderbook)?;
+    check_rent_exempt(accounts.base_vault)?;
+    check_rent_exempt(accounts.quote_vault)?;
+    check_rent_exempt(accounts.event_queue)?;
+    check_rent_exempt(accounts.asks)?;
+    check_rent_exempt(accounts.bids)?;
+    Ok(())
 }
