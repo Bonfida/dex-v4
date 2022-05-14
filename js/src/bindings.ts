@@ -256,11 +256,12 @@ export const settle = async (
   return instruction;
 };
 
-export const comsumEvents = async (
+export const consumeEvents = async (
   market: Market,
   rewardTarget: PublicKey,
   userAccounts: PublicKey[],
-  maxIterations: BN
+  maxIterations: BN,
+  noOpErr: BN,
 ) => {
   const [marketSigner] = await PublicKey.findProgramAddress(
     [market.address.toBuffer()],
@@ -269,6 +270,7 @@ export const comsumEvents = async (
 
   const instruction = new consumeEventsInstruction({
     maxIterations,
+    noOpErr,
   }).getInstruction(
     DEX_ID,
     market.address,
