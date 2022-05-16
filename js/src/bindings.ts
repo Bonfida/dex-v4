@@ -143,9 +143,12 @@ export const placeOrder = async (
     clientOrderId = new BN(crypto.randomBytes(16));
   }
 
+  const mul = Math.pow(10, market.quoteDecimals - market.baseDecimals);
+  const price = new BN(mul).mul(new BN(limitPrice)).mul(new BN(2 ** 32));
+
   const instruction = new newOrderInstruction({
     side: side as number,
-    limitPrice: new BN(limitPrice * 2 ** 32),
+    limitPrice: price,
     maxBaseQty: new BN(size),
     maxQuoteQty: new BN(Math.ceil(size * limitPrice)),
     orderType: type,
@@ -261,7 +264,7 @@ export const consumeEvents = async (
   rewardTarget: PublicKey,
   userAccounts: PublicKey[],
   maxIterations: BN,
-  noOpErr: BN,
+  noOpErr: BN
 ) => {
   const [marketSigner] = await PublicKey.findProgramAddress(
     [market.address.toBuffer()],
