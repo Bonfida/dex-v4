@@ -139,7 +139,9 @@ pub(crate) fn process(
             &[user_account_nonce],
         ]],
     )?;
-    let mut u = UserAccount::get_unchecked(accounts.user);
+
+    let mut user_account_data = accounts.user.data.borrow_mut();
+    let u = UserAccount::from_buffer_unchecked(&mut user_account_data)?;
 
     *(u.header) = UserAccountHeader::new(market, accounts.user_owner.key);
 

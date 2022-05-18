@@ -150,13 +150,13 @@ pub struct Order {
 
 impl Order {
     /// The length in bytes of the order's binary representation
-    pub const LEN: usize = 32;
+    pub const LEN: usize = std::mem::size_of::<Self>();
 }
 
 #[allow(missing_docs)]
 pub struct UserAccount<'a> {
-    pub header: RefMut<'a, UserAccountHeader>,
-    orders: RefMut<'a, [Order]>,
+    pub header: &'a mut UserAccountHeader,
+    orders: &'a mut [Order],
 }
 
 /// Size in bytes of the user account header object
@@ -184,26 +184,22 @@ impl UserAccountHeader {
 }
 
 impl<'a> UserAccount<'a> {
-    pub(crate) fn get<'b: 'a>(account_info: &'a AccountInfo<'b>) -> Result<Self, ProgramError> {
-        let a = Self::get_unchecked(account_info);
-        if a.header.tag != AccountTag::UserAccount as u64 {
+    #[allow(missing_docs)]
+    pub fn from_buffer(buf: &'a mut [u8]) -> Result<Self, ProgramError> {
+        let user_acc = UserAccount::from_buffer_unchecked(buf).unwrap();
+        if user_acc.header.tag != AccountTag::UserAccount as u64 {
             return Err(ProgramError::InvalidAccountData);
         };
-        Ok(a)
+        Ok(user_acc)
     }
 
-    pub(crate) fn get_unchecked<'b: 'a>(account_info: &'a AccountInfo<'b>) -> Self {
-        let a = RefMut::map_split(account_info.data.borrow_mut(), |s| {
-            let (hd, tl) = s.split_at_mut(USER_ACCOUNT_HEADER_LEN);
-            (
-                try_from_bytes_mut(hd).unwrap(),
-                try_cast_slice_mut(tl).unwrap(),
-            )
-        });
-        Self {
-            header: a.0,
-            orders: a.1,
-        }
+    #[allow(missing_docs)]
+    pub fn from_buffer_unchecked(buf: &'a mut [u8]) -> Result<Self, ProgramError> {
+        let (hd, tl) = buf.split_at_mut(USER_ACCOUNT_HEADER_LEN);
+        let header: &mut UserAccountHeader = try_from_bytes_mut(hd).unwrap();
+        let orders = try_cast_slice_mut(tl).unwrap();
+
+        Ok(Self { header, orders })
     }
 }
 

@@ -182,8 +182,11 @@ impl<'a, 'b: 'a> Accounts<'a, AccountInfo<'b>> {
         Ok(a)
     }
 
-    pub fn load_user_account(&self) -> Result<UserAccount<'a>, ProgramError> {
-        let user_account = UserAccount::get(self.user)?;
+    pub fn load_user_account(
+        &self,
+        user_account_data: &'a mut [u8],
+    ) -> Result<UserAccount<'a>, ProgramError> {
+        let user_account = UserAccount::from_buffer(user_account_data)?;
         if &user_account.header.owner != self.user_owner.key {
             msg!("Invalid user account owner provided!");
             return Err(ProgramError::InvalidArgument);
@@ -224,7 +227,8 @@ pub(crate) fn process(
     let accounts = Accounts::parse(program_id, accounts, *has_discount_token_account != 0)?;
 
     let market_state = DexState::get(accounts.market)?;
-    let mut user_account = accounts.load_user_account()?;
+    let mut user_account_data = accounts.user.data.borrow_mut();
+    let mut user_account = accounts.load_user_account(&mut user_account_data)?;
 
     // Check the order size
     if max_base_qty < &market_state.min_base_order_size {
