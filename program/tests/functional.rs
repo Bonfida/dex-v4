@@ -2,7 +2,6 @@ use agnostic_orderbook::state::MarketState;
 use bytemuck::try_from_bytes;
 use bytemuck::try_from_bytes_mut;
 use dex_v4::instruction_auto::cancel_order;
-use dex_v4::instruction_auto::close_market;
 use dex_v4::instruction_auto::consume_events;
 use dex_v4::instruction_auto::create_market;
 use dex_v4::instruction_auto::initialize_account;
@@ -299,6 +298,8 @@ async fn test_dex() {
                 let offset = USER_ACCOUNT_HEADER_LEN;
                 u128::from_le_bytes(user_acc_data[offset..offset + 16].try_into().unwrap())
             },
+            is_client_id: false,
+            _padding: [0u8; 7],
         },
     );
     sign_send_instructions(

@@ -13,7 +13,7 @@ use bonfida_utils::BorshSize;
 use bonfida_utils::InstructionsAccount;
 use borsh::BorshDeserialize;
 use borsh::BorshSerialize;
-use bytemuck::{try_from_bytes, Pod, Zeroable};
+use bytemuck::{CheckedBitPattern, NoUninit};
 use solana_program::{
     account_info::{next_account_info, AccountInfo},
     entrypoint::ProgramResult,
@@ -23,17 +23,22 @@ use solana_program::{
 };
 use std::rc::Rc;
 
-#[derive(Clone, Copy, Zeroable, Pod, BorshDeserialize, BorshSerialize, BorshSize)]
+#[derive(Clone, Copy, CheckedBitPattern, NoUninit, BorshDeserialize, BorshSerialize, BorshSize)]
 #[repr(C)]
 /**
 The required arguments for a cancel_order instruction.
 */
 pub struct Params {
-    /// The index in the user account of the order to cancel
-    pub order_index: u64,
     /// The order_id of the order to cancel. Redundancy is used here to avoid having to iterate over all
     /// open orders on chain.
     pub order_id: u128,
+    /// The index in the user account of the order to cancel
+    pub order_index: u64,
+    /// Decide wether the `order_id` param is the order id from the user account or a client_order_id which was
+    /// given by the user on creation.
+    /// The latter means the order_index param will be ignored.
+    pub is_client_id: bool,
+    pub _padding: [u8; 7],
 }
 
 #[derive(InstructionsAccount)]
@@ -110,13 +115,15 @@ pub(crate) fn process(
     accounts: &[AccountInfo],
     instruction_data: &[u8],
 ) -> ProgramResult {
-    let params =
-        try_from_bytes(instruction_data).map_err(|_| ProgramError::InvalidInstructionData)?;
+    let params = bytemuck::checked::try_from_bytes(instruction_data)
+        .map_err(|_| ProgramError::InvalidInstructionData)?;
     let accounts = Accounts::parse(program_id, accounts)?;
 
     let Params {
+        mut order_id,
         order_index,
-        order_id,
+        is_client_id,
+        _padding,
     } = params;
 
     let market_state = DexState::get(accounts.market)?;
@@ -124,16 +131,17 @@ pub(crate) fn process(
 
     check_accounts(&market_state, &accounts).unwrap();
 
-    let order_id_from_index = user_account.read_order(*order_index as usize)?.id;
-
-    if order_id != &order_id_from_index {
-        msg!("Order id does not match with the order at the given index!");
-        return Err(ProgramError::InvalidArgument);
+    if *is_client_id {
+        order_id = user_account.find_order_id_by_client_id(order_id).unwrap();
+    } else {
+        let order_id_from_index = user_account.read_order(*order_index as usize)?.id;
+        if order_id != order_id_from_index {
+            msg!("Order id does not match with the order at the given index!");
+            return Err(ProgramError::InvalidArgument);
+        }
     }
 
-    let invoke_params = agnostic_orderbook::instruction::cancel_order::Params {
-        order_id: *order_id,
-    };
+    let invoke_params = agnostic_orderbook::instruction::cancel_order::Params { order_id };
     let invoke_accounts = agnostic_orderbook::instruction::cancel_order::Accounts {
         market: accounts.orderbook,
         event_queue: accounts.event_queue,
@@ -160,7 +168,7 @@ pub(crate) fn process(
 
     let order_summary: OrderSummary = event_queue.read_register().unwrap().unwrap();
 
-    let side = get_side_from_order_id(*order_id);
+    let side = get_side_from_order_id(order_id);
 
     match side {
         Side::Bid => {

@@ -35,6 +35,8 @@ use super::REFERRAL_MASK;
 The required arguments for a new_order instruction.
 */
 pub struct Params {
+    /// The client order id number that will be stored in the user account
+    pub client_order_id: u128,
     /// The order's limit price (as a FP32)
     pub limit_price: u64,
     /// The max quantity of base token to match and post
@@ -45,7 +47,6 @@ pub struct Params {
     ///
     /// Setting this number too high can sometimes lead to excessive resource consumption which can cause a failure.
     pub match_limit: u64,
-    pub client_order_id: u128,
     /// The order's side (Bid or Ask)
     pub side: u8,
     /// The order type (supported types include Limit, FOK, IOC and PostOnly)

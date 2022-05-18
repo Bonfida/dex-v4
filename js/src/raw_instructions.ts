@@ -79,8 +79,10 @@ export class consumeEventsInstruction {
 }
 export class cancelOrderInstruction {
   tag: BN;
-  orderIndex: BN;
   orderId: BN;
+  orderIndex: BN;
+  isClientId: number;
+  padding: Uint8Array;
   static schema: Schema = new Map([
     [
       cancelOrderInstruction,
@@ -88,16 +90,20 @@ export class cancelOrderInstruction {
         kind: "struct",
         fields: [
           ["tag", "u64"],
-          ["orderIndex", "u64"],
           ["orderId", "u128"],
+          ["orderIndex", "u64"],
+          ["isClientId", "u8"],
+          ["padding", [7]],
         ],
       },
     ],
   ]);
-  constructor(obj: { orderIndex: BN; orderId: BN }) {
+  constructor(obj: { orderId: BN; orderIndex: BN; isClientId: number }) {
     this.tag = new BN(3);
-    this.orderIndex = obj.orderIndex;
     this.orderId = obj.orderId;
+    this.orderIndex = obj.orderIndex;
+    this.isClientId = obj.isClientId;
+    this.padding = new Uint8Array(7).fill(0);
   }
   serialize(): Uint8Array {
     return serialize(cancelOrderInstruction.schema, this);
@@ -457,11 +463,11 @@ export class initializeAccountInstruction {
 }
 export class newOrderInstruction {
   tag: BN;
+  clientOrderId: BN;
   limitPrice: BN;
   maxBaseQty: BN;
   maxQuoteQty: BN;
   matchLimit: BN;
-  clientOrderId: BN;
   side: number;
   orderType: number;
   selfTradeBehavior: number;
@@ -474,11 +480,11 @@ export class newOrderInstruction {
         kind: "struct",
         fields: [
           ["tag", "u64"],
+          ["clientOrderId", "u128"],
           ["limitPrice", "u64"],
           ["maxBaseQty", "u64"],
           ["maxQuoteQty", "u64"],
           ["matchLimit", "u64"],
-          ["clientOrderId", "u128"],
           ["side", "u8"],
           ["orderType", "u8"],
           ["selfTradeBehavior", "u8"],
@@ -489,22 +495,22 @@ export class newOrderInstruction {
     ],
   ]);
   constructor(obj: {
+    clientOrderId: BN;
     limitPrice: BN;
     maxBaseQty: BN;
     maxQuoteQty: BN;
     matchLimit: BN;
-    clientOrderId: BN;
     side: number;
     orderType: number;
     selfTradeBehavior: number;
     hasDiscountTokenAccount: number;
   }) {
     this.tag = new BN(1);
+    this.clientOrderId = obj.clientOrderId;
     this.limitPrice = obj.limitPrice;
     this.maxBaseQty = obj.maxBaseQty;
     this.maxQuoteQty = obj.maxQuoteQty;
     this.matchLimit = obj.matchLimit;
-    this.clientOrderId = obj.clientOrderId;
     this.side = obj.side;
     this.orderType = obj.orderType;
     this.selfTradeBehavior = obj.selfTradeBehavior;
