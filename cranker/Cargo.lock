@@ -262,15 +262,16 @@ dependencies = [
 
 [[package]]
 name = "bonfida-utils"
-version = "0.2.11"
+version = "0.2.12"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0de55392939054ec60454e98ad8befaadd58aea49027021c2f88ca5dd168695e"
+checksum = "54de4600e2bb8367d0f5e4100a272a738f2c3713611591504def19c0da482c22"
 dependencies = [
  "bonfida-macros",
  "borsh",
  "bytemuck",
  "pyth-sdk-solana",
  "solana-program",
+ "spl-token",
 ]
 
 [[package]]
@@ -342,18 +343,18 @@ dependencies = [
 
 [[package]]
 name = "bytemuck"
-version = "1.8.0"
+version = "1.9.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0e851ca7c24871e7336801608a4797d7376545b6928a10d32d75685687141ead"
+checksum = "cdead85bdec19c194affaeeb670c0e41fe23de31459efd1c174d049269cf02cc"
 dependencies = [
  "bytemuck_derive",
 ]
 
 [[package]]
 name = "bytemuck_derive"
-version = "1.0.1"
+version = "1.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8e215f8c2f9f79cb53c8335e687ffd07d5bfcb6fe5fc80723762d0be46e7cc54"
+checksum = "562e382481975bc61d11275ac5e62a19abd00b0547d99516a415336f183dcd0e"
 dependencies = [
  "proc-macro2 1.0.29",
  "quote 1.0.9",

@@ -142,12 +142,12 @@ impl<'a, 'b: 'a> Accounts<'a, AccountInfo<'b>> {
         })?;
         check_account_key(
             a.spl_token_program,
-            &spl_token::ID.to_bytes(),
+            &spl_token::ID,
             DexError::InvalidSplTokenProgram,
         )?;
         check_account_key(
             a.system_program,
-            &system_program::ID.to_bytes(),
+            &system_program::ID,
             DexError::InvalidSystemProgramAccount,
         )?;
         if let Some(discount_account) = a.discount_token_account {
@@ -401,7 +401,7 @@ fn check_accounts(
     )?;
     check_account_key(
         accounts.market_signer,
-        &market_signer.to_bytes(),
+        &market_signer,
         DexError::InvalidMarketSignerAccount,
     )?;
     check_account_key(

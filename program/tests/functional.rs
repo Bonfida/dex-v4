@@ -163,7 +163,7 @@ async fn test_dex() {
             fee_payer: &prg_test_ctx.payer.pubkey(),
         },
         initialize_account::Params {
-            market: market_account.pubkey().to_bytes(),
+            market: market_account.pubkey(),
             max_orders: 10,
         },
     );

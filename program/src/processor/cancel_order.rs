@@ -1,6 +1,5 @@
 //! Cancel an existing order and remove it from the orderbook.
-use std::rc::Rc;
-
+use super::CALLBACK_INFO_LEN;
 use crate::{
     error::DexError,
     state::{DexState, UserAccount},
@@ -22,8 +21,7 @@ use solana_program::{
     program_error::{PrintProgramError, ProgramError},
     pubkey::Pubkey,
 };
-
-use super::CALLBACK_INFO_LEN;
+use std::rc::Rc;
 
 #[derive(Clone, Copy, Zeroable, Pod, BorshDeserialize, BorshSerialize, BorshSize)]
 #[repr(C)]
@@ -95,11 +93,11 @@ impl<'a, 'b: 'a> Accounts<'a, AccountInfo<'b>> {
 
     pub fn load_user_account(&self) -> Result<UserAccount<'a>, ProgramError> {
         let user_account = UserAccount::get(self.user)?;
-        if user_account.header.owner != self.user_owner.key.to_bytes() {
+        if &user_account.header.owner != self.user_owner.key {
             msg!("Invalid user account owner provided!");
             return Err(ProgramError::InvalidArgument);
         }
-        if user_account.header.market != self.market.key.to_bytes() {
+        if &user_account.header.market != self.market.key {
             msg!("The provided user account doesn't match the current market");
             return Err(ProgramError::InvalidArgument);
         };

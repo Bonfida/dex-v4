@@ -280,15 +280,16 @@ dependencies = [
 
 [[package]]
 name = "bonfida-utils"
-version = "0.2.11"
+version = "0.2.12"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "0de55392939054ec60454e98ad8befaadd58aea49027021c2f88ca5dd168695e"
+checksum = "54de4600e2bb8367d0f5e4100a272a738f2c3713611591504def19c0da482c22"
 dependencies = [
  "bonfida-macros",
  "borsh",
  "bytemuck",
  "pyth-sdk-solana",
  "solana-program",
+ "spl-token",
 ]
 
 [[package]]

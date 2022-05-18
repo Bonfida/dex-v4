@@ -51,17 +51,17 @@ pub struct DexState {
     /// This u64 is used to verify and version the dex state
     pub tag: u64,
     /// The mint key of the base token
-    pub base_mint: [u8; 32],
+    pub base_mint: Pubkey,
     /// The mint key of the quote token
-    pub quote_mint: [u8; 32],
+    pub quote_mint: Pubkey,
     /// The SPL token account holding the market's base tokens
-    pub base_vault: [u8; 32],
+    pub base_vault: Pubkey,
     /// The SPL token account holding the market's quote tokens
-    pub quote_vault: [u8; 32],
+    pub quote_vault: Pubkey,
     /// The asset agnostic orderbook address
-    pub orderbook: [u8; 32],
+    pub orderbook: Pubkey,
     /// The market admin which can recuperate all transaction fees
-    pub admin: [u8; 32],
+    pub admin: Pubkey,
     /// The market's creation timestamp on the Solana runtime clock.
     pub creation_timestamp: i64,
     /// The market's total historical volume in base token
@@ -109,9 +109,9 @@ pub struct UserAccountHeader {
     /// This byte is used to verify and version the dex state
     pub tag: u64,
     /// The user account's assocatied DEX market
-    pub market: [u8; 32],
+    pub market: Pubkey,
     /// The user account owner's wallet
-    pub owner: [u8; 32],
+    pub owner: Pubkey,
     /// The amount of base token available for settlement
     pub base_token_free: u64,
     /// The amount of base token currently locked in the orderbook
@@ -166,8 +166,8 @@ impl UserAccountHeader {
     pub(crate) fn new(market: &Pubkey, owner: &Pubkey) -> Self {
         Self {
             tag: AccountTag::UserAccount as u64,
-            market: market.to_bytes(),
-            owner: owner.to_bytes(),
+            market: *market,
+            owner: *owner,
             base_token_free: 0,
             base_token_locked: 0,
             quote_token_free: 0,

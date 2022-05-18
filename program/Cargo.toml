@@ -12,7 +12,7 @@ no-entrypoint = []
 [dependencies]
 num-derive = "0.3.3"
 solana-program = "1.10.11"
-bytemuck = {version = "1.7.2", features = ["derive"]}
+bytemuck = {version = "1.9.1", features = ["derive"]}
 num_enum = "0.5.4"
 borsh = "0.9.1"
 thiserror = "1.0.24"
@@ -20,7 +20,7 @@ num-traits = "0.2"
 enumflags2 = "0.7.1"
 spl-token = "3.3.0"
 agnostic-orderbook = {git = "https://github.com/Bonfida/agnostic-orderbook.git", features = ["no-entrypoint", "lib"]}
-bonfida-utils = { version = "0.2.11", features = ["instruction_params_casting"] }
+bonfida-utils = { version = "0.2.12", features = ["instruction_params_casting"] }
 
 [dev-dependencies]
 solana-sdk = "1.10.11"

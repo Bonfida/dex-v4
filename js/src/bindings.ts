@@ -261,7 +261,7 @@ export const consumeEvents = async (
   rewardTarget: PublicKey,
   userAccounts: PublicKey[],
   maxIterations: BN,
-  noOpErr: BN,
+  noOpErr: BN
 ) => {
   const [marketSigner] = await PublicKey.findProgramAddress(
     [market.address.toBuffer()],
