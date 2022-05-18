@@ -173,7 +173,8 @@ fn consume_event(
                 .binary_search_by_key(&maker_info.user_account, |k| *k.key)
                 .map_err(|_| DexError::MissingUserAccount)?];
             let (taker_fee_tier, is_referred) = FeeTier::from_u8(taker_info.fee_tier);
-            let mut maker_account = UserAccount::get(maker_account_info).unwrap();
+            let mut maker_account_data = maker_account_info.data.borrow_mut();
+            let mut maker_account = UserAccount::from_buffer(&mut maker_account_data).unwrap();
             let (maker_fee_tier, _) = FeeTier::from_u8(maker_info.fee_tier);
             let taker_fee = taker_fee_tier.taker_fee(quote_size);
             let maker_rebate = maker_fee_tier.maker_rebate(quote_size);
@@ -257,7 +258,8 @@ fn consume_event(
             let user_account_info = &accounts[accounts
                 .binary_search_by_key(&user_callback_info.user_account, |k| *k.key)
                 .map_err(|_| DexError::MissingUserAccount)?];
-            let mut user_account = UserAccount::get(user_account_info).unwrap();
+            let mut user_account_data = user_account_info.data.borrow_mut();
+            let mut user_account = UserAccount::from_buffer(&mut user_account_data).unwrap();
 
             if base_size != 0 {
                 match side {
