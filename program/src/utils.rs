@@ -7,10 +7,10 @@ use solana_program::{
 // Safety verification functions
 pub fn check_account_key(
     account: &AccountInfo,
-    key: &[u8; 32],
+    key: &Pubkey,
     error: DexError,
 ) -> Result<(), DexError> {
-    if &account.key.to_bytes() != key {
+    if account.key != key {
         return Err(error);
     }
     Ok(())

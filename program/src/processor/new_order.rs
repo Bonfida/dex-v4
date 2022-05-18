@@ -160,12 +160,12 @@ impl<'a, 'b: 'a> Accounts<'a, AccountInfo<'b>> {
         })?;
         check_account_key(
             a.spl_token_program,
-            &spl_token::ID.to_bytes(),
+            &spl_token::ID,
             DexError::InvalidSplTokenProgram,
         )?;
         check_account_key(
             a.system_program,
-            &system_program::ID.to_bytes(),
+            &system_program::ID,
             DexError::InvalidSystemProgramAccount,
         )?;
         if let Some(discount_account) = a.discount_token_account {
@@ -183,19 +183,19 @@ impl<'a, 'b: 'a> Accounts<'a, AccountInfo<'b>> {
 
     pub fn load_user_account(&self) -> Result<UserAccount<'a>, ProgramError> {
         let user_account = UserAccount::get(self.user)?;
-        if user_account.header.owner != self.user_owner.key.to_bytes() {
+        if &user_account.header.owner != self.user_owner.key {
             msg!("Invalid user account owner provided!");
             return Err(ProgramError::InvalidArgument);
         }
-        if user_account.header.market != self.market.key.to_bytes() {
+        if &user_account.header.market != self.market.key {
             msg!("The provided user account doesn't match the current market");
             return Err(ProgramError::InvalidArgument);
         };
-        if user_account.header.owner != self.user_owner.key.to_bytes() {
+        if &user_account.header.owner != self.user_owner.key {
             msg!("Invalid user account owner provided!");
             return Err(ProgramError::InvalidArgument);
         }
-        if user_account.header.market != self.market.key.to_bytes() {
+        if &user_account.header.market != self.market.key {
             msg!("The provided user account doesn't match the current market");
             return Err(ProgramError::InvalidArgument);
         };

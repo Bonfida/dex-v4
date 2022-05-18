@@ -169,7 +169,7 @@ pub async fn create_aob_dex(
                 fee_payer: &pgr_test_ctx.payer.pubkey(),
             },
             initialize_account::Params {
-                market: market_account.pubkey().to_bytes(),
+                market: market_account.pubkey(),
                 max_orders: 100,
             },
         );
@@ -307,14 +307,14 @@ pub async fn initialize_serum_market_accounts(
     // Create Vaults
     let coin_vault = create_associated_token(
         pgr_test_ctx,
-        &Pubkey::new(&aob_dex_test_ctx.dex_market.base_mint),
+        &aob_dex_test_ctx.dex_market.base_mint,
         &vault_signer_pk,
     )
     .await
     .unwrap();
     let pc_vault = create_associated_token(
         pgr_test_ctx,
-        &Pubkey::new(&aob_dex_test_ctx.dex_market.quote_mint),
+        &aob_dex_test_ctx.dex_market.quote_mint,
         &vault_signer_pk,
     )
     .await
@@ -323,8 +323,8 @@ pub async fn initialize_serum_market_accounts(
     let init_market_instruction = serum_dex::instruction::initialize_market(
         &market_key.pubkey(),
         &serum_dex_program_id,
-        &Pubkey::new(&aob_dex_test_ctx.dex_market.base_mint),
-        &Pubkey::new(&aob_dex_test_ctx.dex_market.quote_mint),
+        &aob_dex_test_ctx.dex_market.base_mint,
+        &aob_dex_test_ctx.dex_market.quote_mint,
         &coin_vault,
         &pc_vault,
         None,
@@ -352,8 +352,8 @@ pub async fn initialize_serum_market_accounts(
         vault_signer_nonce,
         coin_vault,
         pc_vault,
-        coin_mint: Pubkey::new(&aob_dex_test_ctx.dex_market.base_mint),
-        pc_mint: Pubkey::new(&aob_dex_test_ctx.dex_market.quote_mint),
+        coin_mint: aob_dex_test_ctx.dex_market.base_mint,
+        pc_mint: aob_dex_test_ctx.dex_market.quote_mint,
     };
     sign_send_instructions(pgr_test_ctx, vec![init_market_instruction], vec![])
         .await
@@ -415,12 +415,12 @@ pub async fn aob_dex_new_order(
             spl_token_program: &spl_token::ID,
             system_program: &system_program::ID,
             market: &dex_test_ctx.dex_market_key,
-            orderbook: &Pubkey::new(&dex_test_ctx.dex_market.orderbook),
+            orderbook: &dex_test_ctx.dex_market.orderbook,
             event_queue: &Pubkey::new(&dex_test_ctx.aob_market.event_queue),
             bids: &Pubkey::new(&dex_test_ctx.aob_market.bids),
             asks: &Pubkey::new(&dex_test_ctx.aob_market.asks),
-            base_vault: &Pubkey::new(&dex_test_ctx.dex_market.base_vault),
-            quote_vault: &Pubkey::new(&dex_test_ctx.dex_market.quote_vault),
+            base_vault: &dex_test_ctx.dex_market.base_vault,
+            quote_vault: &dex_test_ctx.dex_market.quote_vault,
             user: &dex_test_ctx.user_account_keys[user_account_index],
             user_token_account: &match side {
                 agnostic_orderbook::state::Side::Ask => dex_test_ctx.user_bases[user_account_index],

@@ -57,7 +57,7 @@ impl<'a, 'b: 'a> Accounts<'a, AccountInfo<'b>> {
 
     pub fn load_user_account(&self) -> Result<UserAccount<'a>, ProgramError> {
         let user_account = UserAccount::get(self.user)?;
-        if user_account.header.owner != self.user_owner.key.to_bytes() {
+        if &user_account.header.owner != self.user_owner.key {
             msg!("Invalid user account owner provided!");
             return Err(ProgramError::InvalidArgument);
         };

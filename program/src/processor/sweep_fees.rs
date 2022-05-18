@@ -1,9 +1,9 @@
 //! Extract accumulated fees from the market. This is an admin instruction
 use crate::{
     error::DexError,
+    processor,
     state::DexState,
     utils::{check_account_key, check_account_owner, check_signer},
-    processor,
 };
 use bonfida_utils::BorshSize;
 use bonfida_utils::InstructionsAccount;
@@ -70,12 +70,12 @@ impl<'a, 'b: 'a> Accounts<'a, AccountInfo<'b>> {
         })?;
         check_account_key(
             a.spl_token_program,
-            &spl_token::ID.to_bytes(),
+            &spl_token::ID,
             DexError::InvalidSplTokenProgram,
         )?;
         check_account_key(
             a.sweep_authority,
-            &processor::SWEEP_AUTHORITY.to_bytes(),
+            &processor::SWEEP_AUTHORITY,
             DexError::InvalidSweepAuthority,
         )?;
         check_account_owner(a.market, program_id, DexError::InvalidStateAccountOwner)?;
@@ -137,7 +137,7 @@ fn check_accounts(
     )?;
     check_account_key(
         accounts.market_signer,
-        &market_signer.to_bytes(),
+        &market_signer,
         DexError::InvalidMarketSignerAccount,
     )?;
     check_account_key(
@@ -145,10 +145,5 @@ fn check_accounts(
         &market_state.quote_vault,
         DexError::InvalidQuoteVaultAccount,
     )?;
-    // check_account_key(
-    //     accounts.market_admin,
-    //     &market_state.admin,
-    //     DexError::InvalidMarketAdminAccount,
-    // )?;
     Ok(())
 }

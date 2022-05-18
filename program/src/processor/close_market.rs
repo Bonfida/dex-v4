@@ -95,7 +95,7 @@ impl<'a, 'b: 'a> Accounts<'a, AccountInfo<'b>> {
         // Check keys
         check_account_key(
             a.spl_token_program,
-            &spl_token::ID.to_bytes(),
+            &spl_token::ID,
             DexError::InvalidStateAccountOwner,
         )?;
 
@@ -217,7 +217,7 @@ fn check_accounts(
     )?;
     check_account_key(
         accounts.market_signer,
-        &market_signer.to_bytes(),
+        &market_signer,
         DexError::InvalidMarketSignerAccount,
     )?;
     check_account_key(
