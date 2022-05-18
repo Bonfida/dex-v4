@@ -250,6 +250,17 @@ impl<'a> UserAccount<'a> {
             .0;
         Ok(res)
     }
+
+    #[allow(missing_docs)]
+    pub fn find_order_id_by_client_id(&self, client_order_id: u128) -> Result<u128, DexError> {
+        let res = self
+            .orders
+            .iter()
+            .find(|b| b.client_id == client_order_id)
+            .ok_or(DexError::OrderNotFound)?
+            .id;
+        Ok(res)
+    }
 }
 
 #[doc(hidden)]
