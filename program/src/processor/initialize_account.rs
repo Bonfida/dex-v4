@@ -19,7 +19,7 @@ use solana_program::{
 
 use crate::{
     error::DexError,
-    state::{Order, UserAccount, UserAccountHeader, USER_ACCOUNT_HEADER_LEN},
+    state::{Order, UserAccount, UserAccountHeader},
     utils::{check_account_key, check_account_owner, check_signer},
 };
 
@@ -111,10 +111,7 @@ pub(crate) fn process(
     }
 
     // (USER_ACCOUNT_HEADER_LEN as u64) + max_orders * (Order::LEN as u64);
-    let space = max_orders
-        .checked_mul(Order::LEN as u64)
-        .and_then(|n| n.checked_add(USER_ACCOUNT_HEADER_LEN as u64))
-        .ok_or(DexError::NumericalOverflow)?;
+    let space = UserAccount::compute_allocation_size(*max_orders as usize)? as u64;
 
     let lamports = Rent::get()?.minimum_balance(space as usize);
 

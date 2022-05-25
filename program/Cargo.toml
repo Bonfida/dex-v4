@@ -8,6 +8,7 @@ edition = "2018"
 
 [features]
 no-entrypoint = []
+performance-test = []
 
 [dependencies]
 num-derive = "0.3.3"

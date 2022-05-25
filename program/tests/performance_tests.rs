@@ -1,4 +1,4 @@
-#![cfg(not(feature = "test-bpf"))]
+#![cfg(all(not(feature = "test-bpf"), feature = "performance-test"))]
 
 pub mod common;
 

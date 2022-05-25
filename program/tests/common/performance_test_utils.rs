@@ -4,7 +4,7 @@ use agnostic_orderbook::state::MarketState;
 use bytemuck::try_from_bytes;
 use dex_v4::instruction_auto::initialize_account;
 use dex_v4::instruction_auto::new_order;
-use dex_v4::state::{DexState, DEX_STATE_LEN};
+use dex_v4::state::DexState;
 use serum_dex::state::gen_vault_signer_key;
 use solana_program::instruction::Instruction;
 use solana_program::pubkey::Pubkey;
@@ -240,7 +240,7 @@ pub async fn create_aob_dex(
         .unwrap()
         .unwrap()
         .data;
-    let dex_market: &DexState = try_from_bytes(&dex_market_data[..DEX_STATE_LEN] as &[u8]).unwrap();
+    let dex_market: &DexState = try_from_bytes(&dex_market_data[..DexState::LEN] as &[u8]).unwrap();
     let aob_market_data = pgr_test_ctx
         .banks_client
         .get_account(aaob_accounts.market)

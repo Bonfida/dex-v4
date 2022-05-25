@@ -189,7 +189,7 @@ pub(crate) fn process(
     check_accounts(program_id, &market_state, &accounts).unwrap();
     let fee_tier = accounts
         .discount_token_account
-        .map(|a| FeeTier::get(&market_state, a, accounts.user_owner.key))
+        .map(|a| FeeTier::get(&market_state, &a.data.borrow(), accounts.user_owner.key))
         .unwrap_or(Ok(FeeTier::Base))?;
     let callback_info = CallBackInfo {
         user_account: Pubkey::default(),

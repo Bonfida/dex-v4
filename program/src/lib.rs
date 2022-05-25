@@ -21,3 +21,9 @@ pub use processor::{CALLBACK_ID_LEN, CALLBACK_INFO_LEN};
 use solana_program::declare_id;
 
 declare_id!("SerumSqm3PWpKcHva3sxfUPXsYaE53czAbWtgAaisCf");
+
+/// Contains key constants for the program
+pub mod constants {
+    pub use super::processor::MSRM_MINT;
+    pub use super::processor::SRM_MINT;
+}

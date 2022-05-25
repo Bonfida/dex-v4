@@ -4,17 +4,22 @@ use bytemuck::try_from_bytes_mut;
 use dex_v4::instruction_auto::cancel_order;
 use dex_v4::instruction_auto::consume_events;
 use dex_v4::instruction_auto::create_market;
+#[cfg(feature = "test-bpf")]
 use dex_v4::instruction_auto::initialize_account;
 use dex_v4::instruction_auto::new_order;
 use dex_v4::instruction_auto::settle;
 use dex_v4::instruction_auto::swap;
+use dex_v4::state::DexState;
+use dex_v4::state::UserAccount;
 use dex_v4::state::UserAccountHeader;
-use dex_v4::state::DEX_STATE_LEN;
-use dex_v4::state::USER_ACCOUNT_HEADER_LEN;
+use solana_program::program_option::COption;
+use solana_program::program_pack::Pack;
 use solana_program::pubkey::Pubkey;
 use solana_program::system_instruction::create_account;
 use solana_program::system_program;
+use solana_program_test::processor;
 use solana_program_test::ProgramTest;
+use solana_sdk::account::Account;
 use solana_sdk::signature::Keypair;
 use solana_sdk::signature::Signer;
 use spl_token::instruction::mint_to;
@@ -29,11 +34,14 @@ async fn test_dex() {
     // Create program and test environment
     let dex_program_id = dex_v4::ID;
 
+    #[cfg(feature = "test-bpf")]
+    let mut program_test = ProgramTest::new("dex_v4", dex_program_id, None);
+
+    #[cfg(not(feature = "test-bpf"))]
     let mut program_test = ProgramTest::new(
         "dex_v4",
         dex_program_id,
-        None,
-        // processor!(dex_v4::entrypoint::process_instruction),
+        processor!(dex_v4::entrypoint::process_instruction),
     );
 
     // Create the market mints
@@ -42,18 +50,69 @@ async fn test_dex() {
     let quote_mint_auth = Keypair::new();
     let (quote_mint_key, _) = mint_bootstrap(None, 6, &mut program_test, &quote_mint_auth.pubkey());
 
+    let user_account_owner = Keypair::new();
+    let market_account = Keypair::new();
+    let srm_token_account = Pubkey::new_unique();
+
+    let (user_account, _) = Pubkey::find_program_address(
+        &[
+            &market_account.pubkey().to_bytes(),
+            &user_account_owner.pubkey().to_bytes(),
+        ],
+        &dex_program_id,
+    );
+
+    #[cfg(not(feature = "test-bpf"))]
+    {
+        // We presimulate the initialize_account instruction since we can't run cpi allocation natively
+        // with program-test
+        let space = UserAccount::compute_allocation_size(10).unwrap();
+        let mut data = vec![0; space];
+        let u = UserAccount::from_buffer_unchecked(&mut data).unwrap();
+        *u.header = UserAccountHeader::new(&market_account.pubkey(), &user_account_owner.pubkey());
+        program_test.add_account(
+            user_account,
+            Account {
+                lamports: 1_000_000,
+                data,
+                owner: dex_program_id,
+                ..Default::default()
+            },
+        );
+    }
+
+    let mut token_account_data = vec![0; spl_token::state::Account::LEN];
+    spl_token::state::Account {
+        mint: dex_v4::constants::SRM_MINT,
+        owner: user_account_owner.pubkey(),
+        amount: 1_000_000_000,
+        delegate: COption::None,
+        state: spl_token::state::AccountState::Initialized,
+        ..Default::default()
+    }
+    .pack_into_slice(&mut token_account_data);
+
+    program_test.add_account(
+        srm_token_account,
+        Account {
+            lamports: 1_000_000,
+            data: token_account_data,
+            owner: spl_token::ID,
+            ..Default::default()
+        },
+    );
+
     // Create test context
     let mut prg_test_ctx = program_test.start_with_context().await;
     let rent = prg_test_ctx.banks_client.get_rent().await.unwrap();
 
     // Create market account
-    let market_rent = rent.minimum_balance(dex_v4::state::DEX_STATE_LEN);
-    let market_account = Keypair::new();
+    let market_rent = rent.minimum_balance(DexState::LEN);
     let create_market_account_instruction = create_account(
         &prg_test_ctx.payer.pubkey(),
         &market_account.pubkey(),
         market_rent,
-        DEX_STATE_LEN as u64,
+        DexState::LEN as u64,
         &dex_program_id,
     );
     sign_send_instructions(
@@ -131,7 +190,6 @@ async fn test_dex() {
     // .unwrap();
 
     // Create User accounts
-    let user_account_owner = Keypair::new();
     let create_user_account_owner_instruction = create_account(
         &prg_test_ctx.payer.pubkey(),
         &user_account_owner.pubkey(),
@@ -146,33 +204,30 @@ async fn test_dex() {
     )
     .await
     .unwrap();
-    let (user_account, _) = Pubkey::find_program_address(
-        &[
-            &market_account.pubkey().to_bytes(),
-            &user_account_owner.pubkey().to_bytes(),
-        ],
-        &dex_program_id,
-    );
-    let create_user_account_instruction = initialize_account(
-        dex_program_id,
-        initialize_account::Accounts {
-            system_program: &system_program::ID,
-            user: &user_account,
-            user_owner: &user_account_owner.pubkey(),
-            fee_payer: &prg_test_ctx.payer.pubkey(),
-        },
-        initialize_account::Params {
-            market: market_account.pubkey(),
-            max_orders: 10,
-        },
-    );
-    sign_send_instructions(
-        &mut prg_test_ctx,
-        vec![create_user_account_instruction],
-        vec![&user_account_owner],
-    )
-    .await
-    .unwrap();
+
+    #[cfg(feature = "test-bpf")]
+    {
+        let create_user_account_instruction = initialize_account(
+            dex_program_id,
+            initialize_account::Accounts {
+                system_program: &system_program::ID,
+                user: &user_account,
+                user_owner: &user_account_owner.pubkey(),
+                fee_payer: &prg_test_ctx.payer.pubkey(),
+            },
+            initialize_account::Params {
+                market: market_account.pubkey(),
+                max_orders: 10,
+            },
+        );
+        sign_send_instructions(
+            &mut prg_test_ctx,
+            vec![create_user_account_instruction],
+            vec![&user_account_owner],
+        )
+        .await
+        .unwrap();
+    }
     let user_base_token_account = create_associated_token(
         &mut prg_test_ctx,
         &base_mint_key,
@@ -245,7 +300,7 @@ async fn test_dex() {
             user: &user_account,
             user_token_account: &user_base_token_account,
             user_owner: &user_account_owner.pubkey(),
-            discount_token_account: None,
+            discount_token_account: Some(&srm_token_account),
             fee_referral_account: None,
         },
         new_order::Params {
@@ -257,7 +312,7 @@ async fn test_dex() {
             order_type: new_order::OrderType::Limit as u8,
             self_trade_behavior: agnostic_orderbook::state::SelfTradeBehavior::DecrementTake as u8,
             match_limit: 10,
-            has_discount_token_account: false as u8,
+            has_discount_token_account: true as u8,
             _padding: 0,
         },
     );
@@ -277,7 +332,7 @@ async fn test_dex() {
         .unwrap()
         .data;
     let user_acc: &mut UserAccountHeader =
-        try_from_bytes_mut(&mut user_acc_data[..USER_ACCOUNT_HEADER_LEN]).unwrap();
+        try_from_bytes_mut(&mut user_acc_data[..UserAccountHeader::LEN]).unwrap();
     println!("Number of orders {:?}", user_acc.number_of_orders);
 
     // Cancel Order
@@ -295,7 +350,7 @@ async fn test_dex() {
         cancel_order::Params {
             order_index: 0,
             order_id: {
-                let offset = USER_ACCOUNT_HEADER_LEN;
+                let offset = UserAccountHeader::LEN;
                 u128::from_le_bytes(user_acc_data[offset..offset + 16].try_into().unwrap())
             },
             is_client_id: false,
