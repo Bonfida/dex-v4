@@ -38,9 +38,7 @@ export const createMarket = async (
   marketAdmin: PublicKey,
   tickSize: BN,
   crankerReward: BN,
-  feeTierThresholds: BN[],
-  feeTierTakerBpsRates: BN[],
-  feeTierMakerBpsRebates: BN[]
+  metadataAccount: PublicKey
 ): Promise<PrimedTransaction[]> => {
   // Market Account
   const marketAccount = new Keypair();
@@ -107,7 +105,8 @@ export const createMarket = async (
     marketAdmin,
     aaobSigners[0].publicKey,
     aaobSigners[1].publicKey,
-    aaobSigners[2].publicKey
+    aaobSigners[2].publicKey,
+    metadataAccount
   );
 
   return [
