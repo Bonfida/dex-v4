@@ -262,11 +262,18 @@ pub(crate) fn process(
     let mut order_summary: OrderSummary = read_register(accounts.event_queue).unwrap().unwrap();
 
     let referral_fee = fee_tier.referral_fee(order_summary.total_quote_qty);
+    let royalties_fees = order_summary
+        .total_quote_qty
+        .checked_mul(market_state.royalties_bps)
+        .unwrap()
+        / 10_000;
     let (is_valid, base_transfer_qty, quote_transfer_qty) =
         match FromPrimitive::from_u8(*side).unwrap() {
             Side::Bid => {
                 // We update the order summary to properly handle the FOK order type
-                order_summary.total_quote_qty += fee_tier.taker_fee(order_summary.total_quote_qty);
+
+                order_summary.total_quote_qty +=
+                    fee_tier.taker_fee(order_summary.total_quote_qty) + royalties_fees;
 
                 let is_valid = order_summary.total_base_qty >= *base_qty;
 
@@ -284,7 +291,10 @@ pub(crate) fn process(
                 (
                     is_valid,
                     order_summary.total_base_qty,
-                    order_summary.total_quote_qty - taker_fee,
+                    order_summary
+                        .total_quote_qty
+                        .checked_sub(taker_fee + royalties_fees)
+                        .unwrap(),
                 )
             }
         };

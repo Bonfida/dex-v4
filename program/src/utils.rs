@@ -1,6 +1,10 @@
 use crate::error::DexError;
+use mpl_token_metadata::{
+    pda::find_metadata_account,
+    state::{Creator, Metadata},
+};
 use solana_program::{
-    account_info::AccountInfo, entrypoint::ProgramResult, program_error::ProgramError,
+    account_info::AccountInfo, entrypoint::ProgramResult, msg, program_error::ProgramError,
     pubkey::Pubkey,
 };
 
@@ -57,4 +61,44 @@ fn safe_downcast(n: u128) -> Option<u64> {
     } else {
         Some(n as u64)
     }
+}
+
+pub fn check_metadata_account(account: &AccountInfo, mint: &Pubkey) -> ProgramResult {
+    let expected = find_metadata_account(mint).0;
+    check_account_key(account, &expected, DexError::InvalidMetadataKey)?;
+    if account.data_len() != 0 {
+        check_account_owner(
+            account,
+            &mpl_token_metadata::ID,
+            DexError::InvalidMetadataOwner,
+        )?;
+    }
+
+    Ok(())
+}
+
+#[allow(dead_code)]
+pub fn get_verified_creators(account: &AccountInfo) -> Option<Vec<Creator>> {
+    let metadata = Metadata::from_account_info(account).unwrap();
+    let creators = metadata.data.creators;
+
+    if let Some(creators) = creators {
+        return Some(
+            creators
+                .into_iter()
+                .filter(|creator| creator.verified)
+                .collect(),
+        );
+    }
+
+    None
+}
+
+pub fn verify_metadata(creators: &[Creator]) -> ProgramResult {
+    let sum: u8 = creators.iter().map(|x| x.share).sum();
+    if sum != 100 {
+        msg!("Invalid metadata shares - received {}", sum);
+        return Err(ProgramError::InvalidArgument);
+    }
+    Ok(())
 }

@@ -5,6 +5,7 @@ use bytemuck::try_from_bytes;
 use dex_v4::instruction_auto::initialize_account;
 use dex_v4::instruction_auto::new_order;
 use dex_v4::state::{DexState, DEX_STATE_LEN};
+use mpl_token_metadata::pda::find_metadata_account;
 use serum_dex::state::gen_vault_signer_key;
 use solana_program::instruction::Instruction;
 use solana_program::pubkey::Pubkey;
@@ -119,6 +120,7 @@ pub async fn create_aob_dex(
             event_queue: &aaob_accounts.event_queue,
             asks: &aaob_accounts.asks,
             bids: &aaob_accounts.bids,
+            token_metadata: &find_metadata_account(&base_mint_key).0,
         },
         dex_v4::instruction_auto::create_market::Params {
             signer_nonce: signer_nonce as u64,

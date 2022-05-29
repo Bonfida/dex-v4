@@ -8,9 +8,11 @@ use dex_v4::instruction_auto::initialize_account;
 use dex_v4::instruction_auto::new_order;
 use dex_v4::instruction_auto::settle;
 use dex_v4::instruction_auto::swap;
+use dex_v4::instruction_auto::sweep_fees;
 use dex_v4::state::UserAccountHeader;
 use dex_v4::state::DEX_STATE_LEN;
 use dex_v4::state::USER_ACCOUNT_HEADER_LEN;
+use mpl_token_metadata::pda::find_metadata_account;
 use solana_program::pubkey::Pubkey;
 use solana_program::system_instruction::create_account;
 use solana_program::system_program;
@@ -23,11 +25,15 @@ pub mod common;
 use crate::common::utils::create_associated_token;
 use crate::common::utils::mint_bootstrap;
 use crate::common::utils::{create_aob_market_and_accounts, sign_send_instructions};
+use dex_v4::instruction_auto::update_royalties;
+use mpl_token_metadata::state::Creator;
+use solana_program::pubkey;
 
 #[tokio::test]
 async fn test_dex() {
     // Create program and test environment
     let dex_program_id = dex_v4::ID;
+    let SWEEP_AUTHORITY = pubkey!("DjXsn34uz8hnC4KLiSkEVNmzqX5ZFP2Q7aErTBH8LWxe");
 
     let mut program_test = ProgramTest::new(
         "dex_v4",
@@ -35,6 +41,9 @@ async fn test_dex() {
         None,
         // processor!(dex_v4::entrypoint::process_instruction),
     );
+
+    program_test.add_program("mpl_token_metadata", mpl_token_metadata::ID, None);
+    let user_account_owner = Keypair::new();
 
     // Create the market mints
     let base_mint_auth = Keypair::new();
@@ -45,6 +54,49 @@ async fn test_dex() {
     // Create test context
     let mut prg_test_ctx = program_test.start_with_context().await;
     let rent = prg_test_ctx.banks_client.get_rent().await.unwrap();
+
+    // Create metadata
+    let (metadata_account_key, _) = find_metadata_account(&base_mint_key);
+    let ix = mpl_token_metadata::instruction::create_metadata_accounts_v2(
+        mpl_token_metadata::ID,
+        metadata_account_key,
+        base_mint_key,
+        base_mint_auth.pubkey(),
+        prg_test_ctx.payer.pubkey(),
+        base_mint_auth.pubkey(),
+        "".to_string(),
+        "".to_string(),
+        "".to_string(),
+        Some(vec![
+            Creator {
+                address: user_account_owner.pubkey(),
+                verified: false,
+                share: 50,
+            },
+            Creator {
+                address: base_mint_auth.pubkey(),
+                verified: false,
+                share: 50,
+            },
+        ]),
+        5_000,
+        true,
+        false,
+        None,
+        None,
+    );
+
+    sign_send_instructions(&mut prg_test_ctx, vec![ix], vec![&base_mint_auth])
+        .await
+        .unwrap();
+    let ix = mpl_token_metadata::instruction::sign_metadata(
+        mpl_token_metadata::ID,
+        metadata_account_key,
+        user_account_owner.pubkey(),
+    );
+    sign_send_instructions(&mut prg_test_ctx, vec![ix], vec![&user_account_owner])
+        .await
+        .unwrap();
 
     // Create market account
     let market_rent = rent.minimum_balance(dex_v4::state::DEX_STATE_LEN);
@@ -92,6 +144,7 @@ async fn test_dex() {
             event_queue: &aaob_accounts.event_queue,
             asks: &aaob_accounts.asks,
             bids: &aaob_accounts.bids,
+            token_metadata: &find_metadata_account(&base_mint_key).0,
         },
         create_market::Params {
             signer_nonce: signer_nonce as u64,
@@ -131,7 +184,6 @@ async fn test_dex() {
     // .unwrap();
 
     // Create User accounts
-    let user_account_owner = Keypair::new();
     let create_user_account_owner_instruction = create_account(
         &prg_test_ctx.payer.pubkey(),
         &user_account_owner.pubkey(),
@@ -203,6 +255,10 @@ async fn test_dex() {
     )
     .await
     .unwrap();
+    let base_mint_auth_token_account =
+        create_associated_token(&mut prg_test_ctx, &quote_mint_key, &base_mint_auth.pubkey())
+            .await
+            .unwrap();
     let mint_to_instruction = mint_to(
         &spl_token::ID,
         &quote_mint_key,
@@ -219,6 +275,12 @@ async fn test_dex() {
     )
     .await
     .unwrap();
+
+    // Create sweep fees token account
+    let sweep_fees_ata =
+        create_associated_token(&mut prg_test_ctx, &quote_mint_key, &SWEEP_AUTHORITY)
+            .await
+            .unwrap();
 
     let aaob_market_state_data = prg_test_ctx
         .banks_client
@@ -471,4 +533,56 @@ async fn test_dex() {
     )
     .await
     .unwrap();
+
+    // Sweep fees
+    let ix = sweep_fees(
+        dex_program_id,
+        sweep_fees::Accounts {
+            market: &market_account.pubkey(),
+            market_signer: &market_signer,
+            quote_vault: &quote_vault,
+            destination_token_account: &sweep_fees_ata,
+            spl_token_program: &spl_token::ID,
+            token_metadata: &find_metadata_account(&base_mint_key).0,
+            creators_token_accounts: &[user_quote_token_account, base_mint_auth_token_account],
+        },
+        sweep_fees::Params {},
+    );
+    sign_send_instructions(&mut prg_test_ctx, vec![ix], vec![])
+        .await
+        .unwrap();
+
+    // Consume Events
+    let consume_events_instruction = consume_events(
+        dex_program_id,
+        consume_events::Accounts {
+            market: &market_account.pubkey(),
+            orderbook: &aaob_accounts.market,
+            event_queue: &Pubkey::new(&aaob_market_state.event_queue),
+            reward_target: &reward_target.pubkey(),
+            user_accounts: &[user_account],
+        },
+        consume_events::Params {
+            max_iterations: 1,
+            no_op_err: 1,
+        },
+    );
+    sign_send_instructions(&mut prg_test_ctx, vec![consume_events_instruction], vec![])
+        .await
+        .unwrap();
+
+    // Change royalties_bps
+    let ix = update_royalties(
+        dex_program_id,
+        update_royalties::Accounts {
+            market: &market_account.pubkey(),
+            event_queue: &aaob_accounts.event_queue,
+            token_metadata: &find_metadata_account(&base_mint_key).0,
+            orderbook: &aaob_accounts.market,
+        },
+        update_royalties::Params {},
+    );
+    sign_send_instructions(&mut prg_test_ctx, vec![ix], vec![])
+        .await
+        .unwrap();
 }

@@ -2,7 +2,7 @@
 use crate::{
     error::DexError,
     state::{AccountTag, DexState, MarketFeeType},
-    utils::check_account_owner,
+    utils::{check_account_owner, check_metadata_account, verify_metadata},
     CALLBACK_ID_LEN, CALLBACK_INFO_LEN,
 };
 use agnostic_orderbook::error::AoError;
@@ -12,6 +12,7 @@ use bonfida_utils::InstructionsAccount;
 use borsh::BorshDeserialize;
 use borsh::BorshSerialize;
 use bytemuck::{try_from_bytes, Pod, Zeroable};
+use mpl_token_metadata::state::Metadata;
 use solana_program::{
     account_info::{next_account_info, AccountInfo},
     clock::Clock,
@@ -67,6 +68,9 @@ pub struct Accounts<'a, T> {
     /// The AOB bids account
     #[cons(writable)]
     pub bids: &'a T,
+
+    /// The metaplex token metadata
+    pub token_metadata: &'a T,
 }
 
 impl<'a, 'b: 'a> Accounts<'a, AccountInfo<'b>> {
@@ -85,6 +89,7 @@ impl<'a, 'b: 'a> Accounts<'a, AccountInfo<'b>> {
             event_queue: next_account_info(accounts_iter)?,
             asks: next_account_info(accounts_iter)?,
             bids: next_account_info(accounts_iter)?,
+            token_metadata: next_account_info(accounts_iter)?,
         };
 
         check_account_owner(a.market, program_id, DexError::InvalidStateAccountOwner)?;
@@ -125,6 +130,9 @@ pub(crate) fn process(
     )?;
     let base_mint = check_vault_account_and_get_mint(accounts.base_vault, &market_signer)?;
     let quote_mint = check_vault_account_and_get_mint(accounts.quote_vault, &market_signer)?;
+
+    check_metadata_account(accounts.token_metadata, &base_mint)?;
+
     let current_timestamp = Clock::get()?.unix_timestamp;
     if accounts.market.data.borrow()[0] != AccountTag::Uninitialized as u8 {
         // Checking the first byte is sufficient as there is a small number of AccountTags
@@ -133,6 +141,14 @@ pub(crate) fn process(
     }
 
     let mut market_state = DexState::get_unchecked(accounts.market);
+
+    let royalties_bps = if accounts.token_metadata.data_len() != 0 {
+        let metadata = Metadata::from_account_info(accounts.token_metadata)?;
+        verify_metadata(&metadata.data.creators.unwrap())?;
+        metadata.data.seller_fee_basis_points
+    } else {
+        0
+    };
 
     *market_state = DexState {
         tag: AccountTag::DexState as u64,
@@ -150,6 +166,8 @@ pub(crate) fn process(
         min_base_order_size: *min_base_order_size,
         fee_type: MarketFeeType::Default as u8,
         _padding: [0; 6],
+        royalties_bps: royalties_bps as u64,
+        accumulated_royalties: 0,
     };
 
     let invoke_params = agnostic_orderbook::instruction::create_market::Params {

@@ -155,10 +155,12 @@ impl<'a, 'b: 'a> Accounts<'a, AccountInfo<'b>> {
             },
             fee_referral_account: next_account_info(accounts_iter).ok(),
         };
+
         check_signer(a.user_owner).map_err(|e| {
             msg!("The user account owner should be a signer for this transaction!");
             e
         })?;
+
         check_account_key(
             a.spl_token_program,
             &spl_token::ID,
@@ -169,6 +171,7 @@ impl<'a, 'b: 'a> Accounts<'a, AccountInfo<'b>> {
             &system_program::ID,
             DexError::InvalidSystemProgramAccount,
         )?;
+
         if let Some(discount_account) = a.discount_token_account {
             check_account_owner(
                 discount_account,
@@ -318,7 +321,11 @@ pub(crate) fn process(
                     fp32_mul(order_summary.total_base_qty_posted, *limit_price).unwrap();
                 let matched_quote_qty = order_summary.total_quote_qty - posted_quote_qty;
                 let taker_fee = fee_tier.taker_fee(matched_quote_qty);
-                order_summary.total_quote_qty += taker_fee;
+                let royalties_fees = matched_quote_qty
+                    .checked_mul(market_state.royalties_bps)
+                    .unwrap()
+                    / 10_000;
+                order_summary.total_quote_qty += taker_fee + royalties_fees;
                 let referral_fee = fee_tier.referral_fee(matched_quote_qty);
                 let q = order_summary
                     .total_quote_qty
@@ -346,8 +353,14 @@ pub(crate) fn process(
                     fp32_mul(order_summary.total_base_qty_posted, *limit_price).unwrap();
                 let taken_quote_qty = order_summary.total_quote_qty - posted_quote_qty;
                 let taker_fee = fee_tier.taker_fee(taken_quote_qty);
+                let royalties_fees = taken_quote_qty
+                    .checked_mul(market_state.royalties_bps)
+                    .unwrap()
+                    / 10_000;
                 let referral_fee = fee_tier.referral_fee(taken_quote_qty);
-                user_account.header.quote_token_free += taken_quote_qty - taker_fee;
+                user_account.header.quote_token_free += taken_quote_qty
+                    .checked_sub(taker_fee + royalties_fees)
+                    .unwrap();
                 (q, accounts.base_vault, referral_fee)
             }
         };
