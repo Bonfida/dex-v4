@@ -48,6 +48,9 @@ pub mod close_account;
 #[allow(missing_docs)]
 pub mod close_market;
 
+#[allow(missing_docs)]
+pub mod update_royalties;
+
 pub struct Processor {}
 
 // We add an offset larger than 1 to keep the instruction's internal arguments aligned
@@ -104,6 +107,10 @@ impl Processor {
             DexInstruction::CloseMarket => {
                 msg!("Instruction: Close Market");
                 close_market::process(program_id, accounts)?
+            }
+            DexInstruction::UpdateRoyalties => {
+                msg!("Instruction: Update royalties");
+                update_royalties::process(program_id, accounts)?
             }
         }
         Ok(())

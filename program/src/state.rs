@@ -72,6 +72,10 @@ pub struct DexState {
     pub accumulated_fees: u64,
     /// The market's minimum allowed order size in base token amount
     pub min_base_order_size: u64,
+    /// Royalties bps
+    pub royalties_bps: u64,
+    /// Accumulated royalties fees
+    pub accumulated_royalties: u64,
     /// The signer nonce is necessary for the market to perform as a signing entity
     pub signer_nonce: u8,
     /// Fee type (e.g. default or stable)

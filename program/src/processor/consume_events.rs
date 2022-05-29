@@ -178,6 +178,8 @@ fn consume_event(
             let (maker_fee_tier, _) = FeeTier::from_u8(maker_info.fee_tier);
             let taker_fee = taker_fee_tier.taker_fee(quote_size);
             let maker_rebate = maker_fee_tier.maker_rebate(quote_size);
+            let royalties_fee =
+                market_state.royalties_bps.checked_mul(quote_size).unwrap() / 10_000;
             let referral_fee = if is_referred {
                 taker_fee_tier.referral_fee(quote_size)
             } else {
@@ -191,6 +193,11 @@ fn consume_event(
             market_state.accumulated_fees = market_state
                 .accumulated_fees
                 .checked_add(total_fees)
+                .unwrap();
+
+            market_state.accumulated_royalties = market_state
+                .accumulated_royalties
+                .checked_add(royalties_fee)
                 .unwrap();
 
             match taker_side {
