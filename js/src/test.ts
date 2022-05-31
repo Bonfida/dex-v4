@@ -50,12 +50,13 @@ const mint1 = new PublicKey("72m4rktxyKqWQxTnXz1rpjJ6v9RPaa6mW5Qb2aizQ8Zq");
 const mint2 = new PublicKey("Cetq9LiKkhvQuyHRjbk1FSbbsWSCCEVvPVQ4BHCHDF3t");
 
 const marketAddress = new PublicKey(
-  "Gdaxn4WkV2ZyNcMYsUWiAnmjy4YqSka4woy8ggazh4ba"
+  "DvfixPUCBqgdAMVwVRezDf64LwL5rGGYB7JRAaBmGfL6"
 );
 
 const test = async () => {
   // Load market
   const market = await Market.load(connection, marketAddress);
+  console.log(market);
   // Create market
   //
   // const instructions = await createMarket(
@@ -64,6 +65,9 @@ const test = async () => {
   //   mint2,
   //   1,
   //   wallet.publicKey,
+  //   wallet.publicKey,
+  //   new BN(1),
+  //   new BN(1),
   //   wallet.publicKey
   // );
   // for (let primedTx of instructions) {
@@ -73,7 +77,7 @@ const test = async () => {
   //     wallet,
   //     primedTx[1]
   //   );
-  //   await sleep(1_000);
+  //   await sleep(30_000);
   //   console.log(`Tx ${tx}`);
   // }
   // Create user account
