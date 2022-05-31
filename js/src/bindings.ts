@@ -182,11 +182,6 @@ export const cancelOrder = async (
   orderIndex?: BN,
   clientOrderId?: BN
 ) => {
-  const [marketSigner] = await PublicKey.findProgramAddress(
-    [market.address.toBuffer()],
-    DEX_ID
-  );
-
   const [userAccount] = await PublicKey.findProgramAddress(
     [market.address.toBuffer(), owner.toBuffer()],
     DEX_ID

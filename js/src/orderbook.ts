@@ -1,4 +1,4 @@
-import { Slab, SlabHeader } from "@bonfida/aaob";
+import { Slab } from "@bonfida/aaob";
 import { PublicKey, Connection } from "@solana/web3.js";
 import { Market } from "./market";
 import { throwIfNull } from "./utils";
@@ -60,11 +60,8 @@ export class Orderbook {
    */
   static async loadSlab(connection, slabAddress: PublicKey) {
     const { data } = throwIfNull(await connection.getAccountInfo(slabAddress));
-    const slab = aaob.Slab.deserialize(
-      data,
-      new BN(CALLBACK_INFO_LEN)
-    );
-    return slab
+    const slab = aaob.Slab.deserialize(data, new BN(CALLBACK_INFO_LEN));
+    return slab;
   }
 
   /**

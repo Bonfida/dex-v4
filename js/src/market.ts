@@ -498,7 +498,7 @@ export class Market {
     orderId: BN,
     owner: PublicKey
   ) {
-    const instruction = await cancelOrder(this, orderIndex, orderId, owner);
+    const instruction = await cancelOrder(this, owner, orderId, orderIndex);
     const tx = new Transaction().add(instruction);
     return tx;
   }
@@ -576,9 +576,9 @@ export class Market {
       instr.push(
         await cancelOrder(
           this,
-          new BN(o.orderIndex),
+          owner.publicKey,
           o.orderId,
-          owner.publicKey
+          new BN(o.orderIndex)
         )
       );
     }

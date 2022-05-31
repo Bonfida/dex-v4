@@ -29,6 +29,8 @@ export class MarketState {
   quoteVolume: BN;
   accumulatedFees: BN;
   minBaseOrderSize: BN;
+  royaltiesBps: BN;
+  accumulatedRoyalties: BN;
   signerNonce: number;
   feeType: number;
 
@@ -50,6 +52,8 @@ export class MarketState {
           ["quoteVolume", "u64"],
           ["accumulatedFees", "u64"],
           ["minBaseOrderSize", "u64"],
+          ["royaltiesBps", "u64"],
+          ["accumulatedRoyalties", "u64"],
           ["signerNonce", "u8"],
           ["feeType", "u8"],
           ["padding", [6]],
@@ -72,6 +76,8 @@ export class MarketState {
     quoteVolume: BN;
     accumulatedFees: BN;
     minBaseOrderSize: BN;
+    royaltiesBps: BN;
+    accumulatedRoyalties: BN;
     feeType: number;
   }) {
     this.tag = obj.tag.toNumber() as AccountTag;
@@ -87,6 +93,8 @@ export class MarketState {
     this.quoteVolume = obj.quoteVolume;
     this.accumulatedFees = obj.accumulatedFees;
     this.minBaseOrderSize = obj.minBaseOrderSize;
+    this.royaltiesBps = obj.royaltiesBps;
+    this.accumulatedRoyalties = obj.accumulatedRoyalties;
     this.feeType = obj.feeType;
   }
 
