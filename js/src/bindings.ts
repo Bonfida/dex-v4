@@ -25,7 +25,7 @@ import crypto from "crypto";
 /**
  * Constants
  */
-const MARKET_STATE_SPACE = 408;
+const MARKET_STATE_SPACE = 264;
 const NODE_CAPACITY = 100;
 const EVENT_CAPACITY = 100;
 
