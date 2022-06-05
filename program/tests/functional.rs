@@ -594,4 +594,23 @@ async fn test_dex() {
     sign_send_instructions(&mut prg_test_ctx, vec![ix], vec![])
         .await
         .unwrap();
+
+    // consume_events should not error when no_op_err == 0
+    let consume_events_instruction = consume_events(
+        dex_program_id,
+        consume_events::Accounts {
+            market: &market_account.pubkey(),
+            orderbook: &aaob_accounts.market,
+            event_queue: &Pubkey::new(&aaob_market_state.event_queue),
+            reward_target: &reward_target.pubkey(),
+            user_accounts: &[user_account],
+        },
+        consume_events::Params {
+            max_iterations: 10,
+            no_op_err: 0,
+        },
+    );
+    sign_send_instructions(&mut prg_test_ctx, vec![consume_events_instruction], vec![])
+        .await
+        .unwrap();
 }
