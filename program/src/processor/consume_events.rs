@@ -116,9 +116,12 @@ pub(crate) fn process(
         total_iterations += 1;
     }
 
-    if total_iterations == 0 && *no_op_err == 1 {
+    if total_iterations == 0 {
         msg!("Failed to complete one iteration");
-        return Err(DexError::NoOp.into());
+        if *no_op_err == 1 {
+            return Err(DexError::NoOp.into());
+        }
+        return Ok(());
     }
 
     let invoke_params = agnostic_orderbook::instruction::consume_events::Params {
