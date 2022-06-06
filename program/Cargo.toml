@@ -9,6 +9,7 @@ edition = "2018"
 [features]
 no-entrypoint = []
 no-admin = []
+aarch64-test = []
 
 [dependencies]
 num-derive = "0.3.3"

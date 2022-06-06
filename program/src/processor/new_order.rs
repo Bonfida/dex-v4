@@ -35,8 +35,11 @@ use super::REFERRAL_MASK;
 The required arguments for a new_order instruction.
 */
 pub struct Params {
+    #[cfg(all(not(target_arch = "aarch64"), not(feature = "aarch64-test")))]
     /// The client order id number that will be stored in the user account
     pub client_order_id: u128,
+    #[cfg(any(target_arch = "aarch64", feature = "aarch64-test"))]
+    pub client_order_id: [u64; 2],
     /// The order's limit price (as a FP32)
     pub limit_price: u64,
     /// The max quantity of base token to match and post
@@ -227,6 +230,8 @@ pub(crate) fn process(
         client_order_id,
         _padding: _,
     } = try_from_bytes(instruction_data).map_err(|_| ProgramError::InvalidInstructionData)?;
+    #[cfg(any(target_arch = "aarch64", feature = "aarch64-test"))]
+    let client_order_id: &u128 = bytemuck::cast_ref(client_order_id);
     let accounts = Accounts::parse(program_id, accounts, *has_discount_token_account != 0)?;
 
     let market_state = DexState::get(accounts.market)?;
