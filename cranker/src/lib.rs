@@ -122,7 +122,7 @@ impl Context {
             },
             consume_events::Params {
                 max_iterations: MAX_ITERATIONS,
-                no_op_err: todo!(),
+                no_op_err: 1,
             },
         );
 
