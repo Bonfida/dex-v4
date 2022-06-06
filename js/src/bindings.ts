@@ -142,14 +142,15 @@ export const placeOrder = async (
     clientOrderId = new BN(crypto.randomBytes(16));
   }
 
-  const mul = Math.pow(10, market.quoteDecimals - market.baseDecimals);
-  const price = new BN(mul).mul(new BN(limitPrice)).mul(new BN(2 ** 32));
+  const formattedLimitPrice =
+    Math.pow(10, market.quoteDecimals - market.baseDecimals) * limitPrice;
+  const price = new BN(formattedLimitPrice).mul(new BN(Math.pow(2, 32)));
 
   const instruction = new newOrderInstruction({
     side: side as number,
     limitPrice: price,
     maxBaseQty: new BN(size),
-    maxQuoteQty: new BN(Math.ceil(size * limitPrice)),
+    maxQuoteQty: new BN(Math.ceil(size * formattedLimitPrice)),
     orderType: type,
     selfTradeBehavior: selfTradeBehaviour,
     matchLimit: new BN(Number.MAX_SAFE_INTEGER),
