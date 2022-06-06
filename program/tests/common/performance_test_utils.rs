@@ -442,7 +442,10 @@ pub async fn aob_dex_new_order(
             order_type: new_order::OrderType::Limit as u8,
             self_trade_behavior: agnostic_orderbook::state::SelfTradeBehavior::DecrementTake as u8,
             match_limit: 10,
+            #[cfg(not(any(feature = "aarch64-test", target_arch = "aarch64")))]
             client_order_id: 0,
+            #[cfg(any(feature = "aarch64-test", target_arch = "aarch64"))]
+            client_order_id: bytemuck::cast(0u128),
             has_discount_token_account: false as u8,
             _padding: 0,
         },
