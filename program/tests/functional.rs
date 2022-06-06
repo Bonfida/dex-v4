@@ -311,7 +311,10 @@ async fn test_dex() {
             fee_referral_account: None,
         },
         new_order::Params {
+            #[cfg(not(any(feature = "aarch64-test", target_arch = "aarch64")))]
             client_order_id: 0,
+            #[cfg(any(feature = "aarch64-test", target_arch = "aarch64"))]
+            client_order_id: bytemuck::cast(0u128),
             side: agnostic_orderbook::state::Side::Ask as u8,
             limit_price: 1 << 32,
             max_base_qty: 100_000,
@@ -392,7 +395,10 @@ async fn test_dex() {
             fee_referral_account: None,
         },
         new_order::Params {
+            #[cfg(not(any(feature = "aarch64-test", target_arch = "aarch64")))]
             client_order_id: 0,
+            #[cfg(any(feature = "aarch64-test", target_arch = "aarch64"))]
+            client_order_id: bytemuck::cast(0u128),
             side: agnostic_orderbook::state::Side::Ask as u8,
             limit_price: 1000 << 32,
             max_base_qty: 110000,
@@ -432,7 +438,10 @@ async fn test_dex() {
             fee_referral_account: None,
         },
         new_order::Params {
+            #[cfg(not(any(feature = "aarch64-test", target_arch = "aarch64")))]
             client_order_id: 0,
+            #[cfg(any(feature = "aarch64-test", target_arch = "aarch64"))]
+            client_order_id: bytemuck::cast(0u128),
             side: agnostic_orderbook::state::Side::Bid as u8,
             limit_price: 1000 << 32,
             max_base_qty: 100000,
