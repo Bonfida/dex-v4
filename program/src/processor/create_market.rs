@@ -1,9 +1,8 @@
 //! Creates a new DEX market
 use crate::{
     error::DexError,
-    state::{AccountTag, DexState, MarketFeeType},
+    state::{AccountTag, CallBackInfo, DexState, MarketFeeType},
     utils::{check_account_owner, check_metadata_account, verify_metadata},
-    CALLBACK_ID_LEN, CALLBACK_INFO_LEN,
 };
 use agnostic_orderbook::error::AoError;
 use bonfida_utils::checks::check_rent_exempt;
@@ -35,7 +34,6 @@ pub struct Params {
     /// The minimum allowed order size in base token amount
     pub min_base_order_size: u64,
     pub tick_size: u64,
-    pub cranker_reward: u64,
     pub base_currency_multiplier: u64,
     pub quote_currency_multiplier: u64,
 }
@@ -124,7 +122,6 @@ pub(crate) fn process(
         signer_nonce,
         min_base_order_size,
         tick_size,
-        cranker_reward,
         base_currency_multiplier,
         quote_currency_multiplier,
     } = try_from_bytes(instruction_data).map_err(|_| ProgramError::InvalidInstructionData)?;
@@ -141,6 +138,7 @@ pub(crate) fn process(
     let base_mint = check_vault_account_and_get_mint(accounts.base_vault, &market_signer)?;
     let quote_mint = check_vault_account_and_get_mint(accounts.quote_vault, &market_signer)?;
 
+    #[cfg(not(feature = "disable-mpl-checks"))]
     check_metadata_account(accounts.token_metadata, &base_mint)?;
 
     let current_timestamp = Clock::get()?.unix_timestamp;
@@ -154,6 +152,7 @@ pub(crate) fn process(
 
     let royalties_bps = if accounts.token_metadata.data_len() != 0 {
         let metadata = Metadata::from_account_info(accounts.token_metadata)?;
+        #[cfg(not(feature = "disable-mpl-checks"))]
         verify_metadata(&metadata.data.creators.unwrap())?;
         metadata.data.seller_fee_basis_points
     } else {
@@ -183,12 +182,8 @@ pub(crate) fn process(
     };
 
     let invoke_params = agnostic_orderbook::instruction::create_market::Params {
-        caller_authority: program_id.to_bytes(), // No impact with AOB as a lib
-        callback_info_len: CALLBACK_INFO_LEN,
-        callback_id_len: CALLBACK_ID_LEN,
-        min_base_order_size: *min_base_order_size / *base_currency_multiplier,
+        min_base_order_size: *min_base_order_size,
         tick_size: *tick_size,
-        cranker_reward: *cranker_reward,
     };
     let invoke_accounts = agnostic_orderbook::instruction::create_market::Accounts {
         market: accounts.orderbook,
@@ -197,7 +192,7 @@ pub(crate) fn process(
         asks: accounts.asks,
     };
 
-    if let Err(error) = agnostic_orderbook::instruction::create_market::process(
+    if let Err(error) = agnostic_orderbook::instruction::create_market::process::<CallBackInfo>(
         program_id,
         invoke_accounts,
         invoke_params,

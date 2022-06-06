@@ -156,7 +156,8 @@ export class Market {
 
     const orderbookState = await AaobMarketState.retrieve(
       connection,
-      marketState.orderbook
+      marketState.orderbook,
+      CALLBACK_INFO_LEN
     );
 
     const [baseDecimals, quoteDecimals] = await Promise.all([
@@ -685,20 +686,14 @@ export class Market {
    */
   filterForOpenOrdersFromSlab(slab: Slab, openOrders: OpenOrders, side: Side) {
     return [...slab]
-      .filter((o) =>
-        openOrders?.address.equals(
-          new PublicKey(slab.getCallBackInfo(o.callBackInfoPt).slice(0, 32))
-        )
-      )
+      .filter((o) => openOrders?.address.equals(new PublicKey(o.callbackInfo)))
       .map((o) => {
         return {
-          orderId: o.key,
-          price: getPriceFromKey(o.key).toNumber(),
-          feeTier: slab.getCallBackInfo(o.callBackInfoPt).slice(32)[0],
-          size: o.baseQuantity.toNumber(),
-          openOrdersAddress: new PublicKey(
-            slab.getCallBackInfo(o.callBackInfoPt).slice(0, 32)
-          ),
+          orderId: o.leafNode.key,
+          price: getPriceFromKey(o.leafNode.key).toNumber(),
+          feeTier: o.callbackInfo.slice(32)[0],
+          size: o.leafNode.baseQuantity.toNumber(),
+          openOrdersAddress: new PublicKey(o.callbackInfo.slice(0, 32)),
           side: side,
         };
       });
