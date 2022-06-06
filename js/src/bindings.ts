@@ -37,7 +37,7 @@ import { computeFp32Price } from "./utils";
  * Constants
  */
 const MARKET_STATE_SPACE = 280;
-const NODE_CAPACITY = 100;
+const ORDER_CAPACITY = 100;
 const EVENT_CAPACITY = 100;
 const U64_MAX = "18446744073709551615";
 
@@ -61,7 +61,6 @@ export const createMarket = async (
   feePayer: PublicKey,
   marketAdmin: PublicKey,
   tickSize: BN,
-  crankerReward: BN,
   baseCurrencyMultiplier?: BN,
   quoteCurrencyMultiplier?: BN
 ): Promise<PrimedTransaction[]> => {
@@ -102,14 +101,13 @@ export const createMarket = async (
   const [aaobSigners, aaobInstructions] = await aaob.createMarket(
     connection,
     marketSigner,
-    new BN(33),
+    33,
     new BN(32),
     EVENT_CAPACITY,
-    NODE_CAPACITY,
+    ORDER_CAPACITY,
     new BN(minBaseOrderSize),
     feePayer,
     tickSize,
-    crankerReward,
     DEX_ID
   );
   // Remove the AOB create_market instruction as it is not needed with lib usage
@@ -135,7 +133,6 @@ export const createMarket = async (
     signerNonce: new BN(marketSignerNonce),
     minBaseOrderSize: new BN(minBaseOrderSize),
     tickSize: tickSize,
-    crankerReward: new BN(crankerReward),
     baseCurrencyMultiplier,
     quoteCurrencyMultiplier,
   }).getInstruction(

@@ -1,5 +1,5 @@
-use agnostic_orderbook::state::MarketState;
-use bytemuck::try_from_bytes;
+use agnostic_orderbook::state::market_state::MarketState;
+use agnostic_orderbook::state::AccountTag;
 use bytemuck::try_from_bytes_mut;
 use dex_v4::instruction_auto::cancel_order;
 use dex_v4::instruction_auto::consume_events;
@@ -16,6 +16,7 @@ use mpl_token_metadata::pda::find_metadata_account;
 use solana_program::pubkey::Pubkey;
 use solana_program::system_instruction::create_account;
 use solana_program::system_program;
+use solana_program_test::processor;
 use solana_program_test::ProgramTest;
 use solana_sdk::signature::Keypair;
 use solana_sdk::signature::Signer;
@@ -33,13 +34,12 @@ use solana_program::pubkey;
 async fn test_dex() {
     // Create program and test environment
     let dex_program_id = dex_v4::ID;
-    let SWEEP_AUTHORITY = pubkey!("DjXsn34uz8hnC4KLiSkEVNmzqX5ZFP2Q7aErTBH8LWxe");
+    let sweep_authority = pubkey!("DjXsn34uz8hnC4KLiSkEVNmzqX5ZFP2Q7aErTBH8LWxe");
 
     let mut program_test = ProgramTest::new(
         "dex_v4",
         dex_program_id,
-        None,
-        // processor!(dex_v4::entrypoint::process_instruction),
+        processor!(dex_v4::entrypoint::process_instruction),
     );
 
     program_test.add_program("mpl_token_metadata", mpl_token_metadata::ID, None);
@@ -150,7 +150,6 @@ async fn test_dex() {
             signer_nonce: signer_nonce as u64,
             min_base_order_size: 10,
             tick_size: 1,
-            cranker_reward: 0,
             base_currency_multiplier: 1_000,
             quote_currency_multiplier: 1,
         },
@@ -280,18 +279,18 @@ async fn test_dex() {
 
     // Create sweep fees token account
     let sweep_fees_ata =
-        create_associated_token(&mut prg_test_ctx, &quote_mint_key, &SWEEP_AUTHORITY)
+        create_associated_token(&mut prg_test_ctx, &quote_mint_key, &sweep_authority)
             .await
             .unwrap();
 
-    let aaob_market_state_data = prg_test_ctx
+    let mut aaob_market_state_data = prg_test_ctx
         .banks_client
         .get_account(aaob_accounts.market)
         .await
         .unwrap()
         .unwrap();
-    let aaob_market_state: &MarketState =
-        try_from_bytes(&aaob_market_state_data.data[..std::mem::size_of::<MarketState>()]).unwrap();
+    let aaob_market_state =
+        MarketState::from_buffer(&mut aaob_market_state_data.data, AccountTag::Market).unwrap();
 
     // New Order, to be cancelled
     let new_order_instruction = new_order(
@@ -301,9 +300,9 @@ async fn test_dex() {
             system_program: &system_program::ID,
             market: &market_account.pubkey(),
             orderbook: &aaob_accounts.market,
-            event_queue: &Pubkey::new(&aaob_market_state.event_queue),
-            bids: &Pubkey::new(&aaob_market_state.bids),
-            asks: &Pubkey::new(&aaob_market_state.asks),
+            event_queue: &aaob_market_state.event_queue,
+            bids: &aaob_market_state.bids,
+            asks: &aaob_market_state.asks,
             base_vault: &base_vault,
             quote_vault: &quote_vault,
             user: &user_account,
@@ -353,9 +352,9 @@ async fn test_dex() {
         cancel_order::Accounts {
             market: &market_account.pubkey(),
             orderbook: &aaob_accounts.market,
-            event_queue: &Pubkey::new(&aaob_market_state.event_queue),
-            bids: &Pubkey::new(&aaob_market_state.bids),
-            asks: &Pubkey::new(&aaob_market_state.asks),
+            event_queue: &aaob_market_state.event_queue,
+            bids: &aaob_market_state.bids,
+            asks: &aaob_market_state.asks,
             user: &user_account,
             user_owner: &user_account_owner.pubkey(),
         },
@@ -385,9 +384,9 @@ async fn test_dex() {
             system_program: &system_program::ID,
             market: &market_account.pubkey(),
             orderbook: &aaob_accounts.market,
-            event_queue: &Pubkey::new(&aaob_market_state.event_queue),
-            bids: &Pubkey::new(&aaob_market_state.bids),
-            asks: &Pubkey::new(&aaob_market_state.asks),
+            event_queue: &aaob_market_state.event_queue,
+            bids: &aaob_market_state.bids,
+            asks: &aaob_market_state.asks,
             base_vault: &base_vault,
             quote_vault: &quote_vault,
             user: &user_account,
@@ -428,9 +427,9 @@ async fn test_dex() {
             system_program: &system_program::ID,
             market: &market_account.pubkey(),
             orderbook: &aaob_accounts.market,
-            event_queue: &Pubkey::new(&aaob_market_state.event_queue),
-            bids: &Pubkey::new(&aaob_market_state.bids),
-            asks: &Pubkey::new(&aaob_market_state.asks),
+            event_queue: &aaob_market_state.event_queue,
+            bids: &aaob_market_state.bids,
+            asks: &aaob_market_state.asks,
             base_vault: &base_vault,
             quote_vault: &quote_vault,
             user: &user_account,
@@ -471,7 +470,7 @@ async fn test_dex() {
         consume_events::Accounts {
             market: &market_account.pubkey(),
             orderbook: &aaob_accounts.market,
-            event_queue: &Pubkey::new(&aaob_market_state.event_queue),
+            event_queue: &aaob_market_state.event_queue,
             reward_target: &reward_target.pubkey(),
             user_accounts: &[user_account],
         },
@@ -516,9 +515,9 @@ async fn test_dex() {
             system_program: &system_program::ID,
             market: &market_account.pubkey(),
             orderbook: &aaob_accounts.market,
-            event_queue: &Pubkey::new(&aaob_market_state.event_queue),
-            bids: &Pubkey::new(&aaob_market_state.bids),
-            asks: &Pubkey::new(&aaob_market_state.asks),
+            event_queue: &aaob_market_state.event_queue,
+            bids: &aaob_market_state.bids,
+            asks: &aaob_market_state.asks,
             base_vault: &base_vault,
             quote_vault: &quote_vault,
             market_signer: &market_signer,
@@ -569,12 +568,12 @@ async fn test_dex() {
         consume_events::Accounts {
             market: &market_account.pubkey(),
             orderbook: &aaob_accounts.market,
-            event_queue: &Pubkey::new(&aaob_market_state.event_queue),
+            event_queue: &aaob_market_state.event_queue,
             reward_target: &reward_target.pubkey(),
             user_accounts: &[user_account],
         },
         consume_events::Params {
-            max_iterations: 1,
+            max_iterations: 11,
             no_op_err: 1,
         },
     );
@@ -603,7 +602,7 @@ async fn test_dex() {
         consume_events::Accounts {
             market: &market_account.pubkey(),
             orderbook: &aaob_accounts.market,
-            event_queue: &Pubkey::new(&aaob_market_state.event_queue),
+            event_queue: &aaob_market_state.event_queue,
             reward_target: &reward_target.pubkey(),
             user_accounts: &[user_account],
         },

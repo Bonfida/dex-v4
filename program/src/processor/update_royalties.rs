@@ -1,6 +1,5 @@
 //! Update market royalties.
 use {
-    agnostic_orderbook::state::{EventQueueHeader, MarketState, EVENT_QUEUE_HEADER_LEN},
     bonfida_utils::{
         checks::{check_account_key, check_account_owner},
         BorshSize, InstructionsAccount,
@@ -17,9 +16,11 @@ use {
     },
 };
 
+use agnostic_orderbook::state::{event_queue::EventQueue, AccountTag};
+
 use crate::{
     error::DexError,
-    state::DexState,
+    state::{CallBackInfo, DexState},
     utils::{check_metadata_account, verify_metadata},
 };
 
@@ -73,23 +74,26 @@ pub(crate) fn process(program_id: &Pubkey, accounts: &[AccountInfo]) -> ProgramR
     let accounts = Accounts::parse(accounts, program_id)?;
 
     let mut market_state = DexState::get(accounts.market)?;
-    let aob_state = MarketState::get(accounts.orderbook)?;
+    let mut orderbook_guard = accounts.orderbook.data.borrow_mut();
+    let aob_state = agnostic_orderbook::state::market_state::MarketState::from_buffer(
+        &mut orderbook_guard,
+        AccountTag::Market,
+    )?;
 
     check_metadata_account(accounts.token_metadata, &market_state.base_mint)?;
     check_account_key(accounts.orderbook, &market_state.orderbook)?;
 
-    if aob_state.event_queue != accounts.event_queue.key.to_bytes() {
+    if &aob_state.event_queue != accounts.event_queue.key {
         return Err(DexError::EventQueueMismatch.into());
     }
 
-    let header = {
-        let mut event_queue_data: &[u8] =
-            &accounts.event_queue.data.borrow()[0..EVENT_QUEUE_HEADER_LEN];
-        EventQueueHeader::deserialize(&mut event_queue_data).unwrap()
-    };
+    let mut event_queue_guard = accounts.event_queue.data.borrow_mut();
 
-    if header.count != 0 {
-        msg!("Header {}", header.count);
+    let event_queue =
+        EventQueue::<CallBackInfo>::from_buffer(&mut event_queue_guard, AccountTag::EventQueue)?;
+
+    if !event_queue.is_empty() {
+        msg!("Header {}", event_queue.len());
         return Err(DexError::EventQueueMustBeEmpty.into());
     }
 

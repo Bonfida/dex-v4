@@ -60,7 +60,7 @@ export class Orderbook {
    */
   static async loadSlab(connection, slabAddress: PublicKey) {
     const { data } = throwIfNull(await connection.getAccountInfo(slabAddress));
-    const slab = aaob.Slab.deserialize(data, new BN(CALLBACK_INFO_LEN));
+    const slab = aaob.Slab.deserialize(data, CALLBACK_INFO_LEN);
     return slab;
   }
 

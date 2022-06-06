@@ -140,37 +140,43 @@ export const simpleTrade = async (
   console.log(`aliceSize: ${aliceSize} - alicePrice: ${alicePrice}`);
   console.log(`bobSize: ${bobSize} - bobPrice: ${bobPrice}`);
 
-  let tx = await signAndSendInstructions(connection, [Alice, Bob], feePayer, [
-    await placeOrder(
-      market,
-      Side.Ask,
-      bobPrice,
-      bobSize,
-      OrderType.Limit,
-      SelfTradeBehavior.AbortTransaction,
-      bobBaseAta,
-      Bob.publicKey
-    ),
-    await placeOrder(
-      market,
-      Side.Bid,
-      alicePrice,
-      aliceSize,
-      OrderType.Limit,
-      SelfTradeBehavior.AbortTransaction,
-      aliceQuoteAta,
-      Alice.publicKey
-    ),
-    await consumeEvents(
-      market,
-      feePayer.publicKey,
-      [aliceUa, bobUa],
-      new BN(10),
-      new BN(1)
-    ),
-    await settle(market, Alice.publicKey, aliceBaseAta, aliceQuoteAta),
-    await settle(market, Bob.publicKey, bobBaseAta, bobQuoteAta),
-  ]);
+  let tx = await signAndSendInstructions(
+    connection,
+    [Alice, Bob],
+    feePayer,
+    [
+      await placeOrder(
+        market,
+        Side.Ask,
+        bobPrice,
+        bobSize,
+        OrderType.Limit,
+        SelfTradeBehavior.AbortTransaction,
+        bobBaseAta,
+        Bob.publicKey
+      ),
+      await placeOrder(
+        market,
+        Side.Bid,
+        alicePrice,
+        aliceSize,
+        OrderType.Limit,
+        SelfTradeBehavior.AbortTransaction,
+        aliceQuoteAta,
+        Alice.publicKey
+      ),
+      await consumeEvents(
+        market,
+        feePayer.publicKey,
+        [aliceUa, bobUa],
+        new BN(10),
+        new BN(1)
+      ),
+      await settle(market, Alice.publicKey, aliceBaseAta, aliceQuoteAta),
+      await settle(market, Bob.publicKey, bobBaseAta, bobQuoteAta),
+    ],
+    true
+  );
 
   console.log(tx);
   const executionPrice = computeFp32Price(market, bobPrice);

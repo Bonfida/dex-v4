@@ -13,27 +13,19 @@ use solana_program::pubkey::Pubkey;
 
 const NB_INSTRUCTIONS: u32 = 1_000;
 
-#[tokio::test]
+// #[tokio::test]
 async fn test_dex_perf() {
     use solana_program_test::{processor, ProgramTest};
 
     // Create program and test environment
-    let aaob_program_id = Pubkey::new_unique();
-    let dex_program_id = Pubkey::new_unique();
     let serum_dex_program_id = Pubkey::new_unique(); // The old serum version
 
     println!("Serum_dex_key {:?}", serum_dex_program_id);
-    println!("Aob_dex_key {:?}", dex_program_id);
 
     let mut program_test = ProgramTest::new(
         "dex_v4",
-        dex_program_id,
+        dex_v4::ID,
         processor!(dex_v4::entrypoint::process_instruction),
-    );
-    program_test.add_program(
-        "agnostic_orderbook",
-        agnostic_orderbook::ID,
-        processor!(agnostic_orderbook::entrypoint::process_instruction),
     );
     program_test.add_program(
         "serum_dex",
@@ -48,8 +40,7 @@ async fn test_dex_perf() {
         // ),
     );
 
-    let (aob_dex_test_ctx, mut pgr_test_ctx) =
-        create_aob_dex(program_test, aaob_program_id, dex_program_id).await;
+    let (aob_dex_test_ctx, mut pgr_test_ctx) = create_aob_dex(program_test).await;
 
     let serum_dex_test_ctx = initialize_serum_market_accounts(
         &mut pgr_test_ctx,
@@ -85,7 +76,6 @@ async fn test_dex_perf() {
             max_base_qty,
             max_quote_qty,
             (i % NB_USER_ACCS) as usize,
-            dex_program_id,
         )
         .await;
 

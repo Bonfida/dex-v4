@@ -87,7 +87,6 @@ export const createContext = async (
     feePayer.publicKey,
     feePayer.publicKey,
     tickSize,
-    new BN(0),
     baseCurrencyMultiplier,
     quoteCurrencyMultiplier
   );

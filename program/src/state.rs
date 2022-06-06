@@ -1,3 +1,4 @@
+use agnostic_orderbook::state::orderbook::CallbackInfo;
 use borsh::{BorshDeserialize, BorshSerialize};
 use bytemuck::{try_cast_slice_mut, try_from_bytes_mut, Pod, Zeroable};
 use num_derive::{FromPrimitive, ToPrimitive};
@@ -390,9 +391,20 @@ impl FeeTier {
         fp32_mul(quote_qty, rate).unwrap()
     }
 }
-#[doc(hidden)]
-#[derive(BorshDeserialize, BorshSerialize, Debug)]
+#[derive(BorshDeserialize, BorshSerialize, Debug, Clone, Copy, Zeroable, Pod, PartialEq)]
+#[repr(C)]
+/// Information about a user involved in an orderbook matching event
 pub struct CallBackInfo {
+    #[allow(missing_docs)]
     pub user_account: Pubkey,
+    #[allow(missing_docs)]
     pub fee_tier: u8,
+}
+
+impl CallbackInfo for CallBackInfo {
+    type CallbackId = Pubkey;
+
+    fn as_callback_id(&self) -> &Self::CallbackId {
+        &self.user_account
+    }
 }

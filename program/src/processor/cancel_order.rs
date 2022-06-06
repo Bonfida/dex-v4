@@ -1,13 +1,12 @@
 //! Cancel an existing order and remove it from the orderbook.
-use super::CALLBACK_INFO_LEN;
 use crate::{
     error::DexError,
-    state::{DexState, UserAccount},
+    state::{CallBackInfo, DexState, UserAccount},
     utils::{check_account_key, check_account_owner, check_signer},
 };
 use agnostic_orderbook::{
     error::AoError,
-    state::{get_side_from_order_id, EventQueue, EventQueueHeader, OrderSummary, Side},
+    state::{get_side_from_order_id, Side},
 };
 use bonfida_utils::BorshSize;
 use bonfida_utils::InstructionsAccount;
@@ -21,7 +20,6 @@ use solana_program::{
     program_error::{PrintProgramError, ProgramError},
     pubkey::Pubkey,
 };
-use std::rc::Rc;
 
 #[derive(Clone, Copy, CheckedBitPattern, NoUninit, BorshDeserialize, BorshSerialize, BorshSize)]
 #[repr(C)]
@@ -153,25 +151,17 @@ pub(crate) fn process(
         asks: accounts.asks,
     };
 
-    if let Err(error) = agnostic_orderbook::instruction::cancel_order::process(
+    let order_summary = match agnostic_orderbook::instruction::cancel_order::process::<CallBackInfo>(
         program_id,
         invoke_accounts,
         invoke_params,
     ) {
-        error.print::<AoError>();
-        return Err(DexError::AOBError.into());
-    }
-
-    let event_queue_header =
-        EventQueueHeader::deserialize(&mut (&accounts.event_queue.data.borrow() as &[u8]))?;
-    let event_queue = EventQueue::new(
-        event_queue_header,
-        Rc::clone(&accounts.event_queue.data),
-        CALLBACK_INFO_LEN as usize,
-    );
-
-    let order_summary: OrderSummary = event_queue.read_register().unwrap().unwrap();
-
+        Err(error) => {
+            error.print::<AoError>();
+            return Err(DexError::AOBError.into());
+        }
+        Ok(s) => s,
+    };
     let side = get_side_from_order_id(order_id);
 
     match side {
