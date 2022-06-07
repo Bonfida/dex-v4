@@ -76,6 +76,10 @@ pub struct DexState {
     pub royalties_bps: u64,
     /// Accumulated royalties fees
     pub accumulated_royalties: u64,
+    /// The base currency multiplier
+    pub base_currency_multiplier: u64,
+    /// The quote currency multiplier
+    pub quote_currency_multiplier: u64,
     /// The signer nonce is necessary for the market to perform as a signing entity
     pub signer_nonce: u8,
     /// Fee type (e.g. default or stable)

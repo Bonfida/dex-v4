@@ -151,6 +151,8 @@ async fn test_dex() {
             min_base_order_size: 10,
             tick_size: 1,
             cranker_reward: 0,
+            base_currency_multiplier: 1_000,
+            quote_currency_multiplier: 1,
         },
     );
     sign_send_instructions(&mut prg_test_ctx, vec![create_market_instruction], vec![])

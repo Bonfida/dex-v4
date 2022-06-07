@@ -1,8 +1,9 @@
 import { Connection, PublicKey } from "@solana/web3.js";
 import BN from "bn.js";
 import { DEX_ID } from "./ids";
-import { Order, UserAccount } from "./state";
+import { MarketState, Order, UserAccount } from "./state";
 import { closeAccount, initializeAccount } from "./bindings";
+import { BuiltInParserName } from "prettier";
 
 /**
  * Open Orders class
@@ -155,14 +156,15 @@ export class OpenOrders {
   static async load(
     connection: Connection,
     market: PublicKey,
-    owner: PublicKey
+    owner: PublicKey,
+    marketState: MarketState
   ) {
     const [address] = await PublicKey.findProgramAddress(
       [market.toBuffer(), owner.toBuffer()],
       DEX_ID
     );
 
-    const userAccount = await UserAccount.retrieve(connection, address);
+    const userAccount = await UserAccount.retrieve(connection, address, marketState.baseCurrencyMultiplier, marketState.quoteCurrencyMultiplier);
 
     return new OpenOrders(
       address,
