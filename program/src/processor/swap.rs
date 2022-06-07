@@ -170,7 +170,7 @@ pub(crate) fn process(
 ) -> ProgramResult {
     let Params {
         side,
-        base_qty,
+        mut base_qty,
         mut quote_qty,
         match_limit,
         has_discount_token_account,
@@ -180,8 +180,11 @@ pub(crate) fn process(
 
     let market_state = DexState::get(accounts.market)?;
 
+    base_qty /= market_state.base_currency_multiplier;
+    quote_qty /= market_state.quote_currency_multiplier;
+
     // Check the order size
-    if base_qty < &market_state.min_base_order_size {
+    if base_qty < market_state.min_base_order_size {
         msg!("The base order size is too small.");
         return Err(ProgramError::InvalidArgument);
     }
@@ -229,7 +232,7 @@ pub(crate) fn process(
 
     let (max_base_qty, max_quote_qty, limit_price) = match FromPrimitive::from_u8(*side).unwrap() {
         Side::Bid => (u64::MAX, quote_qty, u64::MAX - (u64::MAX % tick_size)),
-        Side::Ask => (*base_qty, u64::MAX, 0),
+        Side::Ask => (base_qty, u64::MAX, 0),
     };
 
     let invoke_params = agnostic_orderbook::instruction::new_order::Params {
@@ -276,12 +279,18 @@ pub(crate) fn process(
                 order_summary.total_quote_qty +=
                     fee_tier.taker_fee(order_summary.total_quote_qty) + royalties_fees;
 
-                let is_valid = order_summary.total_base_qty >= *base_qty;
+                let is_valid = order_summary.total_base_qty >= base_qty;
 
                 (
                     is_valid,
-                    order_summary.total_base_qty,
-                    order_summary.total_quote_qty,
+                    order_summary
+                        .total_base_qty
+                        .checked_mul(market_state.base_currency_multiplier)
+                        .unwrap(),
+                    order_summary
+                        .total_quote_qty
+                        .checked_mul(market_state.quote_currency_multiplier)
+                        .unwrap(),
                 )
             }
             Side::Ask => {
@@ -291,10 +300,14 @@ pub(crate) fn process(
 
                 (
                     is_valid,
-                    order_summary.total_base_qty,
+                    order_summary
+                        .total_base_qty
+                        .checked_mul(market_state.base_currency_multiplier)
+                        .unwrap(),
                     order_summary
                         .total_quote_qty
                         .checked_sub(taker_fee + royalties_fees)
+                        .and_then(|n| n.checked_mul(market_state.quote_currency_multiplier))
                         .unwrap(),
                 )
             }

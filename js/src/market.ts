@@ -354,7 +354,7 @@ export class Market {
     connection: Connection,
     owner: PublicKey
   ) {
-    const openOrders = OpenOrders.load(connection, this.address, owner);
+    const openOrders = OpenOrders.load(connection, this.address, owner, this._marketState);
     return openOrders;
   }
 
@@ -520,7 +520,8 @@ export class Market {
     const openOrders = await OpenOrders.load(
       connection,
       this.address,
-      owner.publicKey
+      owner.publicKey,
+      this._marketState
     );
     const orderId = openOrders.orders[orderIndex].id;
     if (!orderId) {
@@ -550,7 +551,8 @@ export class Market {
     const openOrders = await OpenOrders.load(
       connection,
       this.address,
-      owner.publicKey
+      owner.publicKey,
+      this._marketState
     );
     const orderIndex = openOrders.orders
       .map((o) => o.id.eq(orderId))

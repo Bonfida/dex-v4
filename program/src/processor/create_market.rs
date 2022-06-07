@@ -36,6 +36,8 @@ pub struct Params {
     pub min_base_order_size: u64,
     pub tick_size: u64,
     pub cranker_reward: u64,
+    pub base_currency_multiplier: u64,
+    pub quote_currency_multiplier: u64,
 }
 
 #[derive(InstructionsAccount)]
@@ -123,7 +125,15 @@ pub(crate) fn process(
         min_base_order_size,
         tick_size,
         cranker_reward,
+        base_currency_multiplier,
+        quote_currency_multiplier,
     } = try_from_bytes(instruction_data).map_err(|_| ProgramError::InvalidInstructionData)?;
+
+    if base_currency_multiplier == &0 || quote_currency_multiplier == &0 {
+        msg!("The currency multipliers should be nonzero!");
+        return Err(ProgramError::InvalidArgument);
+    }
+
     let market_signer = Pubkey::create_program_address(
         &[&accounts.market.key.to_bytes(), &[*signer_nonce as u8]],
         program_id,
@@ -163,11 +173,13 @@ pub(crate) fn process(
         base_volume: 0,
         quote_volume: 0,
         accumulated_fees: 0,
-        min_base_order_size: *min_base_order_size,
+        min_base_order_size: *min_base_order_size / *base_currency_multiplier,
         fee_type: MarketFeeType::Default as u8,
         _padding: [0; 6],
         royalties_bps: royalties_bps as u64,
         accumulated_royalties: 0,
+        base_currency_multiplier: *base_currency_multiplier,
+        quote_currency_multiplier: *quote_currency_multiplier,
     };
 
     let invoke_params = agnostic_orderbook::instruction::create_market::Params {

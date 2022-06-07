@@ -30,7 +30,7 @@ import { computeFp32Price } from "./utils";
 /**
  * Constants
  */
-const MARKET_STATE_SPACE = 264;
+const MARKET_STATE_SPACE = 280;
 const NODE_CAPACITY = 100;
 const EVENT_CAPACITY = 100;
 
@@ -54,7 +54,9 @@ export const createMarket = async (
   feePayer: PublicKey,
   marketAdmin: PublicKey,
   tickSize: BN,
-  crankerReward: BN
+  crankerReward: BN,
+  baseCurrencyMultiplier?: BN,
+  quoteCurrencyMultiplier?: BN,
 ): Promise<PrimedTransaction[]> => {
   // Metadata account
   const metadataAccount = await getMetadataKeyFromMint(baseMint);
@@ -65,6 +67,12 @@ export const createMarket = async (
   const balance = await connection.getMinimumBalanceForRentExemption(
     MARKET_STATE_SPACE
   );
+  if (!baseCurrencyMultiplier) {
+    baseCurrencyMultiplier = new BN(1)
+  }
+  if (!quoteCurrencyMultiplier) {
+    quoteCurrencyMultiplier = new BN(1)
+  }
   const createMarketAccount = SystemProgram.createAccount({
     fromPubkey: feePayer,
     lamports: balance,
@@ -117,6 +125,8 @@ export const createMarket = async (
     minBaseOrderSize: new BN(minBaseOrderSize),
     tickSize: tickSize,
     crankerReward: new BN(crankerReward),
+    baseCurrencyMultiplier,
+    quoteCurrencyMultiplier
   }).getInstruction(
     DEX_ID,
     marketAccount.publicKey,
@@ -186,7 +196,8 @@ export const placeOrder = async (
   const priceFp32 = computeFp32Price(market, limitPrice);
 
   const formattedLimitPrice =
-    Math.pow(10, market.quoteDecimals - market.baseDecimals) * limitPrice;
+    Math.pow(10, market.quoteDecimals - market.baseDecimals) * limitPrice * market.marketState.baseCurrencyMultiplier.toNumber() / market.marketState.quoteCurrencyMultiplier.toNumber();
+  const price = new BN(formattedLimitPrice * (2 ** 32));
 
   const instruction = new newOrderInstruction({
     side: side as number,
