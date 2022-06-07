@@ -8,12 +8,18 @@ export enum AccountTag {
   Initialized = 0,
   MarketState = 1,
   UserAccount = 2,
+  Close = 3,
 }
 
 export enum SelfTradeBehavior {
   DecrementTake = 0,
   CancelProvide = 1,
   AbortTransaction = 2,
+}
+
+export enum MarketFeeType {
+  Default = 0,
+  Stable = 1,
 }
 
 export class MarketState {
