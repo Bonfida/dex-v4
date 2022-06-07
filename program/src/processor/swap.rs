@@ -280,8 +280,14 @@ pub(crate) fn process(
 
                 (
                     is_valid,
-                    order_summary.total_base_qty,
-                    order_summary.total_quote_qty,
+                    order_summary
+                        .total_base_qty
+                        .checked_mul(market_state.base_currency_multiplier)
+                        .unwrap(),
+                    order_summary
+                        .total_quote_qty
+                        .checked_mul(market_state.quote_currency_multiplier)
+                        .unwrap(),
                 )
             }
             Side::Ask => {
@@ -291,10 +297,14 @@ pub(crate) fn process(
 
                 (
                     is_valid,
-                    order_summary.total_base_qty,
+                    order_summary
+                        .total_base_qty
+                        .checked_mul(market_state.base_currency_multiplier)
+                        .unwrap(),
                     order_summary
                         .total_quote_qty
                         .checked_sub(taker_fee + royalties_fees)
+                        .and_then(|n| n.checked_mul(market_state.quote_currency_multiplier))
                         .unwrap(),
                 )
             }

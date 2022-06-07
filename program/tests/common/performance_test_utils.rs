@@ -127,6 +127,8 @@ pub async fn create_aob_dex(
             min_base_order_size: 1000,
             tick_size: 1,
             cranker_reward: 0,
+            base_currency_multiplier: 1,
+            quote_currency_multiplier: 1,
         },
     );
     sign_send_instructions(&mut pgr_test_ctx, vec![create_market_instruction], vec![])

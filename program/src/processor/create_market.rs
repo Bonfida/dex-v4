@@ -36,6 +36,8 @@ pub struct Params {
     pub min_base_order_size: u64,
     pub tick_size: u64,
     pub cranker_reward: u64,
+    pub base_currency_multiplier: u64,
+    pub quote_currency_multiplier: u64,
 }
 
 #[derive(InstructionsAccount)]
@@ -123,6 +125,8 @@ pub(crate) fn process(
         min_base_order_size,
         tick_size,
         cranker_reward,
+        base_currency_multiplier,
+        quote_currency_multiplier,
     } = try_from_bytes(instruction_data).map_err(|_| ProgramError::InvalidInstructionData)?;
     let market_signer = Pubkey::create_program_address(
         &[&accounts.market.key.to_bytes(), &[*signer_nonce as u8]],
@@ -168,6 +172,8 @@ pub(crate) fn process(
         _padding: [0; 6],
         royalties_bps: royalties_bps as u64,
         accumulated_royalties: 0,
+        base_currency_multiplier: *base_currency_multiplier,
+        quote_currency_multiplier: *quote_currency_multiplier,
     };
 
     let invoke_params = agnostic_orderbook::instruction::create_market::Params {

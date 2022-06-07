@@ -228,7 +228,7 @@ pub(crate) fn process(
         match_limit,
         has_discount_token_account,
         client_order_id,
-        _padding: _,
+        ..
     } = try_from_bytes(instruction_data).map_err(|_| ProgramError::InvalidInstructionData)?;
     #[cfg(any(target_arch = "aarch64", feature = "aarch64-test"))]
     let client_order_id: &u128 = bytemuck::cast_ref(client_order_id);
@@ -237,6 +237,9 @@ pub(crate) fn process(
     let market_state = DexState::get(accounts.market)?;
     let mut user_account_data = accounts.user.data.borrow_mut();
     let mut user_account = accounts.load_user_account(&mut user_account_data)?;
+
+    // max_base_qty /= market_state.base_currency_multiplier;
+    // max_quote_qty /= market_state.quote_currency_multiplier;
 
     // Check the order size
     if max_base_qty < &market_state.min_base_order_size {
@@ -343,7 +346,12 @@ pub(crate) fn process(
                 user_account.header.base_token_free +=
                     order_summary.total_base_qty - order_summary.total_base_qty_posted;
 
-                (q, accounts.quote_vault, referral_fee)
+                (
+                    q.checked_mul(market_state.quote_currency_multiplier)
+                        .unwrap(),
+                    accounts.quote_vault,
+                    referral_fee,
+                )
             }
             Side::Ask => {
                 let q = order_summary
@@ -366,7 +374,12 @@ pub(crate) fn process(
                 user_account.header.quote_token_free += taken_quote_qty
                     .checked_sub(taker_fee + royalties_fees)
                     .unwrap();
-                (q, accounts.base_vault, referral_fee)
+                (
+                    q.checked_mul(market_state.base_currency_multiplier)
+                        .unwrap(),
+                    accounts.base_vault,
+                    referral_fee,
+                )
             }
         };
 
@@ -417,7 +430,9 @@ pub(crate) fn process(
             a.key,
             accounts.user_owner.key,
             &[],
-            referral_fee,
+            referral_fee
+                .checked_mul(market_state.quote_currency_multiplier)
+                .unwrap(),
         )?;
 
         invoke_signed(

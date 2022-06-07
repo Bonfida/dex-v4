@@ -123,7 +123,11 @@ pub(crate) fn process(program_id: &Pubkey, accounts: &[AccountInfo]) -> ProgramR
         accounts.destination_quote_account.key,
         accounts.market_signer.key,
         &[],
-        user_account.header.quote_token_free,
+        user_account
+            .header
+            .quote_token_free
+            .checked_mul(market_state.quote_currency_multiplier)
+            .unwrap(),
     )?;
 
     invoke_signed(
@@ -146,7 +150,11 @@ pub(crate) fn process(program_id: &Pubkey, accounts: &[AccountInfo]) -> ProgramR
         accounts.destination_base_account.key,
         accounts.market_signer.key,
         &[],
-        user_account.header.base_token_free,
+        user_account
+            .header
+            .base_token_free
+            .checked_mul(market_state.base_currency_multiplier)
+            .unwrap(),
     )?;
 
     invoke_signed(
