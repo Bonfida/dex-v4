@@ -202,6 +202,7 @@ pub(crate) fn process(
     }
 
     let orderbook = agnostic_orderbook::state::MarketState::get(accounts.orderbook)?;
+    let tick_size = orderbook.tick_size;
 
     // Transfer the cranking fee to the AAOB program
     let rent = Rent::get()?;
@@ -227,8 +228,8 @@ pub(crate) fn process(
     )?;
 
     let (max_base_qty, max_quote_qty, limit_price) = match FromPrimitive::from_u8(*side).unwrap() {
-        Side::Bid => (u64::MAX, quote_qty, u64::MAX),
-        Side::Ask => (*base_qty, u64::MAX, u64::MIN),
+        Side::Bid => (u64::MAX, quote_qty, u64::MAX - (u64::MAX % tick_size)),
+        Side::Ask => (*base_qty, u64::MAX, 0),
     };
 
     let invoke_params = agnostic_orderbook::instruction::new_order::Params {
