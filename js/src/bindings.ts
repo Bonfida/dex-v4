@@ -54,7 +54,9 @@ export const createMarket = async (
   feePayer: PublicKey,
   marketAdmin: PublicKey,
   tickSize: BN,
-  crankerReward: BN
+  crankerReward: BN,
+  baseCurrencyMultiplier?: BN,
+  quoteCurrencyMultiplier?: BN
 ): Promise<PrimedTransaction[]> => {
   // Metadata account
   const metadataAccount = await getMetadataKeyFromMint(baseMint);
@@ -65,6 +67,12 @@ export const createMarket = async (
   const balance = await connection.getMinimumBalanceForRentExemption(
     MARKET_STATE_SPACE
   );
+  if (!baseCurrencyMultiplier) {
+    baseCurrencyMultiplier = new BN(1);
+  }
+  if (!quoteCurrencyMultiplier) {
+    quoteCurrencyMultiplier = new BN(1);
+  }
   const createMarketAccount = SystemProgram.createAccount({
     fromPubkey: feePayer,
     lamports: balance,
@@ -117,6 +125,8 @@ export const createMarket = async (
     minBaseOrderSize: new BN(minBaseOrderSize),
     tickSize: tickSize,
     crankerReward: new BN(crankerReward),
+    baseCurrencyMultiplier,
+    quoteCurrencyMultiplier,
   }).getInstruction(
     DEX_ID,
     marketAccount.publicKey,

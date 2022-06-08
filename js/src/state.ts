@@ -37,6 +37,8 @@ export class MarketState {
   minBaseOrderSize: BN;
   royaltiesBps: BN;
   accumulatedRoyalties: BN;
+  baseCurrencyMultiplier: BN;
+  quoteCurrencyMultiplier: BN;
   signerNonce: number;
   feeType: number;
 
@@ -60,6 +62,8 @@ export class MarketState {
           ["minBaseOrderSize", "u64"],
           ["royaltiesBps", "u64"],
           ["accumulatedRoyalties", "u64"],
+          ["baseCurrencyMultiplier", "u64"],
+          ["quoteCurrencyMultiplier", "u64"],
           ["signerNonce", "u8"],
           ["feeType", "u8"],
           ["padding", [6]],
@@ -83,6 +87,8 @@ export class MarketState {
     accumulatedFees: BN;
     minBaseOrderSize: BN;
     royaltiesBps: BN;
+    baseCurrencyMultiplier: BN;
+    quoteCurrencyMultiplier: BN;
     accumulatedRoyalties: BN;
     feeType: number;
   }) {
@@ -95,12 +101,14 @@ export class MarketState {
     this.orderbook = new PublicKey(obj.orderbook);
     this.admin = new PublicKey(obj.admin);
     this.creationTimestamp = obj.creationTimestamp;
-    this.baseVolume = obj.baseVolume;
-    this.quoteVolume = obj.quoteVolume;
-    this.accumulatedFees = obj.accumulatedFees;
-    this.minBaseOrderSize = obj.minBaseOrderSize;
+    this.baseVolume = obj.baseVolume.mul(obj.baseCurrencyMultiplier);
+    this.quoteVolume = obj.quoteVolume.mul(obj.quoteCurrencyMultiplier);
+    this.accumulatedFees = obj.accumulatedFees.mul(obj.quoteCurrencyMultiplier);
+    this.minBaseOrderSize = obj.minBaseOrderSize.mul(obj.baseCurrencyMultiplier);
     this.royaltiesBps = obj.royaltiesBps;
-    this.accumulatedRoyalties = obj.accumulatedRoyalties;
+    this.accumulatedRoyalties = obj.accumulatedRoyalties.mul(obj.quoteCurrencyMultiplier);
+    this.quoteCurrencyMultiplier = obj.quoteCurrencyMultiplier;
+    this.baseCurrencyMultiplier = obj.baseCurrencyMultiplier;
     this.feeType = obj.feeType;
   }
 
@@ -208,16 +216,25 @@ export class UserAccount {
     this.accumulatedTakerBaseVolume = obj.accumulatedTakerBaseVolume;
   }
 
-  static async retrieve(connection: Connection, userAccount: PublicKey) {
+  static async retrieve(connection: Connection, marketState: MarketState, userAccount: PublicKey) {
     const accountInfo = await connection.getAccountInfo(userAccount);
     if (!accountInfo?.data) {
       throw new Error("Invalid account provided");
     }
-    return deserializeUnchecked(
+    let u = deserializeUnchecked(
       this.schema,
       UserAccount,
       accountInfo.data
     ) as UserAccount;
+    u.baseTokenFree.imul(marketState.baseCurrencyMultiplier);
+    u.baseTokenLocked.imul(marketState.baseCurrencyMultiplier);
+    u.quoteTokenFree.imul(marketState.quoteCurrencyMultiplier);
+    u.quoteTokenLocked.imul(marketState.quoteCurrencyMultiplier);
+    u.accumulatedRebates.imul(marketState.quoteCurrencyMultiplier);
+    u.accumulatedMakerQuoteVolume.imul(marketState.quoteCurrencyMultiplier);
+    u.accumulatedTakerQuoteVolume.imul(marketState.quoteCurrencyMultiplier);
+    u.accumulatedMakerBaseVolume.imul(marketState.baseCurrencyMultiplier);
+    u.accumulatedTakerBaseVolume.imul(marketState.baseCurrencyMultiplier);
   }
 
   getOrderId(clientOrderId: BN): BN | undefined {

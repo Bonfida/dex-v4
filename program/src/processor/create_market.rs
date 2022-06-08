@@ -167,7 +167,7 @@ pub(crate) fn process(
         base_volume: 0,
         quote_volume: 0,
         accumulated_fees: 0,
-        min_base_order_size: *min_base_order_size,
+        min_base_order_size: *min_base_order_size / *base_currency_multiplier,
         fee_type: MarketFeeType::Default as u8,
         _padding: [0; 6],
         royalties_bps: royalties_bps as u64,

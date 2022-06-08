@@ -11,7 +11,7 @@ use solana_program::{instruction::Instruction, pubkey::Pubkey};
 ///         Describes all possible instructions and their required accounts
 pub enum DexInstruction {
     /// Creates a new DEX market
-    /// 
+    ///
     /// | Index | Writable | Signer | Description                 |
     /// | ------------------------------------------------------- |
     /// | 0     | ✅        | ❌      | The market account          |
@@ -25,7 +25,7 @@ pub enum DexInstruction {
     /// | 8     | ❌        | ❌      | The metaplex token metadata |
     CreateMarket,
     /// Execute a new order instruction. Supported types include Limit, IOC, FOK, or Post only.
-    /// 
+    ///
     /// | Index | Writable | Signer | Description                                                                        |
     /// | -------------------------------------------------------------------------------------------------------------- |
     /// | 0     | ❌        | ❌      | The SPL token program                                                              |
@@ -43,7 +43,7 @@ pub enum DexInstruction {
     /// | 12    | ❌        | ❌      | The optional SRM or MSRM discount token account (must be owned by the user wallet) |
     /// | 13    | ✅        | ❌      | The optional referrer's token account which will receive a 20% cut of the fees     |
     NewOrder,
-    /// 
+    ///
     /// | Index | Writable | Signer | Description                                                                        |
     /// | -------------------------------------------------------------------------------------------------------------- |
     /// | 0     | ❌        | ❌      | The SPL token program                                                              |
@@ -63,7 +63,7 @@ pub enum DexInstruction {
     /// | 14    | ✅        | ❌      | The optional referrer's token account which will receive a 20% cut of the fees     |
     Swap,
     /// Cancel an existing order and remove it from the orderbook.
-    /// 
+    ///
     /// | Index | Writable | Signer | Description                |
     /// | ------------------------------------------------------ |
     /// | 0     | ❌        | ❌      | The DEX market             |
@@ -75,7 +75,7 @@ pub enum DexInstruction {
     /// | 6     | ❌        | ✅      | The user wallet            |
     CancelOrder,
     /// Crank the processing of DEX events.
-    /// 
+    ///
     /// | Index    | Writable | Signer | Description                |
     /// | --------------------------------------------------------- |
     /// | 0        | ✅        | ❌      | The DEX market             |
@@ -85,7 +85,7 @@ pub enum DexInstruction {
     /// | 4..4 + N | ✅        | ❌      | The relevant user accounts |
     ConsumeEvents,
     /// Extract available base and quote token assets from a user account
-    /// 
+    ///
     /// | Index | Writable | Signer | Description                         |
     /// | --------------------------------------------------------------- |
     /// | 0     | ❌        | ❌      | The spl token program               |
@@ -99,7 +99,7 @@ pub enum DexInstruction {
     /// | 8     | ✅        | ❌      | The destination quote token account |
     Settle,
     /// Initialize a new user account
-    /// 
+    ///
     /// | Index | Writable | Signer | Description                    |
     /// | ---------------------------------------------------------- |
     /// | 0     | ❌        | ❌      | The system program             |
@@ -108,7 +108,7 @@ pub enum DexInstruction {
     /// | 3     | ✅        | ✅      | The fee payer                  |
     InitializeAccount,
     /// Extract accumulated fees from the market. This is an admin instruction
-    /// 
+    ///
     /// | Index    | Writable | Signer | Description                   |
     /// | ------------------------------------------------------------ |
     /// | 0        | ✅        | ❌      | The DEX market                |
@@ -120,7 +120,7 @@ pub enum DexInstruction {
     /// | 6..6 + N | ✅        | ❌      | The creator token account     |
     SweepFees,
     /// Close an inactive and empty user account
-    /// 
+    ///
     /// | Index | Writable | Signer | Description                            |
     /// | ------------------------------------------------------------------ |
     /// | 0     | ✅        | ❌      | The user account to close              |
@@ -128,7 +128,7 @@ pub enum DexInstruction {
     /// | 2     | ✅        | ❌      | The target lamports account            |
     CloseAccount,
     /// Close an existing market
-    /// 
+    ///
     /// | Index | Writable | Signer | Description                    |
     /// | ---------------------------------------------------------- |
     /// | 0     | ✅        | ❌      | The market account             |
@@ -144,7 +144,7 @@ pub enum DexInstruction {
     /// | 10    | ❌        | ❌      | The SPL token program ID       |
     CloseMarket,
     /// Update market royalties.
-    /// 
+    ///
     /// | Index | Writable | Signer | Description             |
     /// | --------------------------------------------------- |
     /// | 0     | ✅        | ❌      | The DEX market          |
@@ -163,7 +163,7 @@ pub fn create_market(
 ) -> Instruction {
     accounts.get_instruction_cast(program_id, DexInstruction::CreateMarket as u8, params)
 }
-///        \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\nExecute a new order on the orderbook.\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\n\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\nDepending on the provided parameters, the program will attempt to match the order with existing entries\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\nin the orderbook, and then optionally post the remaining order.\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\n
+///
 pub fn new_order(
     program_id: Pubkey,
     accounts: new_order::Accounts<Pubkey>,
@@ -235,6 +235,7 @@ pub fn close_market(
 ) -> Instruction {
     accounts.get_instruction_cast(program_id, DexInstruction::CloseMarket as u8, params)
 }
+///
 pub fn update_royalties(
     program_id: Pubkey,
     accounts: update_royalties::Accounts<Pubkey>,
