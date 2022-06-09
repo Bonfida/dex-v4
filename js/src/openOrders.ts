@@ -1,7 +1,7 @@
 import { Connection, PublicKey } from "@solana/web3.js";
 import BN from "bn.js";
 import { DEX_ID } from "./ids";
-import { Order, UserAccount } from "./state";
+import { Order, UserAccount, MarketState } from "./state";
 import { closeAccount, initializeAccount } from "./bindings";
 
 /**
@@ -161,8 +161,13 @@ export class OpenOrders {
       [market.toBuffer(), owner.toBuffer()],
       DEX_ID
     );
+    const marketState = await MarketState.retrieve(connection, market);
 
-    const userAccount = await UserAccount.retrieve(connection, address);
+    const userAccount = await UserAccount.retrieve(
+      connection,
+      marketState,
+      address
+    );
 
     return new OpenOrders(
       address,
