@@ -1,48 +1,29 @@
-import { TokenMint, signAndSendInstructions } from "@bonfida/utils";
+import { signAndSendInstructions } from "@bonfida/utils";
 import { Connection, Keypair, PublicKey } from "@solana/web3.js";
-import { createMarket } from "../src/bindings";
+import { closeMarket, consumeEvents } from "../src/bindings";
 import BN from "bn.js";
 import { expect } from "@jest/globals";
 import { MarketState, AccountTag, MarketFeeType } from "../src/state";
 import { DEX_ID } from "../src/ids";
 import { AccountLayout, TOKEN_PROGRAM_ID } from "@solana/spl-token";
+import { Market } from "../src/market";
+import { createContext } from "./utils/context";
 
 export const createMarketTest = async (
   connection: Connection,
   feePayer: Keypair
 ) => {
-  /**
-   * Base and quote
-   */
-
-  const base = await TokenMint.init(connection, feePayer);
-  const quote = await TokenMint.init(connection, feePayer);
-
-  const metadata = Keypair.generate().publicKey;
-
-  const tickSize = new BN(1);
-  const minBaseOrderSize = 1;
-
-  let ixs = await createMarket(
+  const tickSize = new BN(2 ** 32);
+  const minBaseOrderSize = new BN(1);
+  const { marketKey, base, quote } = await createContext(
     connection,
-    base.token,
-    quote.token,
-    minBaseOrderSize,
-    feePayer.publicKey,
-    feePayer.publicKey,
+    feePayer,
     tickSize,
-    new BN(0),
-    // Metadata not checked on devnet
-    metadata
+    minBaseOrderSize,
+    6,
+    6
   );
 
-  for (let ix of ixs) {
-    let tx = await signAndSendInstructions(connection, ix[0], feePayer, ix[1]);
-    console.log(tx);
-  }
-
-  const marketKey = ixs[0][0][0].publicKey;
-  console.log("marketKey", marketKey.toBase58());
   let marketObj = await MarketState.retrieve(connection, marketKey);
   const now = new Date().getTime() / 1_000;
 
@@ -59,7 +40,9 @@ export const createMarketTest = async (
   expect(marketObj.baseVolume.toNumber()).toBe(0);
   expect(marketObj.quoteVolume.toNumber()).toBe(0);
   expect(marketObj.accumulatedFees.toNumber()).toBe(0);
-  expect(marketObj.minBaseOrderSize.toNumber()).toBe(minBaseOrderSize);
+  expect(marketObj.minBaseOrderSize.toNumber()).toBe(
+    minBaseOrderSize.toNumber()
+  );
   expect(marketObj.royaltiesBps.toNumber()).toBe(0);
   expect(marketObj.accumulatedRoyalties.toNumber()).toBe(0);
   expect(marketObj.feeType).toBe(MarketFeeType.Default);
@@ -98,4 +81,19 @@ export const createMarketTest = async (
   expect(quoteVault.amount.toString()).toBe("0");
   expect(quoteVault.owner.toBase58()).toBe(marketSigner.toBase58());
   expect(quoteVault.mint.toBase58()).toBe(quote.token.toBase58());
+
+  /**
+   * Consume 0 event
+   */
+  const market = await Market.load(connection, marketKey);
+  await signAndSendInstructions(connection, [], feePayer, [
+    await consumeEvents(market, feePayer.publicKey, [], new BN(10), new BN(0)),
+  ]);
+
+  /**
+   * Close market
+   */
+  const ix = await closeMarket(market, feePayer.publicKey);
+  const tx = await signAndSendInstructions(connection, [], feePayer, [ix]);
+  console.log(tx);
 };

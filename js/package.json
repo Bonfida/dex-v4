@@ -41,7 +41,8 @@
   },
   "dependencies": {
     "@bonfida/aaob": "^0.0.5",
-    "@bonfida/utils": "^0.0.3",
+    "@bonfida/utils": "^0.0.4",
+    "@metaplex-foundation/mpl-token-metadata": "^2.1.2",
     "@solana/spl-token": "0.2.0",
     "@solana/web3.js": "^1.43.5",
     "bn.js": "^5.1.3",

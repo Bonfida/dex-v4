@@ -7,12 +7,7 @@ import {
   TransactionSignature,
   TransactionInstruction,
 } from "@solana/web3.js";
-import {
-  getMintDecimals,
-  findAssociatedTokenAddress,
-  getTokenBalance,
-  divideBnToNumber,
-} from "./utils";
+import { getMintDecimals, getTokenBalance, divideBnToNumber } from "./utils";
 import { CALLBACK_INFO_LEN, MarketState, SelfTradeBehavior } from "./state";
 import { DEX_ID, SRM_MINT, MSRM_MINT } from "./ids";
 import {
@@ -25,8 +20,9 @@ import { getFeeTier } from "./fees";
 import { OpenOrders } from "./openOrders";
 import { cancelOrder, placeOrder, settle } from "./bindings";
 import BN from "bn.js";
-import { Order, OrderType, Side, OrderInfo, MarketOptions } from "./types";
+import { OrderType, Side, OrderInfo, MarketOptions } from "./types";
 import { Orderbook } from "./orderbook";
+import { getAssociatedTokenAddress } from "@solana/spl-token";
 
 /**
  * A Serum DEX Market object
@@ -104,6 +100,7 @@ export class Market {
 
   private _tickSize: number;
   private _minOrderSize: number;
+  private _admin: PublicKey;
 
   constructor(
     marketState: MarketState,
@@ -132,8 +129,9 @@ export class Market {
     this._orderbookAddress = orderbookAddress;
     this._baseSplTokenMultiplier = new BN(10).pow(new BN(baseDecimals));
     this._quoteSplTokenMultiplier = new BN(10).pow(new BN(quoteDecimals));
-    this._tickSize = Math.pow(10, -quoteDecimals);
+    this._tickSize = orderbookState.tickSize.toNumber();
     this._minOrderSize = marketState.minBaseOrderSize.toNumber();
+    this._admin = marketState.admin;
   }
 
   /**
@@ -257,6 +255,10 @@ export class Market {
     return this._minOrderSize;
   }
 
+  get marketAdmin(): PublicKey {
+    return this._admin;
+  }
+
   /** Returns the inception base volume */
   baseVolume(): number {
     return this._marketState.baseVolume.toNumber();
@@ -323,9 +325,9 @@ export class Market {
    * @returns The public key of the associated token account of the owner
    */
   async findBaseTokenAccountsForOwner(owner: PublicKey) {
-    const pubkey = await findAssociatedTokenAddress(
-      owner,
-      this._marketState.baseMint
+    const pubkey = await getAssociatedTokenAddress(
+      this._marketState.baseMint,
+      owner
     );
     return pubkey;
   }
@@ -336,7 +338,7 @@ export class Market {
    * @returns The public key of the associated token account of the owner
    */
   async findQuoteTokenAccountsForOwner(owner: PublicKey) {
-    const pubkey = await findAssociatedTokenAddress(
+    const pubkey = await getAssociatedTokenAddress(
       owner,
       this._marketState.quoteMint
     );
@@ -378,7 +380,7 @@ export class Market {
     selfTradeBehavior: SelfTradeBehavior,
     ownerTokenAccount: PublicKey,
     owner: Keypair,
-    clientOrderId: BN,
+    clientOrderId?: BN,
     discountTokenAccount?: PublicKey
   ) {
     const inst = await this.makePlaceOrderTransaction(
@@ -416,7 +418,7 @@ export class Market {
     selfTradeBehavior: SelfTradeBehavior,
     ownerTokenAccount: PublicKey,
     owner: PublicKey,
-    clientOrderId: BN,
+    clientOrderId?: BN,
     discountTokenAccount?: PublicKey
   ) {
     return await placeOrder(
@@ -441,7 +443,7 @@ export class Market {
    */
   async findFeeDiscountKeys(connection: Connection, owner: PublicKey) {
     const [srmAddress, msrmAddress] = await Promise.all(
-      [SRM_MINT, MSRM_MINT].map((e) => findAssociatedTokenAddress(owner, e))
+      [SRM_MINT, MSRM_MINT].map((e) => getAssociatedTokenAddress(e, owner))
     );
     const [srmBalance, msrmBalance] = await Promise.all(
       [srmAddress, msrmAddress].map((e) => getTokenBalance(connection, e))
