@@ -6,6 +6,7 @@ import { simpleTrade } from "./simple-trade";
 import { error } from "./error";
 import { swapTest } from "./swap";
 import { orderbookTest } from "./orderbook";
+import { selfTradeTest } from "./self-trade";
 import BN from "bn.js";
 
 // Global state initialized once in test startup and cleaned up at test
@@ -50,4 +51,8 @@ test("Errors", async () => {
 
 test("Swap", async () => {
   await swapTest(connection, feePayer, 6, 6);
+});
+
+test("Self trade", async () => {
+  await selfTradeTest(connection, feePayer, 6, 6);
 });

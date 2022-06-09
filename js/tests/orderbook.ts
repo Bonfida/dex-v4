@@ -38,17 +38,16 @@ export const orderbookTest = async (
     quoteDecimals
   );
   let market = await Market.load(connection, marketKey);
-  const { aliceBaseAta, aliceQuoteAta, bobBaseAta, bobQuoteAta } =
-    await initializeTraders(
-      connection,
-      base,
-      quote,
-      Alice,
-      Bob,
-      feePayer,
-      marketKey,
-      tokenAmount
-    );
+  const { bobBaseAta, bobQuoteAta } = await initializeTraders(
+    connection,
+    base,
+    quote,
+    Alice,
+    Bob,
+    feePayer,
+    marketKey,
+    tokenAmount
+  );
 
   /**
    * Building the following orderbook
@@ -82,7 +81,7 @@ export const orderbookTest = async (
   ];
   const bidSizes = new Array(3)
     .fill(0)
-    .map((e) => Math.random() * Math.pow(10, 8));
+    .map((e) => Math.floor(Math.random() * Math.pow(10, 8)));
 
   const askPrices = [
     minAsk,
@@ -91,7 +90,7 @@ export const orderbookTest = async (
   ];
   const askSizes = new Array(3)
     .fill(0)
-    .map((e) => Math.random() * Math.pow(10, 8));
+    .map((e) => Math.floor(Math.random() * Math.pow(10, 8)));
 
   /**
    * Place orders

@@ -8,6 +8,7 @@ import {
 } from "@solana/web3.js";
 import { createMarket, initializeAccount } from "../../src/bindings";
 import BN from "bn.js";
+import { DEX_ID } from "../../src/ids";
 
 export const createContext = async (
   connection: Connection,
@@ -98,5 +99,21 @@ export const initializeTraders = async (
 
   console.log(`Initialized traders ${tx}`);
 
-  return { aliceBaseAta, aliceQuoteAta, bobBaseAta, bobQuoteAta };
+  const [aliceUa] = await PublicKey.findProgramAddress(
+    [marketKey.toBuffer(), Alice.publicKey.toBuffer()],
+    DEX_ID
+  );
+  const [bobUa] = await PublicKey.findProgramAddress(
+    [marketKey.toBuffer(), Bob.publicKey.toBuffer()],
+    DEX_ID
+  );
+
+  return {
+    aliceBaseAta,
+    aliceQuoteAta,
+    bobBaseAta,
+    bobQuoteAta,
+    aliceUa,
+    bobUa,
+  };
 };
