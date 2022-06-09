@@ -7,6 +7,7 @@ import {
   cancelOrder,
   closeMarket,
   sweepFees,
+  closeAccount,
 } from "../src/bindings";
 import BN from "bn.js";
 import { expect } from "@jest/globals";
@@ -345,6 +346,15 @@ export const simpleTrade = async (
 
   expect(baseVault.amount.toString()).toBe("0");
   expect(quoteVault.amount.toString()).toBe("0");
+
+  /**
+   * Close user accounts
+   */
+  tx = await signAndSendInstructions(connection, [Alice, Bob], feePayer, [
+    await closeAccount(market.address, Alice.publicKey),
+    await closeAccount(market.address, Bob.publicKey),
+  ]);
+  console.log(`Closed user account ${tx}`);
 
   /**
    * Close market
