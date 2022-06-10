@@ -28,7 +28,7 @@ export const orderbookTest = async (
   const baseTokenAmount =
     Math.floor(Math.random() * 100_000_000) * Math.pow(10, baseDecimals);
   const quoteTokenAmount =
-    Math.floor(Math.random() * 100_00_000_000) * Math.pow(10, quoteDecimals);
+    Math.floor(Math.random() * 100_000_000_000) * Math.pow(10, quoteDecimals);
   /**
    * Initialize market and traders
    */
@@ -136,8 +136,8 @@ export const orderbookTest = async (
   let asksSlab = await market.loadAsks(connection);
   let bidsSlab = await market.loadBids(connection);
 
-  let asks = asksSlab.getL2DepthJS(3, true);
-  let bids = bidsSlab.getL2DepthJS(3, false);
+  let bids = market.parseBidsSlab(bidsSlab, 3);
+  let asks = market.parseAsksSlab(asksSlab, 3);
 
   let totalBase = new BN(0);
   let totalQuote = new BN(0);
@@ -146,16 +146,22 @@ export const orderbookTest = async (
     const bidFp32 = computeFp32Price(market, bidPrices[2 - i]);
     const askFp3 = computeFp32Price(market, askPrices[i]);
 
-    expect(bids[i].price.toString()).toBe(bidFp32.toString());
+    expect(bids[i].priceRaw.toString()).toBe(bidFp32.toString());
     expect(bids[i].size.toString()).toBe(
       Math.floor(bidSizes[2 - i]).toString()
     );
 
-    expect(asks[i].price.toString()).toBe(askFp3.toString());
+    expect(asks[i].priceRaw.toString()).toBe(askFp3.toString());
     expect(asks[i].size.toString()).toBe(Math.floor(askSizes[i]).toString());
 
     totalBase = totalBase.add(new BN(askSizes[i]));
-    totalQuote = totalQuote.add(bidFp32.mul(bids[i].size).shrn(32));
+    totalQuote = totalQuote.add(
+      bidFp32
+        .mul(bids[i].size)
+        .shrn(32)
+        .mul(market.quoteCurrencyMultiplier)
+        .div(market.baseCurrencyMultiplier)
+    );
   }
 
   /**
@@ -205,8 +211,8 @@ export const orderbookTest = async (
   asksSlab = await market.loadAsks(connection);
   bidsSlab = await market.loadBids(connection);
 
-  asks = asksSlab.getL2DepthJS(3, true);
-  bids = bidsSlab.getL2DepthJS(3, false);
+  bids = market.parseBidsSlab(bidsSlab, 3);
+  asks = market.parseAsksSlab(asksSlab, 3);
 
   expect(asks.length).toBe(0);
   expect(bids.length).toBe(0);
@@ -221,7 +227,7 @@ export const orderbookTest = async (
   expect(bobUserAccount.owner.toBase58()).toBe(Bob.publicKey.toBase58());
   expect(bobUserAccount.baseTokenFree.toNumber()).toBe(totalBase.toNumber());
   expect(bobUserAccount.baseTokenLocked.toNumber()).toBe(0);
-  expect(bobUserAccount.quoteTokenFree.toNumber()).toBe(totalQuote.toNumber());
+  expect(bobUserAccount.quoteTokenFree.toString()).toBe(totalQuote.toString());
   expect(bobUserAccount.quoteTokenLocked.toNumber()).toBe(0);
   expect(bobUserAccount.accumulatedRebates.toNumber()).toBe(0);
   expect(bobUserAccount.accumulatedMakerQuoteVolume.toNumber()).toBe(0);

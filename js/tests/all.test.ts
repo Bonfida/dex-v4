@@ -29,9 +29,9 @@ jest.setTimeout(50_000_000);
 //   await createMarketTest(connection, feePayer);
 // });
 
-test("Simple trade", async () => {
-  await simpleTrade(connection, feePayer, 6, 6);
-});
+// test("Simple trade", async () => {
+//   await simpleTrade(connection, feePayer, 6, 6);
+// });
 
 // test("Simple trade (NFT case)", async () => {
 //   await simpleTrade(
@@ -48,16 +48,16 @@ test("Simple trade", async () => {
 //   await orderbookTest(connection, feePayer, 6, 6);
 // });
 
-// test("Orderbook (0, 9)", async () => {
-//   await orderbookTest(
-//     connection,
-//     feePayer,
-//     0,
-//     9,
-//     undefined,
-//     new BN(Math.pow(10, 6))
-//   );
-// });
+test("Orderbook (0, 9)", async () => {
+  await orderbookTest(
+    connection,
+    feePayer,
+    0,
+    9,
+    undefined,
+    new BN(Math.pow(10, 6))
+  );
+});
 
 // test("Errors", async () => {
 //   await error(connection, feePayer);

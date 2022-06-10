@@ -723,4 +723,24 @@ export class Market {
     );
     return [...bids, ...asks];
   }
+
+  private _parseSlab(slab: Slab, depth: number, increasing: boolean) {
+    const parsed = slab.getL2DepthJS(depth, increasing);
+    return parsed.map((e) => {
+      return {
+        price: e.price
+          .mul(this.baseCurrencyMultiplier)
+          .div(this.quoteCurrencyMultiplier),
+        priceRaw: e.price,
+        size: e.size.mul(this.baseCurrencyMultiplier),
+      };
+    });
+  }
+
+  parseAsksSlab(slab: Slab, depth: number) {
+    return this._parseSlab(slab, depth, true);
+  }
+  parseBidsSlab(slab: Slab, depth: number) {
+    return this._parseSlab(slab, depth, false);
+  }
 }

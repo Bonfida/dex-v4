@@ -233,15 +233,15 @@ export class UserAccount {
       UserAccount,
       accountInfo.data
     ) as UserAccount;
-    // u.baseTokenFree.imul(baseCurrencyMultiplier);
-    // u.baseTokenLocked.imul(baseCurrencyMultiplier);
-    // u.quoteTokenFree.imul(quoteCurrencyMultiplier);
-    // u.quoteTokenLocked.imul(quoteCurrencyMultiplier);
-    // u.accumulatedRebates.imul(quoteCurrencyMultiplier);
-    // u.accumulatedMakerQuoteVolume.imul(quoteCurrencyMultiplier);
-    // u.accumulatedTakerQuoteVolume.imul(quoteCurrencyMultiplier);
-    // u.accumulatedMakerBaseVolume.imul(baseCurrencyMultiplier);
-    // u.accumulatedTakerBaseVolume.imul(baseCurrencyMultiplier);
+    u.baseTokenFree.imul(baseCurrencyMultiplier);
+    u.baseTokenLocked.imul(baseCurrencyMultiplier);
+    u.quoteTokenFree.imul(quoteCurrencyMultiplier);
+    u.quoteTokenLocked.imul(quoteCurrencyMultiplier);
+    u.accumulatedRebates.imul(quoteCurrencyMultiplier);
+    u.accumulatedMakerQuoteVolume.imul(quoteCurrencyMultiplier);
+    u.accumulatedTakerQuoteVolume.imul(quoteCurrencyMultiplier);
+    u.accumulatedMakerBaseVolume.imul(baseCurrencyMultiplier);
+    u.accumulatedTakerBaseVolume.imul(baseCurrencyMultiplier);
     return u;
   }
 
