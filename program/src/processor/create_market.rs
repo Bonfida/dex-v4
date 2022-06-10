@@ -186,7 +186,7 @@ pub(crate) fn process(
         caller_authority: program_id.to_bytes(), // No impact with AOB as a lib
         callback_info_len: CALLBACK_INFO_LEN,
         callback_id_len: CALLBACK_ID_LEN,
-        min_base_order_size: *min_base_order_size,
+        min_base_order_size: *min_base_order_size / *base_currency_multiplier,
         tick_size: *tick_size,
         cranker_reward: *cranker_reward,
     };
