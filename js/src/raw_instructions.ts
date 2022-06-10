@@ -15,9 +15,7 @@ export class closeMarketInstruction {
       closeMarketInstruction,
       {
         kind: "struct",
-        fields: [
-          ["tag", "u64"],
-        ],
+        fields: [["tag", "u64"]],
       },
     ],
   ]);
@@ -39,7 +37,7 @@ export class closeMarketInstruction {
     marketAdmin: PublicKey,
     targetLamportsAccount: PublicKey,
     marketSigner: PublicKey,
-    splTokenProgram: PublicKey,
+    splTokenProgram: PublicKey
   ): TransactionInstruction {
     const data = Buffer.from(this.serialize());
     let keys: AccountKey[] = [];
@@ -126,16 +124,12 @@ export class cancelOrderInstruction {
       },
     ],
   ]);
-  constructor(obj: {
-    orderId: BN;
-    orderIndex: BN;
-    isClientId: number;
-  }) {
+  constructor(obj: { orderId: BN; orderIndex: BN; isClientId: number }) {
     this.tag = new BN(3);
     this.orderId = obj.orderId;
     this.orderIndex = obj.orderIndex;
     this.isClientId = obj.isClientId;
-    this.padding = (new Uint8Array(7)).fill(0)
+    this.padding = new Uint8Array(7).fill(0);
   }
   serialize(): Uint8Array {
     return serialize(cancelOrderInstruction.schema, this);
@@ -148,7 +142,7 @@ export class cancelOrderInstruction {
     bids: PublicKey,
     asks: PublicKey,
     user: PublicKey,
-    userOwner: PublicKey,
+    userOwner: PublicKey
   ): TransactionInstruction {
     const data = Buffer.from(this.serialize());
     let keys: AccountKey[] = [];
@@ -201,9 +195,7 @@ export class closeAccountInstruction {
       closeAccountInstruction,
       {
         kind: "struct",
-        fields: [
-          ["tag", "u64"],
-        ],
+        fields: [["tag", "u64"]],
       },
     ],
   ]);
@@ -217,7 +209,7 @@ export class closeAccountInstruction {
     programId: PublicKey,
     user: PublicKey,
     userOwner: PublicKey,
-    targetLamportsAccount: PublicKey,
+    targetLamportsAccount: PublicKey
   ): TransactionInstruction {
     const data = Buffer.from(this.serialize());
     let keys: AccountKey[] = [];
@@ -260,10 +252,7 @@ export class consumeEventsInstruction {
       },
     ],
   ]);
-  constructor(obj: {
-    maxIterations: BN;
-    noOpErr: BN;
-  }) {
+  constructor(obj: { maxIterations: BN; noOpErr: BN }) {
     this.tag = new BN(4);
     this.maxIterations = obj.maxIterations;
     this.noOpErr = obj.noOpErr;
@@ -277,7 +266,7 @@ export class consumeEventsInstruction {
     orderbook: PublicKey,
     eventQueue: PublicKey,
     rewardTarget: PublicKey,
-    userAccounts: PublicKey[],
+    userAccounts: PublicKey[]
   ): TransactionInstruction {
     const data = Buffer.from(this.serialize());
     let keys: AccountKey[] = [];
@@ -369,7 +358,7 @@ export class createMarketInstruction {
     eventQueue: PublicKey,
     asks: PublicKey,
     bids: PublicKey,
-    tokenMetadata: PublicKey,
+    tokenMetadata: PublicKey
   ): TransactionInstruction {
     const data = Buffer.from(this.serialize());
     let keys: AccountKey[] = [];
@@ -442,10 +431,7 @@ export class initializeAccountInstruction {
       },
     ],
   ]);
-  constructor(obj: {
-    market: Uint8Array;
-    maxOrders: BN;
-  }) {
+  constructor(obj: { market: Uint8Array; maxOrders: BN }) {
     this.tag = new BN(6);
     this.market = obj.market;
     this.maxOrders = obj.maxOrders;
@@ -458,7 +444,7 @@ export class initializeAccountInstruction {
     systemProgram: PublicKey,
     user: PublicKey,
     userOwner: PublicKey,
-    feePayer: PublicKey,
+    feePayer: PublicKey
   ): TransactionInstruction {
     const data = Buffer.from(this.serialize());
     let keys: AccountKey[] = [];
@@ -509,7 +495,6 @@ export class newOrderInstruction {
         fields: [
           ["tag", "u64"],
           ["clientOrderId", "u128"],
-          ["clientOrderId", ["u64", 2]],
           ["limitPrice", "u64"],
           ["maxBaseQty", "u64"],
           ["maxQuoteQty", "u64"],
@@ -536,7 +521,6 @@ export class newOrderInstruction {
   }) {
     this.tag = new BN(1);
     this.clientOrderId = obj.clientOrderId;
-    this.clientOrderId = obj.clientOrderId;
     this.limitPrice = obj.limitPrice;
     this.maxBaseQty = obj.maxBaseQty;
     this.maxQuoteQty = obj.maxQuoteQty;
@@ -545,7 +529,7 @@ export class newOrderInstruction {
     this.orderType = obj.orderType;
     this.selfTradeBehavior = obj.selfTradeBehavior;
     this.hasDiscountTokenAccount = obj.hasDiscountTokenAccount;
-    this.padding = (new Uint8Array(4)).fill(0)
+    this.padding = new Uint8Array(4).fill(0);
   }
   serialize(): Uint8Array {
     return serialize(newOrderInstruction.schema, this);
@@ -565,7 +549,7 @@ export class newOrderInstruction {
     userTokenAccount: PublicKey,
     userOwner: PublicKey,
     discountTokenAccount?: PublicKey,
-    feeReferralAccount?: PublicKey,
+    feeReferralAccount?: PublicKey
   ): TransactionInstruction {
     const data = Buffer.from(this.serialize());
     let keys: AccountKey[] = [];
@@ -657,9 +641,7 @@ export class settleInstruction {
       settleInstruction,
       {
         kind: "struct",
-        fields: [
-          ["tag", "u64"],
-        ],
+        fields: [["tag", "u64"]],
       },
     ],
   ]);
@@ -679,7 +661,7 @@ export class settleInstruction {
     user: PublicKey,
     userOwner: PublicKey,
     destinationBaseAccount: PublicKey,
-    destinationQuoteAccount: PublicKey,
+    destinationQuoteAccount: PublicKey
   ): TransactionInstruction {
     const data = Buffer.from(this.serialize());
     let keys: AccountKey[] = [];
@@ -773,7 +755,7 @@ export class swapInstruction {
     this.matchLimit = obj.matchLimit;
     this.side = obj.side;
     this.hasDiscountTokenAccount = obj.hasDiscountTokenAccount;
-    this.padding = (new Uint8Array(6)).fill(0)
+    this.padding = new Uint8Array(6).fill(0);
   }
   serialize(): Uint8Array {
     return serialize(swapInstruction.schema, this);
@@ -794,7 +776,7 @@ export class swapInstruction {
     userQuoteAccount: PublicKey,
     userOwner: PublicKey,
     discountTokenAccount?: PublicKey,
-    feeReferralAccount?: PublicKey,
+    feeReferralAccount?: PublicKey
   ): TransactionInstruction {
     const data = Buffer.from(this.serialize());
     let keys: AccountKey[] = [];
@@ -891,9 +873,7 @@ export class sweepFeesInstruction {
       sweepFeesInstruction,
       {
         kind: "struct",
-        fields: [
-          ["tag", "u64"],
-        ],
+        fields: [["tag", "u64"]],
       },
     ],
   ]);
@@ -911,7 +891,7 @@ export class sweepFeesInstruction {
     destinationTokenAccount: PublicKey,
     splTokenProgram: PublicKey,
     tokenMetadata: PublicKey,
-    creatorsTokenAccounts: PublicKey[],
+    creatorsTokenAccounts: PublicKey[]
   ): TransactionInstruction {
     const data = Buffer.from(this.serialize());
     let keys: AccountKey[] = [];
@@ -966,9 +946,7 @@ export class updateRoyaltiesInstruction {
       updateRoyaltiesInstruction,
       {
         kind: "struct",
-        fields: [
-          ["tag", "u64"],
-        ],
+        fields: [["tag", "u64"]],
       },
     ],
   ]);
@@ -983,7 +961,7 @@ export class updateRoyaltiesInstruction {
     market: PublicKey,
     eventQueue: PublicKey,
     orderbook: PublicKey,
-    tokenMetadata: PublicKey,
+    tokenMetadata: PublicKey
   ): TransactionInstruction {
     const data = Buffer.from(this.serialize());
     let keys: AccountKey[] = [];

@@ -8,7 +8,7 @@ import {
 import { placeOrder, settle, consumeEvents } from "../src/bindings";
 import BN from "bn.js";
 import { expect } from "@jest/globals";
-import { AccountTag, UserAccount } from "../src/state";
+import { AccountTag, UserAccount, MarketState } from "../src/state";
 import { Side } from "@bonfida/aaob";
 import { OrderType, SelfTradeBehavior } from "../src/types";
 import { Market } from "../src/market";
@@ -22,7 +22,10 @@ export const selfTradeTest = async (
   baseDecimals: number,
   quoteDecimals: number
 ) => {
-  const tokenAmount = 10_000_000 * Math.pow(10, 6);
+  const baseTokenAmount =
+    Math.floor(Math.random() * 100_000_000) * Math.pow(10, baseDecimals);
+  const quoteTokenAmount =
+    Math.floor(Math.random() * 100_000_000) * Math.pow(10, quoteDecimals);
   /**
    * Initialize market and traders
    */
@@ -36,7 +39,7 @@ export const selfTradeTest = async (
     baseDecimals,
     quoteDecimals
   );
-
+  const marketState = await MarketState.retrieve(connection, marketKey);
   const {
     aliceBaseAta,
     aliceQuoteAta,
@@ -52,7 +55,8 @@ export const selfTradeTest = async (
     Bob,
     feePayer,
     marketKey,
-    tokenAmount
+    baseTokenAmount,
+    quoteTokenAmount
   );
   let market = await Market.load(connection, marketKey);
 
@@ -214,7 +218,11 @@ export const selfTradeTest = async (
    */
 
   // Alice
-  let aliceUserAccount = await UserAccount.retrieve(connection, aliceUa);
+  let aliceUserAccount = await UserAccount.retrieve(
+    connection,
+    aliceUa,
+    marketState
+  );
   const quoteTokenFree = new BN(bidSizes[0])
     .mul(executionPrice1)
     .add(new BN(bidSizes[2]).mul(executionPrice3))
@@ -253,7 +261,11 @@ export const selfTradeTest = async (
 
   // Bob
 
-  let bobUserAccount = await UserAccount.retrieve(connection, bobUa);
+  let bobUserAccount = await UserAccount.retrieve(
+    connection,
+    bobUa,
+    marketState
+  );
 
   expect(bobUserAccount.tag).toBe(AccountTag.UserAccount);
   expect(bobUserAccount.market.toBase58()).toBe(marketKey.toBase58());
@@ -341,7 +353,7 @@ export const selfTradeTest = async (
    */
 
   // Bob
-  bobUserAccount = await UserAccount.retrieve(connection, bobUa);
+  bobUserAccount = await UserAccount.retrieve(connection, bobUa, marketState);
   const takerVolume = new BN(2 * bidSizes[1]).mul(
     computeFp32Price(market, 1).shrn(32)
   );

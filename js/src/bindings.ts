@@ -33,6 +33,7 @@ import { computeFp32Price } from "./utils";
 const MARKET_STATE_SPACE = 280;
 const NODE_CAPACITY = 100;
 const EVENT_CAPACITY = 100;
+const U64_MAX = "18446744073709551615";
 
 /**
  *
@@ -56,7 +57,7 @@ export const createMarket = async (
   tickSize: BN,
   crankerReward: BN,
   baseCurrencyMultiplier?: BN,
-  quoteCurrencyMultiplier?: BN,
+  quoteCurrencyMultiplier?: BN
 ): Promise<PrimedTransaction[]> => {
   // Metadata account
   const metadataAccount = await getMetadataKeyFromMint(baseMint);
@@ -68,10 +69,10 @@ export const createMarket = async (
     MARKET_STATE_SPACE
   );
   if (!baseCurrencyMultiplier) {
-    baseCurrencyMultiplier = new BN(1)
+    baseCurrencyMultiplier = new BN(1);
   }
   if (!quoteCurrencyMultiplier) {
-    quoteCurrencyMultiplier = new BN(1)
+    quoteCurrencyMultiplier = new BN(1);
   }
   const createMarketAccount = SystemProgram.createAccount({
     fromPubkey: feePayer,
@@ -126,7 +127,7 @@ export const createMarket = async (
     tickSize: tickSize,
     crankerReward: new BN(crankerReward),
     baseCurrencyMultiplier,
-    quoteCurrencyMultiplier
+    quoteCurrencyMultiplier,
   }).getInstruction(
     DEX_ID,
     marketAccount.publicKey,
@@ -195,15 +196,12 @@ export const placeOrder = async (
 
   const priceFp32 = computeFp32Price(market, limitPrice);
 
-  const formattedLimitPrice =
-    Math.pow(10, market.quoteDecimals - market.baseDecimals) * limitPrice * market.marketState.baseCurrencyMultiplier.toNumber() / market.marketState.quoteCurrencyMultiplier.toNumber();
-  const price = new BN(formattedLimitPrice * (2 ** 32));
-
   const instruction = new newOrderInstruction({
     side: side as number,
     limitPrice: priceFp32,
-    maxBaseQty: maxBaseQty || new BN(size),
-    maxQuoteQty: maxQuoteQty || new BN(size).mul(new BN(formattedLimitPrice)),
+    maxBaseQty:
+      maxBaseQty || new BN(size * market.baseCurrencyMultiplier.toNumber()),
+    maxQuoteQty: maxQuoteQty || new BN(U64_MAX),
     orderType: type,
     selfTradeBehavior: selfTradeBehaviour,
     matchLimit: new BN(Number.MAX_SAFE_INTEGER),

@@ -26,9 +26,14 @@ export const simpleTrade = async (
   connection: Connection,
   feePayer: Keypair,
   baseDecimals: number,
-  quoteDecimals: number
+  quoteDecimals: number,
+  baseCurrencyMultiplier?: BN,
+  quoteCurrencyMultiplier?: BN
 ) => {
-  const tokenAmount = 10_000_000 * Math.pow(10, 6);
+  const baseTokenAmount =
+    Math.floor(Math.random() * 100_000) * Math.pow(10, baseDecimals);
+  const quoteTokenAmount =
+    Math.floor(Math.random() * 100_000_000) * Math.pow(10, quoteDecimals);
   /**
    * Initialize market and traders
    */
@@ -40,9 +45,11 @@ export const simpleTrade = async (
     tickSize,
     minBaseOrderSize,
     baseDecimals,
-    quoteDecimals
+    quoteDecimals,
+    baseCurrencyMultiplier,
+    quoteCurrencyMultiplier
   );
-
+  let marketState = await MarketState.retrieve(connection, marketKey);
   const { aliceBaseAta, aliceQuoteAta, bobBaseAta, bobQuoteAta } =
     await initializeTraders(
       connection,
@@ -52,7 +59,8 @@ export const simpleTrade = async (
       Bob,
       feePayer,
       marketKey,
-      tokenAmount
+      baseTokenAmount,
+      quoteTokenAmount
     );
 
   /**
@@ -63,7 +71,11 @@ export const simpleTrade = async (
     [marketKey.toBuffer(), Alice.publicKey.toBuffer()],
     DEX_ID
   );
-  let aliceUserAccount = await UserAccount.retrieve(connection, aliceUa);
+  let aliceUserAccount = await UserAccount.retrieve(
+    connection,
+    aliceUa,
+    marketState
+  );
 
   expect(aliceUserAccount.tag).toBe(AccountTag.UserAccount);
   expect(aliceUserAccount.market.toBase58()).toBe(marketKey.toBase58());
@@ -83,7 +95,11 @@ export const simpleTrade = async (
     [marketKey.toBuffer(), Bob.publicKey.toBuffer()],
     DEX_ID
   );
-  let bobUserAccount = await UserAccount.retrieve(connection, bobUa);
+  let bobUserAccount = await UserAccount.retrieve(
+    connection,
+    bobUa,
+    marketState
+  );
   expect(bobUserAccount.tag).toBe(AccountTag.UserAccount);
   expect(bobUserAccount.market.toBase58()).toBe(marketKey.toBase58());
   expect(bobUserAccount.owner.toBase58()).toBe(Bob.publicKey.toBase58());
@@ -101,16 +117,18 @@ export const simpleTrade = async (
   /**
    * Place order
    */
+  let market = await Market.load(connection, marketKey);
 
   // Bid
-  const aliceSize = Math.floor(Math.random() * Math.pow(10, 8));
-  const alicePrice = 100_000 * Math.random();
+  const aliceSize = Math.floor((Math.random() * baseTokenAmount) / 20);
+  const alicePrice = 50_000 * Math.random();
 
   // Ask
   const bobSize = Math.floor((Math.random() * aliceSize) / 2);
   const bobPrice = (alicePrice * Math.random()) / 2;
 
-  let market = await Market.load(connection, marketKey);
+  console.log(`aliceSize: ${aliceSize} - alicePrice: ${alicePrice}`);
+  console.log(`bobSize: ${bobSize} - bobPrice: ${bobPrice}`);
 
   let tx = await signAndSendInstructions(connection, [Alice, Bob], feePayer, [
     await placeOrder(
@@ -157,7 +175,7 @@ export const simpleTrade = async (
    * Check market state
    */
 
-  let marketState = await MarketState.retrieve(connection, marketKey);
+  marketState = await MarketState.retrieve(connection, marketKey);
   expect(marketState.accumulatedFees.toNumber()).toBeCloseTo(
     takerFee.toNumber(),
     -1
@@ -172,7 +190,11 @@ export const simpleTrade = async (
    * Check user accounts
    */
 
-  aliceUserAccount = await UserAccount.retrieve(connection, aliceUa);
+  aliceUserAccount = await UserAccount.retrieve(
+    connection,
+    aliceUa,
+    marketState
+  );
   expect(aliceUserAccount.baseTokenFree.toNumber()).toBe(0);
   expect(aliceUserAccount.baseTokenLocked.toNumber()).toBe(0);
   expect(aliceUserAccount.quoteTokenFree.toNumber()).toBe(0);
@@ -188,7 +210,7 @@ export const simpleTrade = async (
   expect(aliceUserAccount.accumulatedTakerBaseVolume.toNumber()).toBe(bobSize);
   expect(aliceUserAccount.orders.length).toBe(1);
 
-  bobUserAccount = await UserAccount.retrieve(connection, bobUa);
+  bobUserAccount = await UserAccount.retrieve(connection, bobUa, marketState);
   expect(bobUserAccount.baseTokenFree.toNumber()).toBe(0);
   expect(bobUserAccount.baseTokenLocked.toNumber()).toBe(0);
   expect(bobUserAccount.quoteTokenFree.toNumber()).toBe(0);
@@ -216,10 +238,11 @@ export const simpleTrade = async (
   let aliceBaseAccount = AccountLayout.decode(aliceBaseRaw.data);
 
   expect(aliceBaseAccount.amount.toString()).toBe(
-    (tokenAmount + bobSize).toString()
+    (baseTokenAmount + bobSize).toString()
   );
+
   expect(aliceQuoteAccount.amount.toString()).toBe(
-    new BN(tokenAmount)
+    new BN(quoteTokenAmount)
       .sub(executionPrice.mul(new BN(bobSize)))
       .sub(orderPrice.mul(new BN(aliceSize - bobSize)).shrn(32))
       .sub(takerFee)
@@ -236,10 +259,10 @@ export const simpleTrade = async (
   const bobBaseAccount = AccountLayout.decode(bobBaseRaw.data);
 
   expect(bobQuoteAccount.amount.toString()).toBe(
-    (tokenAmount + bobSize * executionPrice.toNumber()).toString()
+    (quoteTokenAmount + bobSize * executionPrice.toNumber()).toString()
   );
   expect(bobBaseAccount.amount.toString()).toBe(
-    (tokenAmount - bobSize).toString()
+    (baseTokenAmount - bobSize).toString()
   );
 
   /**
@@ -251,7 +274,11 @@ export const simpleTrade = async (
   ]);
   console.log(`Canceled order ${tx}`);
 
-  aliceUserAccount = await UserAccount.retrieve(connection, aliceUa);
+  aliceUserAccount = await UserAccount.retrieve(
+    connection,
+    aliceUa,
+    marketState
+  );
 
   expect(aliceUserAccount.baseTokenFree.toNumber()).toBe(0);
   expect(aliceUserAccount.baseTokenLocked.toNumber()).toBe(0);
@@ -277,7 +304,11 @@ export const simpleTrade = async (
   ]);
   console.log(`Settle order ${tx}`);
 
-  aliceUserAccount = await UserAccount.retrieve(connection, aliceUa);
+  aliceUserAccount = await UserAccount.retrieve(
+    connection,
+    aliceUa,
+    marketState
+  );
 
   expect(aliceUserAccount.baseTokenFree.toNumber()).toBe(0);
   expect(aliceUserAccount.baseTokenLocked.toNumber()).toBe(0);
@@ -302,7 +333,7 @@ export const simpleTrade = async (
   aliceQuoteAccount = AccountLayout.decode(aliceQuoteRaw.data);
 
   expect(aliceQuoteAccount.amount.toString()).toBe(
-    new BN(tokenAmount)
+    new BN(quoteTokenAmount)
       .sub(executionPrice.mul(new BN(bobSize)))
       .sub(takerFee)
       .toString()

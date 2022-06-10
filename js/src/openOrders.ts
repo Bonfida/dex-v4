@@ -164,7 +164,11 @@ export class OpenOrders {
       DEX_ID
     );
 
-    const userAccount = await UserAccount.retrieve(connection, address, marketState.baseCurrencyMultiplier, marketState.quoteCurrencyMultiplier);
+    const userAccount = await UserAccount.retrieve(
+      connection,
+      address,
+      marketState
+    );
 
     return new OpenOrders(
       address,

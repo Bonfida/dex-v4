@@ -25,34 +25,48 @@ beforeAll(async () => {
 
 jest.setTimeout(50_000_000);
 
-test("Create market", async () => {
-  await createMarketTest(connection, feePayer);
-});
+// test("Create market", async () => {
+//   await createMarketTest(connection, feePayer);
+// });
 
 test("Simple trade", async () => {
   await simpleTrade(connection, feePayer, 6, 6);
 });
 
 // test("Simple trade (NFT case)", async () => {
-//   await simpleTrade(connection, feePayer, 0, 9);
+//   await simpleTrade(
+//     connection,
+//     feePayer,
+//     0,
+//     9,
+//     undefined,
+//     new BN(Math.pow(10, 6))
+//   );
 // });
 
-test("Orderbook (6, 6)", async () => {
-  await orderbookTest(connection, feePayer, 6, 6);
-});
-
-// test("Orderbook (4, 9)", async () => {
-//   await orderbookTest(connection, feePayer, 4, 9);
+// test("Orderbook (6, 6)", async () => {
+//   await orderbookTest(connection, feePayer, 6, 6);
 // });
 
-test("Errors", async () => {
-  await error(connection, feePayer);
-});
+// test("Orderbook (0, 9)", async () => {
+//   await orderbookTest(
+//     connection,
+//     feePayer,
+//     0,
+//     9,
+//     undefined,
+//     new BN(Math.pow(10, 6))
+//   );
+// });
 
-test("Swap", async () => {
-  await swapTest(connection, feePayer, 6, 6);
-});
+// test("Errors", async () => {
+//   await error(connection, feePayer);
+// });
 
-test("Self trade", async () => {
-  await selfTradeTest(connection, feePayer, 6, 6);
-});
+// test("Swap", async () => {
+//   await swapTest(connection, feePayer, 6, 6);
+// });
+
+// test("Self trade", async () => {
+//   await selfTradeTest(connection, feePayer, 6, 6);
+// });
