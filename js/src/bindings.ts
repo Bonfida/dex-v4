@@ -185,14 +185,16 @@ export const placeOrder = async (
 
   const priceFp32 = computeFp32Price(market, limitPrice);
 
-  const formattedLimitPrice =
-    Math.pow(10, market.quoteDecimals - market.baseDecimals) * limitPrice;
+  const quoteSize =
+    size *
+    Math.pow(10, market.quoteDecimals - market.baseDecimals) *
+    limitPrice;
 
   const instruction = new newOrderInstruction({
     side: side as number,
     limitPrice: priceFp32,
     maxBaseQty: maxBaseQty || new BN(size),
-    maxQuoteQty: maxQuoteQty || new BN(size).mul(new BN(formattedLimitPrice)),
+    maxQuoteQty: maxQuoteQty || new BN(quoteSize),
     orderType: type,
     selfTradeBehavior: selfTradeBehaviour,
     matchLimit: new BN(Number.MAX_SAFE_INTEGER),

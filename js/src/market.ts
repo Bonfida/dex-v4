@@ -7,7 +7,14 @@ import {
   TransactionSignature,
   TransactionInstruction,
 } from "@solana/web3.js";
-import { getMintDecimals, getTokenBalance, divideBnToNumber } from "./utils";
+import {
+  getMintDecimals,
+  getTokenBalance,
+  divideBnToNumber,
+  computeUiPrice,
+  computeUiSize,
+  roundUiAmount,
+} from "./utils";
 import { CALLBACK_INFO_LEN, MarketState, SelfTradeBehavior } from "./state";
 import { DEX_ID, SRM_MINT, MSRM_MINT } from "./ids";
 import {
@@ -99,7 +106,9 @@ export class Market {
   private _commitment: Commitment;
 
   private _tickSize: number;
+  private _tickSizeBN: BN;
   private _minOrderSize: number;
+  private _minOrderSizeBN: BN;
   private _admin: PublicKey;
 
   constructor(
@@ -129,8 +138,13 @@ export class Market {
     this._orderbookAddress = orderbookAddress;
     this._baseSplTokenMultiplier = new BN(10).pow(new BN(baseDecimals));
     this._quoteSplTokenMultiplier = new BN(10).pow(new BN(quoteDecimals));
-    this._tickSize = orderbookState.tickSize.toNumber();
-    this._minOrderSize = marketState.minBaseOrderSize.toNumber();
+    this._tickSize = roundUiAmount(
+      orderbookState.tickSize.toNumber() * Math.pow(2, -32)
+    );
+    this._tickSizeBN = orderbookState.tickSize;
+    this._minOrderSize =
+      marketState.minBaseOrderSize.toNumber() * Math.pow(10, -baseDecimals);
+    this._minOrderSizeBN = marketState.minBaseOrderSize;
     this._admin = marketState.admin;
   }
 
@@ -250,9 +264,17 @@ export class Market {
     return this._tickSize;
   }
 
+  get tickSizeBN(): BN {
+    return this._tickSizeBN;
+  }
+
   /** Returns the min order size of the market */
   get minOrderSize(): number {
     return this._minOrderSize;
+  }
+
+  get minOrderSizeBN(): BN {
+    return this._minOrderSizeBN;
   }
 
   get marketAdmin(): PublicKey {
@@ -674,9 +696,9 @@ export class Market {
       .map((o) => {
         return {
           orderId: o.key,
-          price: getPriceFromKey(o.key).toNumber(),
+          price: computeUiPrice(this, getPriceFromKey(o.key)),
           feeTier: slab.getCallBackInfo(o.callBackInfoPt).slice(32)[0],
-          size: o.baseQuantity.toNumber(),
+          size: computeUiSize(this, o.baseQuantity),
           openOrdersAddress: new PublicKey(
             slab.getCallBackInfo(o.callBackInfoPt).slice(0, 32)
           ),

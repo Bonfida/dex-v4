@@ -1,7 +1,7 @@
 import { Slab } from "@bonfida/aaob";
 import { PublicKey, Connection } from "@solana/web3.js";
 import { Market } from "./market";
-import { throwIfNull } from "./utils";
+import { computeUiPrice, computeUiSize, throwIfNull } from "./utils";
 import * as aaob from "@bonfida/aaob";
 import { CALLBACK_INFO_LEN } from "./state";
 import BN from "bn.js";
@@ -86,10 +86,11 @@ export class Orderbook {
    * @returns Returns an L2 orderbook
    */
   getL2(depth: number, asks: boolean, uiAmount?: boolean) {
+    // TODO AAOB price / sizes should be BNs to start with
     const convert = (p: aaob.Price) => {
       return {
-        price: p.price,
-        size: p.size / Math.pow(10, this.market.baseDecimals),
+        price: computeUiPrice(this.market, new BN(p.price)),
+        size: computeUiSize(this.market, new BN(p.size)),
       };
     };
     if (uiAmount) {

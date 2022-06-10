@@ -43,15 +43,33 @@ export const divideBnToNumber = (numerator: BN, denominator: BN): number => {
   return quotient + rem.div(gcd).toNumber() / denominator.div(gcd).toNumber();
 };
 
+export const computeUiPrice = (market: Market, fp32Price: BN) => {
+  return roundUiAmount(
+    2 ** -32 *
+      10 ** (market.baseDecimals - market.quoteDecimals) *
+      fp32Price.toNumber()
+  );
+};
+
+export const computeUiSize = (market: Market, bnSize: BN) => {
+  return bnSize.toNumber() * 10 ** -market.baseDecimals;
+};
+
+export const roundUiAmount = (uiAmount: number) =>
+  Number(uiAmount.toPrecision(5));
+
 export const computeFp32Price = (market: Market, uiPrice: number) => {
-  const tickSize = new BN(market.tickSize);
   const price = new BN(Math.pow(2, 32) * uiPrice);
-  const rem = price.umod(tickSize);
-  return price
-    .sub(rem)
-    .mul(new BN(Math.pow(10, market.quoteDecimals - market.baseDecimals)));
+  const remainder = price.umod(market.tickSizeBN);
+  const roundedPrice = price.sub(remainder);
+
+  const scalingExponent = market.quoteDecimals - market.baseDecimals;
+
+  return scalingExponent >= 0
+    ? roundedPrice.muln(10 ** scalingExponent)
+    : roundedPrice.divn(10 ** -scalingExponent);
 };
 
 export const computeSize = (market: Market, size: number) => {
-  return new BN(size - (size % market.minOrderSize));
+  return new BN(size - (size % market.minOrderSizeBN.toNumber()));
 };
