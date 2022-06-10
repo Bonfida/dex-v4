@@ -70,7 +70,7 @@ jest.setTimeout(50_000_000);
 // });
 
 // test("Orderbook (6, 6)", async () => {
-//   await orderbookTest(connection, feePayer, 6, 6);
+//   await orderbookTest(connection, feePayer, 6, 6, 100, 1_000, 1, 100);
 // });
 
 // test("Orderbook (0, 9)", async () => {
@@ -79,6 +79,10 @@ jest.setTimeout(50_000_000);
 //     feePayer,
 //     0,
 //     9,
+//     10,
+//     100,
+//     1,
+//     100,
 //     undefined,
 //     new BN(Math.pow(10, 6))
 //   );
@@ -89,23 +93,12 @@ jest.setTimeout(50_000_000);
 // });
 
 // test("Swap", async () => {
-//   await swapTest(
-//     connection,
-//     feePayer,
-//     6,
-//     6,
-//     100,
-//     1_000,
-//     10,
-//     100,
-//     undefined,
-//     new BN(Math.pow(10, 6))
-//   );
+//   await swapTest(connection, feePayer, 6, 6, 100, 1_000, 10, 100);
 // });
 
-test("Swap (price < 1)", async () => {
-  await swapTest(connection, feePayer, 6, 6, 0, 1, 100, 1_000);
-});
+// test("Swap (price < 1)", async () => {
+//   await swapTest(connection, feePayer, 6, 6, 0, 1, 100, 1_000);
+// });
 
 // test("Swap (NFT)", async () => {
 //   await swapTest(
@@ -138,5 +131,5 @@ test("Swap (price < 1)", async () => {
 // });
 
 // test("Self trade", async () => {
-//   await selfTradeTest(connection, feePayer, 6, 6);
+//   await selfTradeTest(connection, feePayer, 6, 6, 10, 1_000, 1, 30);
 // });

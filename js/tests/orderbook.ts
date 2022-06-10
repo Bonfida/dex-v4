@@ -23,18 +23,23 @@ export const orderbookTest = async (
   feePayer: Keypair,
   baseDecimals: number,
   quoteDecimals: number,
+  minPrice: number,
+  maxPrice: number,
+  minUiTradeSize: number,
+  maxUiTradeSize: number,
   baseCurrencyMultiplier?: BN,
   quoteCurrencyMultiplier?: BN
 ) => {
   const baseTokenAmount =
-    Math.floor(Math.random() * 10_000) * Math.pow(10, baseDecimals);
+    random(maxUiTradeSize, 10 * maxUiTradeSize, true) *
+    Math.pow(10, baseDecimals);
   const quoteTokenAmount =
-    Math.floor(Math.random() * 100_000) * Math.pow(10, quoteDecimals);
-
+    random(10 * maxUiTradeSize, maxPrice * (10 * maxUiTradeSize), true) *
+    Math.pow(10, quoteDecimals);
   /**
    * Initialize market and traders
    */
-  const tickSize = new BN(random(0, 5) * 2 ** 32);
+  const tickSize = new BN(random(0, 2) * 2 ** 32);
   const minBaseOrderSize = new BN(1);
   const { marketKey, base, quote, Alice, Bob } = await createContext(
     connection,
@@ -79,29 +84,17 @@ export const orderbookTest = async (
    *
    */
 
-  const minBid = Math.random() * 1_000;
-  const maxBid = minBid + 1_000 * Math.random();
+  const bidPrices = [minPrice / 2, random(minPrice / 2, minPrice), minPrice];
 
-  const minAsk = maxBid + 1_000 * Math.random();
-  const maxAsk = minAsk + 1_000 * Math.random();
-
-  const bidPrices = [
-    minBid,
-    minBid + (maxBid - minBid) * Math.random(),
-    maxBid,
-  ];
   const bidSizes = new Array(3)
     .fill(0)
-    .map((e) => Math.floor((Math.random() * baseTokenAmount) / 20));
+    .map(() => random(minUiTradeSize, maxUiTradeSize, true));
 
-  const askPrices = [
-    minAsk,
-    minAsk + (maxAsk - minAsk) * Math.random(),
-    maxAsk,
-  ];
+  const askPrices = [minPrice * 2, random(2 * minPrice, maxPrice), maxPrice];
+
   const askSizes = new Array(3)
     .fill(0)
-    .map((e) => Math.floor((Math.random() * baseTokenAmount) / 20));
+    .map(() => random(minUiTradeSize, maxUiTradeSize, true));
 
   /**
    * Place orders
@@ -143,7 +136,18 @@ export const orderbookTest = async (
 
   let totalBase = new BN(0);
   let totalQuote = new BN(0);
-
+  console.log(
+    bids.map((e) => {
+      return { price: e.price.toNumber(), size: e.size.toNumber() };
+    }),
+    // asks.map((e) => {
+    //   return { price: e.price.toNumber(), size: e.size.toNumber() };
+    // }),
+    bidPrices,
+    bidSizes
+    // askPrices,
+    // askSizes
+  );
   for (let i = 0; i < 3; i++) {
     const bidFp32 = computeFp32Price(market, bidPrices[2 - i]);
     const askFp3 = computeFp32Price(market, askPrices[i]);

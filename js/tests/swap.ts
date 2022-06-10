@@ -69,24 +69,18 @@ export const swapTest = async (
     Math.pow(10, baseDecimals) * random(minUiTradeSize, maxUiTradeSize, true);
   const swapPrice = random(minPrice, maxPrice);
   console.log(swapSize, swapPrice);
-  let tx = await signAndSendInstructions(
-    connection,
-    [Alice],
-    feePayer,
-    [
-      await placeOrder(
-        market,
-        Side.Ask,
-        swapPrice,
-        swapSize,
-        OrderType.Limit,
-        SelfTradeBehavior.AbortTransaction,
-        aliceBaseAta,
-        Alice.publicKey
-      ),
-    ],
-    true
-  );
+  let tx = await signAndSendInstructions(connection, [Alice], feePayer, [
+    await placeOrder(
+      market,
+      Side.Ask,
+      swapPrice,
+      swapSize,
+      OrderType.Limit,
+      SelfTradeBehavior.AbortTransaction,
+      aliceBaseAta,
+      Alice.publicKey
+    ),
+  ]);
   console.log(`Alice placed order ${tx}`);
 
   /**
