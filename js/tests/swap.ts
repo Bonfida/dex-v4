@@ -34,7 +34,6 @@ export const swapTest = async (
   const quoteTokenAmount =
     random(2 * maxUiTradeSize, maxPrice * (2 * maxUiTradeSize), true) *
     Math.pow(10, quoteDecimals);
-
   /**
    * Initialize market and traders
    */

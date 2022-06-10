@@ -129,8 +129,8 @@ pub(crate) fn process(
         quote_currency_multiplier,
     } = try_from_bytes(instruction_data).map_err(|_| ProgramError::InvalidInstructionData)?;
 
-    if base_currency_multiplier == &0 || quote_currency_multiplier == &0 {
-        msg!("The currency multipliers should be nonzero!");
+    if base_currency_multiplier == &0 || quote_currency_multiplier == &0 || tick_size == &0 {
+        msg!("The currency multipliers and ticksize should be nonzero!");
         return Err(ProgramError::InvalidArgument);
     }
 
