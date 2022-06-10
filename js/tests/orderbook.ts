@@ -16,6 +16,7 @@ import { computeFp32Price } from "../src/utils";
 import { DEX_ID } from "../src/ids";
 import { OrderType, SelfTradeBehavior } from "../src/types";
 import { AccountLayout } from "@solana/spl-token";
+import { random } from "./utils/random";
 
 export const orderbookTest = async (
   connection: Connection,
@@ -33,7 +34,7 @@ export const orderbookTest = async (
   /**
    * Initialize market and traders
    */
-  const tickSize = new BN(2 ** 32);
+  const tickSize = new BN(random(0, 5) * 2 ** 32);
   const minBaseOrderSize = new BN(1);
   const { marketKey, base, quote, Alice, Bob } = await createContext(
     connection,

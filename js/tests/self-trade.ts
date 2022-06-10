@@ -15,6 +15,7 @@ import { Market } from "../src/market";
 import { createContext, initializeTraders } from "./utils/context";
 import { computeFp32Price } from "../src/utils";
 import { computeTakerFee } from "./utils/fee";
+import { random } from "./utils/random";
 
 export const selfTradeTest = async (
   connection: Connection,
@@ -23,13 +24,13 @@ export const selfTradeTest = async (
   quoteDecimals: number
 ) => {
   const baseTokenAmount =
-    Math.floor(Math.random() * 100_000_000) * Math.pow(10, baseDecimals);
+    random(1_000, 5_000, true) * Math.pow(10, baseDecimals);
   const quoteTokenAmount =
-    Math.floor(Math.random() * 100_000_000) * Math.pow(10, quoteDecimals);
+    random(100_000, 200_000, true) * Math.pow(10, quoteDecimals);
   /**
    * Initialize market and traders
    */
-  const tickSize = new BN(2 ** 32);
+  const tickSize = new BN(random(0, 5) * 2 ** 32);
   const minBaseOrderSize = new BN(1);
   const { marketKey, base, quote, Alice, Bob } = await createContext(
     connection,

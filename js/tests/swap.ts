@@ -19,17 +19,23 @@ export const swapTest = async (
   feePayer: Keypair,
   baseDecimals: number,
   quoteDecimals: number,
+  minPrice: number,
+  maxPrice: number,
+  minUiTradeSize: number,
+  maxUiTradeSize: number,
   baseCurrencyMultiplier?: BN,
   quoteCurrencyMultiplier?: BN
 ) => {
   const baseTokenAmount =
-    Math.floor(Math.random() * 10_000) * Math.pow(10, baseDecimals);
+    random(maxUiTradeSize, 2 * maxUiTradeSize, true) *
+    Math.pow(10, baseDecimals);
   const quoteTokenAmount =
-    Math.floor(Math.random() * 1_000_000) * Math.pow(10, quoteDecimals);
+    random(2 * maxUiTradeSize, maxPrice * (2 * maxUiTradeSize), true) *
+    Math.pow(10, quoteDecimals);
   /**
    * Initialize market and traders
    */
-  const tickSize = new BN(2 ** 32);
+  const tickSize = new BN(random(0, 3) * 2 ** 32);
   const minBaseOrderSize = new BN(1);
   const { marketKey, base, quote, Alice, Bob } = await createContext(
     connection,
@@ -59,8 +65,9 @@ export const swapTest = async (
   /**
    * Alice places an ask
    */
-  const swapSize = Math.pow(10, baseDecimals) * random(2, 10, true);
-  const swapPrice = 1_000 * Math.random();
+  const swapSize =
+    Math.pow(10, baseDecimals) * random(minUiTradeSize, maxUiTradeSize, true);
+  const swapPrice = random(minPrice, maxPrice);
 
   let tx = await signAndSendInstructions(connection, [Alice], feePayer, [
     await placeOrder(

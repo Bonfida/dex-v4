@@ -28,13 +28,19 @@ export const simpleTrade = async (
   feePayer: Keypair,
   baseDecimals: number,
   quoteDecimals: number,
+  minPrice: number,
+  maxPrice: number,
+  minUiTradeSize: number,
+  maxUiTradeSize: number,
   baseCurrencyMultiplier?: BN,
   quoteCurrencyMultiplier?: BN
 ) => {
   const baseTokenAmount =
-    random(1_000, 5_000, true) * Math.pow(10, baseDecimals);
+    random(maxUiTradeSize, 2 * maxUiTradeSize, true) *
+    Math.pow(10, baseDecimals);
   const quoteTokenAmount =
-    random(100_000, 200_000, true) * Math.pow(10, quoteDecimals);
+    random(2 * maxUiTradeSize, maxPrice * (2 * maxUiTradeSize), true) *
+    Math.pow(10, quoteDecimals);
   /**
    * Initialize market and traders
    */
@@ -121,9 +127,9 @@ export const simpleTrade = async (
   let market = await Market.load(connection, marketKey);
 
   // Bid
-  const aliceSize = Math.pow(10, baseDecimals) * random(3, 15, true);
-  // const alicePrice = 10_000 * Math.random();
-  const alicePrice = 1_000;
+  const aliceSize =
+    Math.pow(10, baseDecimals) * random(minUiTradeSize, maxUiTradeSize, true);
+  const alicePrice = random(minPrice, maxPrice);
 
   // Ask
   const bobSize = Math.floor(aliceSize / 2);
@@ -200,12 +206,13 @@ export const simpleTrade = async (
     aliceUa,
     marketState
   );
+
   expect(aliceUserAccount.baseTokenFree.toNumber()).toBe(0);
   expect(aliceUserAccount.baseTokenLocked.toNumber()).toBe(0);
   expect(aliceUserAccount.quoteTokenFree.toNumber()).toBe(0);
   expect(aliceUserAccount.quoteTokenLocked.toNumber()).toBe(
     orderPrice
-      .muln(aliceSize - bobSize)
+      .mul(new BN(aliceSize - bobSize))
       .shrn(32)
       .mul(market.quoteCurrencyMultiplier)
       .div(market.baseCurrencyMultiplier)
@@ -295,7 +302,7 @@ export const simpleTrade = async (
     (
       quoteTokenAmount +
       executionPrice
-        .muln(bobSize)
+        .mul(new BN(bobSize))
         .shrn(32)
         .mul(market.quoteCurrencyMultiplier)
         .div(market.baseCurrencyMultiplier)
@@ -325,7 +332,7 @@ export const simpleTrade = async (
   expect(aliceUserAccount.baseTokenLocked.toNumber()).toBe(0);
   expect(aliceUserAccount.quoteTokenFree.toNumber()).toBe(
     orderPrice
-      .muln(aliceSize - bobSize)
+      .mul(new BN(aliceSize - bobSize))
       .shrn(32)
       .mul(market.quoteCurrencyMultiplier)
       .div(market.baseCurrencyMultiplier)

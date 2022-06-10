@@ -14,27 +14,63 @@ import BN from "bn.js";
 let connection: Connection;
 let feePayer: Keypair;
 let payerKeyFile: string;
-let programId: PublicKey;
 
 beforeAll(async () => {
   connection = new Connection(clusterApiUrl("devnet"), "confirmed");
   [feePayer, payerKeyFile] = await initializePayer(connection);
   console.log("Fee payer", feePayer.publicKey.toBase58());
-  programId = new PublicKey("5Zbg3ZtBTUbNqeKecuXwd1sk5kQXk3J3WmJcnzTuYUTc");
 });
 
 jest.setTimeout(50_000_000);
 
-// test("Create market", async () => {
-//   await createMarketTest(connection, feePayer);
-// });
+test("Create market", async () => {
+  await createMarketTest(connection, feePayer);
+});
 
-// test("Simple trade", async () => {
-//   await simpleTrade(connection, feePayer, 6, 6);
-// });
+test("Simple trade", async () => {
+  await simpleTrade(connection, feePayer, 6, 6, 20_000, 30_000, 1, 6);
+});
+
+test("Simple trade (price < 1)", async () => {
+  await simpleTrade(connection, feePayer, 6, 6, 0, 1, 1_000, 10_000);
+});
 
 test("Simple trade (NFT case)", async () => {
   await simpleTrade(
+    connection,
+    feePayer,
+    0,
+    9,
+    1,
+    10_000,
+    1,
+    20,
+    undefined,
+    new BN(Math.pow(10, 6))
+  );
+});
+
+test("Simple trade (NFT case & price < 1)", async () => {
+  await simpleTrade(
+    connection,
+    feePayer,
+    0,
+    9,
+    0,
+    1,
+    1,
+    20,
+    undefined,
+    new BN(Math.pow(10, 6))
+  );
+});
+
+test("Orderbook (6, 6)", async () => {
+  await orderbookTest(connection, feePayer, 6, 6);
+});
+
+test("Orderbook (0, 9)", async () => {
+  await orderbookTest(
     connection,
     feePayer,
     0,
@@ -44,36 +80,70 @@ test("Simple trade (NFT case)", async () => {
   );
 });
 
-// test("Orderbook (6, 6)", async () => {
-//   await orderbookTest(connection, feePayer, 6, 6);
-// });
+test("Errors", async () => {
+  await error(connection, feePayer);
+});
 
-// test("Orderbook (0, 9)", async () => {
-//   await orderbookTest(
-//     connection,
-//     feePayer,
-//     0,
-//     9,
-//     undefined,
-//     new BN(Math.pow(10, 6))
-//   );
-// });
+test("Swap", async () => {
+  await swapTest(
+    connection,
+    feePayer,
+    6,
+    6,
+    100,
+    1_000,
+    10,
+    100,
+    undefined,
+    new BN(Math.pow(10, 6))
+  );
+});
 
-// test("Errors", async () => {
-//   await error(connection, feePayer);
-// });
+test("Swap (price < 1)", async () => {
+  await swapTest(
+    connection,
+    feePayer,
+    6,
+    6,
+    0,
+    1,
+    100,
+    1_000,
+    undefined,
+    new BN(Math.pow(10, 6))
+  );
+});
 
-// test("Swap", async () => {
-//   await swapTest(
-//     connection,
-//     feePayer,
-//     0,
-//     9,
-//     undefined,
-//     new BN(Math.pow(10, 6))
-//   );
-// });
+test("Swap (NFT)", async () => {
+  await swapTest(
+    connection,
+    feePayer,
+    0,
+    9,
+    100,
+    5_000,
+    10,
+    400,
+    undefined,
+    new BN(Math.pow(10, 6))
+  );
+});
 
-// test("Self trade", async () => {
-//   await selfTradeTest(connection, feePayer, 6, 6);
-// });
+test("Swap (NFT & price < 1)", async () => {
+  await swapTest(
+    connection,
+    feePayer,
+    0,
+    9,
+    0,
+    1,
+    100,
+    1_000,
+    undefined,
+    new BN(Math.pow(10, 6))
+  );
+});
+
+test("Self trade", async () => {
+  await selfTradeTest(connection, feePayer, 6, 6);
+});
