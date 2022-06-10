@@ -36,7 +36,7 @@ export const orderbookTest = async (
     random(maxUiTradeSize, 10 * maxUiTradeSize, true) *
     Math.pow(10, baseDecimals);
   const quoteTokenAmount =
-    random(12 * maxUiTradeSize, maxPrice * (12 * maxUiTradeSize), true) *
+    random(10 * maxUiTradeSize, maxPrice * (10 * maxUiTradeSize), true) *
     Math.pow(10, quoteDecimals);
   /**
    * Initialize market and traders
