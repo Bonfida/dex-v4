@@ -137,18 +137,7 @@ export const orderbookTest = async (
 
   let totalBase = new BN(0);
   let totalQuote = new BN(0);
-  console.log(
-    bids.map((e) => {
-      return { price: e.price.toNumber(), size: e.size.toNumber() };
-    }),
-    // asks.map((e) => {
-    //   return { price: e.price.toNumber(), size: e.size.toNumber() };
-    // }),
-    bidPrices,
-    bidSizes
-    // askPrices,
-    // askSizes
-  );
+
   for (let i = 0; i < 3; i++) {
     const bidFp32 = computeFp32Price(market, bidPrices[2 - i]);
     const askFp3 = computeFp32Price(market, askPrices[i]);

@@ -39,21 +39,21 @@ jest.setTimeout(50_000_000);
 //   await simpleTrade(connection, feePayer, 6, 6, 0.01, 1, 1_000, 10_000, 0.0001);
 // });
 
-// test("Simple trade (NFT case)", async () => {
-//   await simpleTrade(
-//     connection,
-//     feePayer,
-//     0,
-//     9,
-//     1,
-//     10_000,
-//     1,
-//     20,
-//     1,
-//     undefined,
-//     new BN(Math.pow(10, 6))
-//   );
-// });
+test("Simple trade (NFT case)", async () => {
+  await simpleTrade(
+    connection,
+    feePayer,
+    0,
+    9,
+    1,
+    10_000,
+    1,
+    20,
+    1,
+    undefined,
+    new BN(Math.pow(10, 6))
+  );
+});
 
 // test("Simple trade (NFT case & price < 1)", async () => {
 //   await simpleTrade(
@@ -75,9 +75,9 @@ jest.setTimeout(50_000_000);
 //   await orderbookTest(connection, feePayer, 6, 6, 100, 1_000, 1, 100, 2);
 // });
 
-test("Orderbook (6, 6) & price < 1", async () => {
-  await orderbookTest(connection, feePayer, 6, 6, 0.01, 1, 1, 100, 0.01);
-});
+// test("Orderbook (6, 6) & price < 1", async () => {
+//   await orderbookTest(connection, feePayer, 6, 6, 0.01, 1, 1, 100, 0.001);
+// });
 
 // test("Orderbook (0, 9)", async () => {
 //   await orderbookTest(
