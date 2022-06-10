@@ -32,6 +32,7 @@ export const simpleTrade = async (
   maxPrice: number,
   minUiTradeSize: number,
   maxUiTradeSize: number,
+  maxTickSize: number,
   baseCurrencyMultiplier?: BN,
   quoteCurrencyMultiplier?: BN
 ) => {
@@ -44,7 +45,8 @@ export const simpleTrade = async (
   /**
    * Initialize market and traders
    */
-  const tickSize = new BN(0.1 * 2 ** 32);
+
+  const tickSize = new BN(random(0, maxTickSize) * 2 ** 32);
   const minBaseOrderSize = new BN(1);
   const { marketKey, base, quote, Alice, Bob } = await createContext(
     connection,
