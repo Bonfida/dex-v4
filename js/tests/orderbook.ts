@@ -26,9 +26,10 @@ export const orderbookTest = async (
   quoteCurrencyMultiplier?: BN
 ) => {
   const baseTokenAmount =
-    Math.floor(Math.random() * 100_000_000) * Math.pow(10, baseDecimals);
+    Math.floor(Math.random() * 10_000) * Math.pow(10, baseDecimals);
   const quoteTokenAmount =
-    Math.floor(Math.random() * 100_000_000_000) * Math.pow(10, quoteDecimals);
+    Math.floor(Math.random() * 100_000) * Math.pow(10, quoteDecimals);
+
   /**
    * Initialize market and traders
    */

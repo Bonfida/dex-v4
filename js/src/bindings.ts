@@ -74,6 +74,10 @@ export const createMarket = async (
   if (!quoteCurrencyMultiplier) {
     quoteCurrencyMultiplier = new BN(1);
   }
+
+  // Adjust tick size
+  tickSize = tickSize.mul(baseCurrencyMultiplier).div(quoteCurrencyMultiplier);
+
   const createMarketAccount = SystemProgram.createAccount({
     fromPubkey: feePayer,
     lamports: balance,
@@ -189,10 +193,6 @@ export const placeOrder = async (
   if (!clientOrderId) {
     clientOrderId = new BN(crypto.randomBytes(16));
   }
-
-  // const formattedLimitPrice =
-  //   Math.pow(10, market.quoteDecimals - market.baseDecimals) * limitPrice;
-  // const price = new BN(formattedLimitPrice).mul(new BN(Math.pow(2, 32)));
 
   const priceFp32 = computeFp32Price(market, limitPrice);
 

@@ -101,14 +101,16 @@ export class MarketState {
     this.orderbook = new PublicKey(obj.orderbook);
     this.admin = new PublicKey(obj.admin);
     this.creationTimestamp = obj.creationTimestamp;
-    this.baseVolume = obj.baseVolume;
-    this.quoteVolume = obj.quoteVolume;
-    this.accumulatedFees = obj.accumulatedFees;
+    this.baseVolume = obj.baseVolume.mul(obj.baseCurrencyMultiplier);
+    this.quoteVolume = obj.quoteVolume.mul(obj.quoteCurrencyMultiplier);
+    this.accumulatedFees = obj.accumulatedFees.mul(obj.quoteCurrencyMultiplier);
     this.minBaseOrderSize = obj.minBaseOrderSize.mul(
       obj.baseCurrencyMultiplier
     );
     this.royaltiesBps = obj.royaltiesBps;
-    this.accumulatedRoyalties = obj.accumulatedRoyalties;
+    this.accumulatedRoyalties = obj.accumulatedRoyalties.mul(
+      obj.quoteCurrencyMultiplier
+    );
     this.quoteCurrencyMultiplier = obj.quoteCurrencyMultiplier;
     this.baseCurrencyMultiplier = obj.baseCurrencyMultiplier;
     this.feeType = obj.feeType;
