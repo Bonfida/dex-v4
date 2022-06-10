@@ -68,19 +68,25 @@ export const swapTest = async (
   const swapSize =
     Math.pow(10, baseDecimals) * random(minUiTradeSize, maxUiTradeSize, true);
   const swapPrice = random(minPrice, maxPrice);
-
-  let tx = await signAndSendInstructions(connection, [Alice], feePayer, [
-    await placeOrder(
-      market,
-      Side.Ask,
-      swapPrice,
-      swapSize,
-      OrderType.Limit,
-      SelfTradeBehavior.AbortTransaction,
-      aliceBaseAta,
-      Alice.publicKey
-    ),
-  ]);
+  console.log(swapSize, swapPrice);
+  let tx = await signAndSendInstructions(
+    connection,
+    [Alice],
+    feePayer,
+    [
+      await placeOrder(
+        market,
+        Side.Ask,
+        swapPrice,
+        swapSize,
+        OrderType.Limit,
+        SelfTradeBehavior.AbortTransaction,
+        aliceBaseAta,
+        Alice.publicKey
+      ),
+    ],
+    true
+  );
   console.log(`Alice placed order ${tx}`);
 
   /**
@@ -152,12 +158,10 @@ export const swapTest = async (
   expect(marketState.baseVolume.toNumber()).toBe(swapSize);
   expect(marketState.quoteVolume.toNumber()).toBe(
     new BN(swapSize)
-      .mul(
-        executionPrice
-          .shrn(32)
-          .mul(market.quoteCurrencyMultiplier)
-          .div(market.baseCurrencyMultiplier)
-      )
+      .mul(executionPrice)
+      .shrn(32)
+      .mul(market.quoteCurrencyMultiplier)
+      .div(market.baseCurrencyMultiplier)
       .toNumber()
   );
 
