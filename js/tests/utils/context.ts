@@ -16,7 +16,9 @@ export const createContext = async (
   tickSize: BN,
   minBaseOrderSize: BN,
   baseDecimals: number,
-  quoteDecimals: number
+  quoteDecimals: number,
+  baseCurrencyMultiplier?: BN,
+  quoteCurrencyMultiplier?: BN
 ) => {
   /**
    * Base and quote
@@ -35,7 +37,9 @@ export const createContext = async (
     feePayer.publicKey,
     feePayer.publicKey,
     tickSize,
-    new BN(0)
+    new BN(0),
+    baseCurrencyMultiplier,
+    quoteCurrencyMultiplier
   );
 
   for (let ix of ixs) {
@@ -77,7 +81,8 @@ export const initializeTraders = async (
   Bob: Keypair,
   feePayer: Keypair,
   marketKey: PublicKey,
-  tokenAmount = 10_000_000 * Math.pow(10, 6)
+  baseTokenAmount: number,
+  quoteTokenAmount: number
 ) => {
   const aliceBaseAta = await base.getAssociatedTokenAccount(Alice.publicKey);
   const aliceQuoteAta = await quote.getAssociatedTokenAccount(Alice.publicKey);
@@ -85,11 +90,11 @@ export const initializeTraders = async (
   const bobBaseAta = await base.getAssociatedTokenAccount(Bob.publicKey);
   const bobQuoteAta = await quote.getAssociatedTokenAccount(Bob.publicKey);
 
-  base.mintInto(aliceBaseAta, tokenAmount);
-  quote.mintInto(aliceQuoteAta, tokenAmount);
+  base.mintInto(aliceBaseAta, baseTokenAmount);
+  quote.mintInto(aliceQuoteAta, quoteTokenAmount);
 
-  base.mintInto(bobBaseAta, tokenAmount);
-  quote.mintInto(bobQuoteAta, tokenAmount);
+  base.mintInto(bobBaseAta, baseTokenAmount);
+  quote.mintInto(bobQuoteAta, quoteTokenAmount);
 
   // Create user accounts
   let tx = await signAndSendInstructions(connection, [Alice, Bob], feePayer, [

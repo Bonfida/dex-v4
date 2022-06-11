@@ -45,13 +45,17 @@ export const divideBnToNumber = (numerator: BN, denominator: BN): number => {
 
 export const computeFp32Price = (market: Market, uiPrice: number) => {
   const tickSize = new BN(market.tickSize);
-  const price = new BN(Math.pow(2, 32) * uiPrice);
-  const rem = price.umod(tickSize);
-  return price
-    .sub(rem)
-    .mul(new BN(Math.pow(10, market.quoteDecimals - market.baseDecimals)));
-};
 
-export const computeSize = (market: Market, size: number) => {
-  return new BN(size - (size % market.minOrderSize));
+  const decimalsMul = Math.pow(10, market.quoteDecimals - market.baseDecimals);
+  const baseQuoteMul =
+    market.baseCurrencyMultiplier.toNumber() /
+    market.quoteCurrencyMultiplier.toNumber();
+
+  const x = uiPrice * baseQuoteMul * decimalsMul;
+  const fracX = Math.pow(2, 32) * (x - Math.floor(x));
+
+  const price = new BN(x).mul(new BN(2 ** 32)).add(new BN(fracX));
+  const rem = price.umod(tickSize);
+
+  return price.sub(rem);
 };

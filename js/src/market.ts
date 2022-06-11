@@ -101,6 +101,8 @@ export class Market {
   private _tickSize: number;
   private _minOrderSize: number;
   private _admin: PublicKey;
+  private _baseCurrencyMultiplier: BN;
+  private _quoteCurrencyMultiplier: BN;
 
   constructor(
     marketState: MarketState,
@@ -132,6 +134,8 @@ export class Market {
     this._tickSize = orderbookState.tickSize.toNumber();
     this._minOrderSize = marketState.minBaseOrderSize.toNumber();
     this._admin = marketState.admin;
+    this._baseCurrencyMultiplier = marketState.baseCurrencyMultiplier;
+    this._quoteCurrencyMultiplier = marketState.quoteCurrencyMultiplier;
   }
 
   /**
@@ -259,6 +263,14 @@ export class Market {
     return this._admin;
   }
 
+  get baseCurrencyMultiplier(): BN {
+    return this._baseCurrencyMultiplier;
+  }
+
+  get quoteCurrencyMultiplier(): BN {
+    return this._quoteCurrencyMultiplier;
+  }
+
   /** Returns the inception base volume */
   baseVolume(): number {
     return this._marketState.baseVolume.toNumber();
@@ -354,7 +366,12 @@ export class Market {
     connection: Connection,
     owner: PublicKey
   ) {
-    const openOrders = OpenOrders.load(connection, this.address, owner, this._marketState);
+    const openOrders = OpenOrders.load(
+      connection,
+      this.address,
+      owner,
+      this._marketState
+    );
     return openOrders;
   }
 
@@ -705,5 +722,25 @@ export class Market {
       Side.Ask
     );
     return [...bids, ...asks];
+  }
+
+  private _parseSlab(slab: Slab, depth: number, increasing: boolean) {
+    const parsed = slab.getL2DepthJS(depth, increasing);
+    return parsed.map((e) => {
+      return {
+        price: e.price
+          .mul(this.baseCurrencyMultiplier)
+          .div(this.quoteCurrencyMultiplier),
+        priceRaw: e.price,
+        size: e.size.mul(this.baseCurrencyMultiplier),
+      };
+    });
+  }
+
+  parseAsksSlab(slab: Slab, depth: number) {
+    return this._parseSlab(slab, depth, true);
+  }
+  parseBidsSlab(slab: Slab, depth: number) {
+    return this._parseSlab(slab, depth, false);
   }
 }

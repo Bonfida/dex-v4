@@ -104,9 +104,13 @@ export class MarketState {
     this.baseVolume = obj.baseVolume.mul(obj.baseCurrencyMultiplier);
     this.quoteVolume = obj.quoteVolume.mul(obj.quoteCurrencyMultiplier);
     this.accumulatedFees = obj.accumulatedFees.mul(obj.quoteCurrencyMultiplier);
-    this.minBaseOrderSize = obj.minBaseOrderSize.mul(obj.baseCurrencyMultiplier);
+    this.minBaseOrderSize = obj.minBaseOrderSize.mul(
+      obj.baseCurrencyMultiplier
+    );
     this.royaltiesBps = obj.royaltiesBps;
-    this.accumulatedRoyalties = obj.accumulatedRoyalties.mul(obj.quoteCurrencyMultiplier);
+    this.accumulatedRoyalties = obj.accumulatedRoyalties.mul(
+      obj.quoteCurrencyMultiplier
+    );
     this.quoteCurrencyMultiplier = obj.quoteCurrencyMultiplier;
     this.baseCurrencyMultiplier = obj.baseCurrencyMultiplier;
     this.feeType = obj.feeType;
@@ -216,7 +220,12 @@ export class UserAccount {
     this.accumulatedTakerBaseVolume = obj.accumulatedTakerBaseVolume;
   }
 
-  static async retrieve(connection: Connection, userAccount: PublicKey, baseCurrencyMultiplier: BN, quoteCurrencyMultiplier: BN) {
+  static async retrieve(
+    connection: Connection,
+    userAccount: PublicKey,
+    marketState: MarketState
+  ) {
+    const { baseCurrencyMultiplier, quoteCurrencyMultiplier } = marketState;
     const accountInfo = await connection.getAccountInfo(userAccount);
     if (!accountInfo?.data) {
       throw new Error("Invalid account provided");
