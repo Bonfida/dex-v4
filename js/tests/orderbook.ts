@@ -17,6 +17,7 @@ import { DEX_ID } from "../src/ids";
 import { OrderType, SelfTradeBehavior } from "../src/types";
 import { AccountLayout } from "@solana/spl-token";
 import { random } from "./utils/random";
+import { checkTokenBalances } from "./utils/token-balances";
 
 export const orderbookTest = async (
   connection: Connection,
@@ -35,7 +36,7 @@ export const orderbookTest = async (
     random(maxUiTradeSize, 10 * maxUiTradeSize, true) *
     Math.pow(10, baseDecimals);
   const quoteTokenAmount =
-    random(10 * maxUiTradeSize, maxPrice * (10 * maxUiTradeSize), true) *
+    random(12 * maxUiTradeSize, maxPrice * (12 * maxUiTradeSize), true) *
     Math.pow(10, quoteDecimals);
   /**
    * Initialize market and traders
@@ -188,6 +189,21 @@ export const orderbookTest = async (
   expect(bobUserAccount.accumulatedTakerQuoteVolume.toNumber()).toBe(0);
   expect(bobUserAccount.accumulatedTakerBaseVolume.toNumber()).toBe(0);
   expect(bobUserAccount.orders.length).toBe(bidSizes.length + askSizes.length);
+
+  /**
+   * Check token accounts
+   */
+
+  checkTokenBalances(
+    connection,
+    bobBaseAta,
+    new BN(baseTokenAmount).sub(totalBase)
+  );
+  checkTokenBalances(
+    connection,
+    bobQuoteAta,
+    new BN(quoteTokenAmount).sub(totalQuote)
+  );
 
   /**
    * Cancel order

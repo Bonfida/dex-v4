@@ -13,6 +13,7 @@ import { createContext, initializeTraders } from "./utils/context";
 import { computeTakerFee } from "./utils/fee";
 import { random } from "./utils/random";
 import { computeFp32Price } from "../src/utils";
+import { checkTokenBalances } from "./utils/token-balances";
 
 export const swapTest = async (
   connection: Connection,
@@ -33,6 +34,7 @@ export const swapTest = async (
   const quoteTokenAmount =
     random(2 * maxUiTradeSize, maxPrice * (2 * maxUiTradeSize), true) *
     Math.pow(10, quoteDecimals);
+
   /**
    * Initialize market and traders
    */
@@ -110,6 +112,15 @@ export const swapTest = async (
   expect(aliceUserAccount.accumulatedTakerQuoteVolume.toNumber()).toBe(0);
   expect(aliceUserAccount.accumulatedTakerBaseVolume.toNumber()).toBe(0);
   expect(aliceUserAccount.orders.length).toBe(1);
+
+  /**
+   * Check token account
+   */
+  checkTokenBalances(
+    connection,
+    aliceBaseAta,
+    new BN(baseTokenAmount - swapSize)
+  );
 
   /**
    * Bob swaps against Alice
