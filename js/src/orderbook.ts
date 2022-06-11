@@ -89,7 +89,7 @@ export class Orderbook {
     const convert = (p: aaob.Price) => {
       return {
         price: p.price,
-        size: p.size / Math.pow(10, this.market.baseDecimals),
+        size: p.size.divn(Math.pow(10, this.market.baseDecimals)),
       };
     };
     if (uiAmount) {
