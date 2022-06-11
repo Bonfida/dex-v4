@@ -383,8 +383,9 @@ export const selfTradeTest = async (
   expect(bobUserAccount.accumulatedTakerBaseVolume.toNumber()).toBe(
     bidSizes[1] * 2
   );
-  expect(bobUserAccount.accumulatedTakerQuoteVolume.toNumber()).toBe(
-    takerVolume.add(computeTakerFee(takerVolume)).toNumber()
+  expect(bobUserAccount.accumulatedTakerQuoteVolume.toNumber()).toBeCloseTo(
+    takerVolume.add(computeTakerFee(takerVolume)).toNumber(),
+    -1
   );
   expect(bobUserAccount.orders.length).toBe(0);
 };
