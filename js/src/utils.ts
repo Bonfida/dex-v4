@@ -55,7 +55,6 @@ export const computeFp32Price = (market: Market, uiPrice: number) => {
   const fracX = Math.pow(2, 32) * (x - Math.floor(x));
 
   const price = new BN(x).mul(new BN(2 ** 32)).add(new BN(fracX));
-
   const rem = price.umod(tickSize);
 
   return price.sub(rem);
