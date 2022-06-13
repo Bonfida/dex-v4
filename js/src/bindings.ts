@@ -1,4 +1,10 @@
-import { Keypair, PublicKey, Connection, SystemProgram } from "@solana/web3.js";
+import {
+  Keypair,
+  PublicKey,
+  Connection,
+  SystemProgram,
+  TransactionInstruction,
+} from "@solana/web3.js";
 import { DEX_ID, SRM_MINT } from "./ids";
 import {
   cancelOrderInstruction,
@@ -470,7 +476,8 @@ export const closeMarket = async (market: Market, target: PublicKey) => {
 export const sweepFees = async (
   connection: Connection,
   market: Market,
-  destination: PublicKey
+  destination: PublicKey,
+  feePayer: PublicKey
 ) => {
   // Market signer
   const [marketSigner] = await PublicKey.findProgramAddress(
@@ -478,11 +485,35 @@ export const sweepFees = async (
     DEX_ID
   );
   // Metadata account
-  let metadata: Metadata | null = null;
+  const creatorTokenAccounts: PublicKey[] = [];
+  const tokenIxs: TransactionInstruction[] = [];
   const metadataAccount = await getMetadataKeyFromMint(market.baseMintAddress);
   const info = await connection.getAccountInfo(metadataAccount);
+
   if (!!info?.data) {
-    [metadata] = Metadata.fromAccountInfo(info);
+    const [metadata] = Metadata.fromAccountInfo(info);
+    const creators = metadata?.data?.creators;
+    if (creators) {
+      for (let c of creators) {
+        const key = await getAssociatedTokenAddress(
+          market.quoteMintAddress,
+          c.address
+        );
+        const info = await connection.getAccountInfo(key);
+        // Create token acc if does not exist
+        if (!info?.data) {
+          tokenIxs.push(
+            createAssociatedTokenAccountInstruction(
+              feePayer,
+              key,
+              c.address,
+              market.quoteMintAddress
+            )
+          );
+        }
+        creatorTokenAccounts.push(key);
+      }
+    }
   }
 
   const ix = new sweepFeesInstruction().getInstruction(
@@ -493,8 +524,8 @@ export const sweepFees = async (
     destination,
     TOKEN_PROGRAM_ID,
     metadataAccount,
-    metadata?.data?.creators?.map((e) => e.address) || []
+    creatorTokenAccounts
   );
 
-  return ix;
+  return [...tokenIxs, ix];
 };

@@ -416,9 +416,12 @@ export const simpleTrade = async (
    * Sweep fees
    */
   const sweepDestination = await quote.getAssociatedTokenAccount(SWEEP_AUTH);
-  tx = await signAndSendInstructions(connection, [], feePayer, [
-    await sweepFees(connection, market, sweepDestination),
-  ]);
+  tx = await signAndSendInstructions(
+    connection,
+    [],
+    feePayer,
+    await sweepFees(connection, market, sweepDestination, feePayer.publicKey)
+  );
   console.log(`Sweep fees ${tx}`);
 
   const sweepRaw = await connection.getAccountInfo(sweepDestination);

@@ -12,6 +12,7 @@ import { swapTest } from "./swap";
 import { orderbookTest } from "./orderbook";
 import { selfTradeTest } from "./self-trade";
 import BN from "bn.js";
+import { metadataTest } from "./metadata";
 
 // Global state initialized once in test startup and cleaned up at test
 // teardown.
@@ -141,4 +142,8 @@ test("Swap (NFT & price < 1)", async () => {
 
 test("Self trade", async () => {
   await selfTradeTest(connection, feePayer, 6, 6, 10, 1_000, 1, 30);
+});
+
+test("Metadata", async () => {
+  await metadataTest(connection, feePayer, 6, 6, 20_000, 30_000, 1, 6, 2);
 });

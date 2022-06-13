@@ -9,6 +9,14 @@ import {
 import { createMarket, initializeAccount } from "../../src/bindings";
 import BN from "bn.js";
 import { DEX_ID } from "../../src/ids";
+import {
+  createCreateMetadataAccountV2Instruction,
+  CreateMetadataAccountArgsV2,
+  CreateMetadataAccountV2InstructionAccounts,
+  DataV2,
+  Creator,
+} from "@metaplex-foundation/mpl-token-metadata";
+import { getMetadataKeyFromMint } from "../../src/metadata";
 
 export const createContext = async (
   connection: Connection,
@@ -18,13 +26,55 @@ export const createContext = async (
   baseDecimals: number,
   quoteDecimals: number,
   baseCurrencyMultiplier?: BN,
-  quoteCurrencyMultiplier?: BN
+  quoteCurrencyMultiplier?: BN,
+  creators?: { key: Keypair; share: number }[],
+  sellerFeeBasisPoints?: number
 ) => {
   /**
    * Base and quote
    */
   const base = await TokenMint.init(connection, feePayer, baseDecimals);
   const quote = await TokenMint.init(connection, feePayer, quoteDecimals);
+
+  /**
+   * Create metadata
+   */
+  if (creators && sellerFeeBasisPoints) {
+    const accounts: CreateMetadataAccountV2InstructionAccounts = {
+      metadata: await getMetadataKeyFromMint(base.token),
+      mint: base.token,
+      mintAuthority: base.signer.publicKey,
+      payer: feePayer.publicKey,
+      updateAuthority: feePayer.publicKey,
+    };
+    const creators_: Creator[] = creators.map((e) => {
+      return {
+        address: e.key.publicKey,
+        verified: false,
+        share: e.share,
+      };
+    });
+    const data: DataV2 = {
+      name: "Test base",
+      symbol: "BASE",
+      uri: "https://google.com",
+      creators: creators_,
+      sellerFeeBasisPoints,
+      collection: null,
+      uses: null,
+    };
+    const args: CreateMetadataAccountArgsV2 = { data, isMutable: false };
+    const ix = createCreateMetadataAccountV2Instruction(accounts, {
+      createMetadataAccountArgsV2: args,
+    });
+    const tx = await signAndSendInstructions(
+      connection,
+      [base.signer],
+      feePayer,
+      [ix]
+    );
+    console.log(`Created metadata ${tx}`);
+  }
 
   /**
    * Create market
