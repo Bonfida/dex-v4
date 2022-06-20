@@ -96,7 +96,7 @@ export const createMarket = async (
   // Market signer
   const [marketSigner, marketSignerNonce] = await PublicKey.findProgramAddress(
     [marketAccount.publicKey.toBuffer()],
-    programId ?? DEX_ID
+    programId
   );
 
   // AAOB instructions
