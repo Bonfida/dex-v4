@@ -3,9 +3,8 @@ use crate::{
     state::{CallBackInfo, DexState, FeeTier},
     utils::{check_account_key, check_account_owner, check_signer},
 };
-use agnostic_orderbook::error::AoError;
-use agnostic_orderbook::state::read_register;
-use agnostic_orderbook::state::{OrderSummary, SelfTradeBehavior, Side};
+use agnostic_orderbook::state::{SelfTradeBehavior, Side};
+use agnostic_orderbook::{error::AoError, state::AccountTag};
 use bonfida_utils::BorshSize;
 use bonfida_utils::InstructionsAccount;
 use borsh::BorshDeserialize;
@@ -20,9 +19,7 @@ use solana_program::{
     program::invoke_signed,
     program_error::{PrintProgramError, ProgramError},
     pubkey::Pubkey,
-    rent::Rent,
-    system_instruction, system_program,
-    sysvar::Sysvar,
+    system_program,
 };
 
 use super::REFERRAL_MASK;
@@ -204,31 +201,13 @@ pub(crate) fn process(
         quote_qty = fee_tier.remove_taker_fee(quote_qty);
     }
 
-    let orderbook = agnostic_orderbook::state::MarketState::get(accounts.orderbook)?;
-    let tick_size = orderbook.tick_size;
-
-    // Transfer the cranking fee to the AAOB program
-    let rent = Rent::get()?;
-    if accounts.user_owner.lamports()
-        < rent.minimum_balance(accounts.user_owner.data_len()) + orderbook.cranker_reward
-    {
-        msg!("The user does not have enough lamports on his account.");
-        return Err(DexError::OutofFunds.into());
-    }
-    let transfer_cranking_fee = system_instruction::transfer(
-        accounts.user_owner.key,
-        accounts.orderbook.key,
-        orderbook.cranker_reward,
-    );
-    drop(orderbook);
-    invoke(
-        &transfer_cranking_fee,
-        &[
-            accounts.system_program.clone(),
-            accounts.user_owner.clone(),
-            accounts.orderbook.clone(),
-        ],
+    let mut orderbook_guard = accounts.orderbook.data.borrow_mut();
+    let orderbook = agnostic_orderbook::state::market_state::MarketState::from_buffer(
+        &mut orderbook_guard,
+        AccountTag::Market,
     )?;
+    let tick_size = orderbook.tick_size;
+    drop(orderbook_guard);
 
     let (max_base_qty, max_quote_qty, limit_price) = match FromPrimitive::from_u8(*side).unwrap() {
         Side::Bid => (u64::MAX, quote_qty, u64::MAX - (u64::MAX % tick_size)),
@@ -241,7 +220,7 @@ pub(crate) fn process(
         limit_price,
         side: FromPrimitive::from_u8(*side).unwrap(),
         match_limit: *match_limit,
-        callback_info: callback_info.try_to_vec()?,
+        callback_info,
         post_only: false,
         post_allowed: false,
         // No impact as user is Pubkey::default()
@@ -254,16 +233,17 @@ pub(crate) fn process(
         asks: accounts.asks,
     };
 
-    if let Err(error) = agnostic_orderbook::instruction::new_order::process(
+    let mut order_summary = match agnostic_orderbook::instruction::new_order::process(
         program_id,
         invoke_accounts,
         invoke_params,
     ) {
-        error.print::<AoError>();
-        return Err(DexError::AOBError.into());
-    }
-
-    let mut order_summary: OrderSummary = read_register(accounts.event_queue).unwrap().unwrap();
+        Err(error) => {
+            error.print::<AoError>();
+            return Err(DexError::AOBError.into());
+        }
+        Ok(s) => s,
+    };
 
     let referral_fee = fee_tier.referral_fee(order_summary.total_quote_qty);
     let royalties_fees = order_summary

@@ -1,7 +1,7 @@
 //! Close an existing market
 use crate::{
     error::DexError,
-    state::{AccountTag, DexState},
+    state::{AccountTag, CallBackInfo, DexState},
     utils::{check_account_key, check_account_owner, check_signer},
 };
 use agnostic_orderbook::error::AoError;
@@ -144,7 +144,7 @@ pub(crate) fn process(program_id: &Pubkey, accounts: &[AccountInfo]) -> ProgramR
     };
     let invoke_params = agnostic_orderbook::instruction::close_market::Params {};
 
-    if let Err(error) = agnostic_orderbook::instruction::close_market::process(
+    if let Err(error) = agnostic_orderbook::instruction::close_market::process::<CallBackInfo>(
         program_id,
         invoke_accounts,
         invoke_params,

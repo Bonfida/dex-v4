@@ -29,8 +29,8 @@ checksum = "f26201604c87b1e01bd3d98f8d5d9a8fcbb815e8cedb41ffccbeb4bf593a35fe"
 
 [[package]]
 name = "agnostic-orderbook"
-version = "0.1.0"
-source = "git+https://github.com/Bonfida/agnostic-orderbook.git#0acdcea2ec4a4760be68a076c5a883ce9f7daa20"
+version = "1.0.0"
+source = "git+https://github.com/Bonfida/agnostic-orderbook.git#375825425d8f47c7ed61fbbda41e54e5b05f215c"
 dependencies = [
  "bonfida-utils",
  "borsh",
@@ -1690,7 +1690,7 @@ dependencies = [
 [[package]]
 name = "mpl-token-metadata"
 version = "1.2.10"
-source = "git+https://github.com/metaplex-foundation/metaplex-program-library.git#facd7cb11903bab086165e6619bbf0cc6e28c272"
+source = "git+https://github.com/metaplex-foundation/metaplex-program-library.git#0c1919fef3127c95b9013c366749a5346933d115"
 dependencies = [
  "arrayref",
  "borsh",
