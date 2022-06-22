@@ -62,7 +62,8 @@ export const createMarket = async (
   marketAdmin: PublicKey,
   tickSize: BN,
   baseCurrencyMultiplier?: BN,
-  quoteCurrencyMultiplier?: BN
+  quoteCurrencyMultiplier?: BN,
+  programId = DEX_ID
 ): Promise<PrimedTransaction[]> => {
   // Metadata account
   const metadataAccount = await getMetadataKeyFromMint(baseMint);
@@ -87,14 +88,14 @@ export const createMarket = async (
     fromPubkey: feePayer,
     lamports: balance,
     newAccountPubkey: marketAccount.publicKey,
-    programId: DEX_ID,
+    programId,
     space: MARKET_STATE_SPACE,
   });
 
   // Market signer
   const [marketSigner, marketSignerNonce] = await PublicKey.findProgramAddress(
     [marketAccount.publicKey.toBuffer()],
-    DEX_ID
+    programId
   );
 
   // AAOB instructions
@@ -108,7 +109,7 @@ export const createMarket = async (
     new BN(minBaseOrderSize),
     feePayer,
     tickSize,
-    DEX_ID
+    programId
   );
   // Remove the AOB create_market instruction as it is not needed with lib usage
   aaobInstructions.pop();
@@ -136,7 +137,7 @@ export const createMarket = async (
     baseCurrencyMultiplier,
     quoteCurrencyMultiplier,
   }).getInstruction(
-    DEX_ID,
+    programId,
     marketAccount.publicKey,
     aaobSigners[3].publicKey,
     await getAssociatedTokenAddress(baseMint, marketSigner, true),
@@ -185,7 +186,7 @@ export const placeOrder = async (
 ) => {
   const [userAccount] = await PublicKey.findProgramAddress(
     [market.address.toBuffer(), owner.toBuffer()],
-    DEX_ID
+    market.programId
   );
 
   // Uncomment for mainnet
@@ -211,7 +212,7 @@ export const placeOrder = async (
     clientOrderId,
     hasDiscountTokenAccount: discountTokenAccount === undefined ? 0 : 1, // TODO Change
   }).getInstruction(
-    DEX_ID,
+    market.programId,
     TOKEN_PROGRAM_ID,
     SystemProgram.programId,
     market.address,
@@ -248,7 +249,7 @@ export const cancelOrder = async (
 ) => {
   const [userAccount] = await PublicKey.findProgramAddress(
     [market.address.toBuffer(), owner.toBuffer()],
-    DEX_ID
+    market.programId
   );
 
   const instruction = new cancelOrderInstruction({
@@ -256,7 +257,7 @@ export const cancelOrder = async (
     orderIndex: orderIndex ? orderIndex : new BN(0),
     isClientId: clientOrderId ? 1 : 0,
   }).getInstruction(
-    DEX_ID,
+    market.programId,
     market.address,
     market.orderbookAddress,
     market.eventQueueAddress,
@@ -281,18 +282,19 @@ export const initializeAccount = async (
   market: PublicKey,
   owner: PublicKey,
   maxOrders = 20,
-  feePayer?: PublicKey
+  feePayer?: PublicKey,
+  programId = DEX_ID
 ) => {
   const [userAccount] = await PublicKey.findProgramAddress(
     [market.toBuffer(), owner.toBuffer()],
-    DEX_ID
+    programId
   );
 
   const instruction = new initializeAccountInstruction({
     market: market.toBuffer(),
     maxOrders: new BN(maxOrders),
   }).getInstruction(
-    DEX_ID,
+    programId,
     SystemProgram.programId,
     userAccount,
     owner,
@@ -318,16 +320,16 @@ export const settle = async (
 ) => {
   const [marketSigner] = await PublicKey.findProgramAddress(
     [market.address.toBuffer()],
-    DEX_ID
+    market.programId
   );
 
   const [userAccount] = await PublicKey.findProgramAddress(
     [market.address.toBuffer(), owner.toBuffer()],
-    DEX_ID
+    market.programId
   );
 
   const instruction = new settleInstruction().getInstruction(
-    DEX_ID,
+    market.programId,
     TOKEN_PROGRAM_ID,
     market.address,
     market.baseVault,
@@ -362,7 +364,7 @@ export const consumeEvents = async (
     maxIterations,
     noOpErr,
   }).getInstruction(
-    DEX_ID,
+    market.programId,
     market.address,
     market.orderbookAddress,
     market.eventQueueAddress,
@@ -376,14 +378,18 @@ export const consumeEvents = async (
   return instruction;
 };
 
-export const closeAccount = async (market: PublicKey, owner: PublicKey) => {
+export const closeAccount = async (
+  market: PublicKey,
+  owner: PublicKey,
+  programId = DEX_ID
+) => {
   const [userAccount] = await PublicKey.findProgramAddress(
     [market.toBuffer(), owner.toBuffer()],
-    DEX_ID
+    programId
   );
 
   const instruction = new closeAccountInstruction().getInstruction(
-    DEX_ID,
+    programId,
     userAccount,
     owner,
     owner
@@ -407,7 +413,7 @@ export const swap = async (
   // Market signer
   const [marketSigner] = await PublicKey.findProgramAddress(
     [market.address.toBuffer()],
-    DEX_ID
+    market.programId
   );
 
   // Uncomment for mainnet
@@ -424,7 +430,7 @@ export const swap = async (
     matchLimit: new BN(Number.MAX_SAFE_INTEGER), // TODO Change
     hasDiscountTokenAccount: Number(discountTokenAccount !== undefined),
   }).getInstruction(
-    DEX_ID,
+    market.programId,
     TOKEN_PROGRAM_ID,
     SystemProgram.programId,
     market.address,
@@ -449,11 +455,11 @@ export const closeMarket = async (market: Market, target: PublicKey) => {
   // Market signer
   const [marketSigner] = await PublicKey.findProgramAddress(
     [market.address.toBuffer()],
-    DEX_ID
+    market.programId
   );
 
   const ix = new closeMarketInstruction().getInstruction(
-    DEX_ID,
+    market.programId,
     market.address,
     market.baseVault,
     market.quoteVault,
@@ -479,7 +485,7 @@ export const sweepFees = async (
   // Market signer
   const [marketSigner] = await PublicKey.findProgramAddress(
     [market.address.toBuffer()],
-    DEX_ID
+    market.programId
   );
   // Metadata account
   const creatorTokenAccounts: PublicKey[] = [];
@@ -514,7 +520,7 @@ export const sweepFees = async (
   }
 
   const ix = new sweepFeesInstruction().getInstruction(
-    DEX_ID,
+    market.programId,
     market.address,
     marketSigner,
     market.quoteVault,

@@ -157,11 +157,12 @@ export class OpenOrders {
     connection: Connection,
     market: PublicKey,
     owner: PublicKey,
-    marketState: MarketState
+    marketState: MarketState,
+    programId = DEX_ID
   ) {
     const [address] = await PublicKey.findProgramAddress(
       [market.toBuffer(), owner.toBuffer()],
-      DEX_ID
+      programId
     );
 
     const userAccount = await UserAccount.retrieve(
@@ -216,20 +217,25 @@ export class OpenOrders {
   static async exists(
     connection: Connection,
     market: PublicKey,
-    owner: PublicKey
+    owner: PublicKey,
+    programId = DEX_ID
   ) {
     const [address] = await PublicKey.findProgramAddress(
       [market.toBuffer(), owner.toBuffer()],
-      DEX_ID
+      programId
     );
     const info = await connection.getAccountInfo(address);
     return !!info?.data;
   }
 
-  static async addressForOwner(market: PublicKey, owner: PublicKey) {
+  static async addressForOwner(
+    market: PublicKey,
+    owner: PublicKey,
+    programId = DEX_ID
+  ) {
     const [address] = await PublicKey.findProgramAddress(
       [market.toBuffer(), owner.toBuffer()],
-      DEX_ID
+      programId
     );
     return address;
   }
