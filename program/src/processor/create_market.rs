@@ -152,9 +152,13 @@ pub(crate) fn process(
 
     let royalties_bps = if accounts.token_metadata.data_len() != 0 {
         let metadata = Metadata::from_account_info(accounts.token_metadata)?;
-        #[cfg(not(feature = "disable-mpl-checks"))]
-        verify_metadata(&metadata.data.creators.unwrap())?;
-        metadata.data.seller_fee_basis_points
+        if let Some(creators) = &metadata.data.creators {
+            #[cfg(not(feature = "disable-mpl-checks"))]
+            verify_metadata(creators)?;
+            metadata.data.seller_fee_basis_points
+        } else {
+            0
+        }
     } else {
         0
     };
