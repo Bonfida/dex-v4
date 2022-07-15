@@ -137,10 +137,11 @@ pub(crate) fn process(program_id: &Pubkey, accounts: &[AccountInfo]) -> ProgramR
                     ]],
                 )?;
             }
-        }
-        if share_sum != 100 {
-            msg!("Invalid metadata shares - received {}", share_sum);
-            return Err(ProgramError::InvalidAccountData);
+            
+            if share_sum != 100 {
+                msg!("Invalid metadata shares - received {}", share_sum);
+                return Err(ProgramError::InvalidAccountData);
+            }
         }
     }
 
