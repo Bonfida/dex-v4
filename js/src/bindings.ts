@@ -3,7 +3,7 @@ import {
   PublicKey,
   Connection,
   SystemProgram,
-  TransactionInstruction,
+  TransactionInstruction
 } from "@solana/web3.js";
 import { DEX_ID, SRM_MINT } from "./ids";
 import {
@@ -16,7 +16,7 @@ import {
   closeAccountInstruction,
   swapInstruction,
   closeMarketInstruction,
-  sweepFeesInstruction,
+  sweepFeesInstruction
 } from "./raw_instructions";
 import { OrderType, PrimedTransaction, Side } from "./types";
 import * as aaob from "@bonfida/aaob";
@@ -26,7 +26,7 @@ import { Market } from "./market";
 import {
   TOKEN_PROGRAM_ID,
   createAssociatedTokenAccountInstruction,
-  getAssociatedTokenAddress,
+  getAssociatedTokenAddress
 } from "@solana/spl-token";
 import crypto from "crypto";
 import { getMetadataKeyFromMint } from "./metadata";
@@ -71,6 +71,7 @@ export const createMarket = async (
   // Market Account
   const marketAccount = new Keypair();
   console.log(`Market address ${marketAccount.publicKey.toBase58()}`);
+  console.log(`Metadata address ${metadataAccount.toBase58()}`);
   const balance = await connection.getMinimumBalanceForRentExemption(
     MARKET_STATE_SPACE
   );
@@ -89,7 +90,7 @@ export const createMarket = async (
     lamports: balance,
     newAccountPubkey: marketAccount.publicKey,
     programId,
-    space: MARKET_STATE_SPACE,
+    space: MARKET_STATE_SPACE
   });
 
   // Market signer
@@ -135,7 +136,7 @@ export const createMarket = async (
     minBaseOrderSize: new BN(minBaseOrderSize),
     tickSize: tickSize,
     baseCurrencyMultiplier,
-    quoteCurrencyMultiplier,
+    quoteCurrencyMultiplier
   }).getInstruction(
     programId,
     marketAccount.publicKey,
@@ -152,7 +153,7 @@ export const createMarket = async (
   return [
     [[marketAccount], [createMarketAccount]],
     [aaobSigners, aaobInstructions],
-    [[], [createBaseVault, createQuoteVault, createMarket]],
+    [[], [createBaseVault, createQuoteVault, createMarket]]
   ];
 };
 
@@ -210,7 +211,7 @@ export const placeOrder = async (
     selfTradeBehavior: selfTradeBehaviour,
     matchLimit: new BN(Number.MAX_SAFE_INTEGER),
     clientOrderId,
-    hasDiscountTokenAccount: discountTokenAccount === undefined ? 0 : 1, // TODO Change
+    hasDiscountTokenAccount: discountTokenAccount === undefined ? 0 : 1 // TODO Change
   }).getInstruction(
     market.programId,
     TOKEN_PROGRAM_ID,
@@ -255,7 +256,7 @@ export const cancelOrder = async (
   const instruction = new cancelOrderInstruction({
     orderId: clientOrderId ? clientOrderId : orderId,
     orderIndex: orderIndex ? orderIndex : new BN(0),
-    isClientId: clientOrderId ? 1 : 0,
+    isClientId: clientOrderId ? 1 : 0
   }).getInstruction(
     market.programId,
     market.address,
@@ -292,7 +293,7 @@ export const initializeAccount = async (
 
   const instruction = new initializeAccountInstruction({
     market: market.toBuffer(),
-    maxOrders: new BN(maxOrders),
+    maxOrders: new BN(maxOrders)
   }).getInstruction(
     programId,
     SystemProgram.programId,
@@ -362,7 +363,7 @@ export const consumeEvents = async (
 ) => {
   const instruction = new consumeEventsInstruction({
     maxIterations,
-    noOpErr,
+    noOpErr
   }).getInstruction(
     market.programId,
     market.address,
@@ -428,7 +429,7 @@ export const swap = async (
     quoteQty:
       side === Side.Bid ? new BN(inputQuantity) : new BN(minOutputQuantity),
     matchLimit: new BN(Number.MAX_SAFE_INTEGER), // TODO Change
-    hasDiscountTokenAccount: Number(discountTokenAccount !== undefined),
+    hasDiscountTokenAccount: Number(discountTokenAccount !== undefined)
   }).getInstruction(
     market.programId,
     TOKEN_PROGRAM_ID,

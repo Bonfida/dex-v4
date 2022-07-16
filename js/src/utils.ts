@@ -43,8 +43,9 @@ export const divideBnToNumber = (numerator: BN, denominator: BN): number => {
   return quotient + rem.div(gcd).toNumber() / denominator.div(gcd).toNumber();
 };
 
+// uiPrice * (baseMultiplier * 10^quoteDecimals * 2^32) / (quoteMultiplier * 10^baseDecimals)
 export const computeFp32Price = (market: Market, uiPrice: number) => {
-  const tickSize = new BN(market.tickSize);
+  const tickSize = market.tickSizeBN;
 
   const decimalsMul = Math.pow(10, market.quoteDecimals - market.baseDecimals);
   const baseQuoteMul =
@@ -58,4 +59,16 @@ export const computeFp32Price = (market: Market, uiPrice: number) => {
   const rem = price.umod(tickSize);
 
   return price.sub(rem);
+};
+
+// fp32Price * (quoteMultiplier * 10^baseDecimals) / (baseMultiplier * 10^quoteDecimals * 2^32)
+export const computeUiPrice = (market: Market, fp32Price: BN) => {
+  const numerator = fp32Price
+    .mul(market.quoteCurrencyMultiplier)
+    .mul(new BN(10).pow(new BN(market.baseDecimals)));
+  const denominator = market.baseCurrencyMultiplier.mul(
+    new BN(10).pow(new BN(market.quoteDecimals)).mul(new BN(2).pow(new BN(32)))
+  );
+
+  return Number(divideBnToNumber(numerator, denominator).toPrecision(5));
 };

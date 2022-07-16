@@ -1,0 +1,10 @@
+anchor_version = "0.18.2"
+
+[workspace]
+members = [
+    ".",
+]
+
+[provider]
+cluster = "localnet"
+wallet = "~/.config/solana/id.json"
