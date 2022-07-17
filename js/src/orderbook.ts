@@ -9,7 +9,7 @@ import BN from "bn.js";
 /**
  * Orderbook class
  */
-export class Orderbook implements GetL2 {
+export class Orderbook {
   /** Market of the orderbook
    * @private
    */
@@ -85,7 +85,16 @@ export class Orderbook implements GetL2 {
    * @param uiAmount Optional, whether to return the amounts in uiAmount
    * @returns Returns an L2 orderbook
    */
-  getL2(depth: number, asks: boolean, uiAmount = false) {
+  getL2<T extends boolean>(
+    depth: number,
+    asks: boolean,
+    uiAmount: T
+  ): (T extends true ? UiPrice : aaob.Price)[];
+  getL2(
+    depth: number,
+    asks: boolean,
+    uiAmount = false
+  ): (UiPrice | aaob.Price)[] {
     const convert = (p: aaob.Price) => {
       return {
         price: computeUiPrice(this._market, p.price),
@@ -96,26 +105,17 @@ export class Orderbook implements GetL2 {
       };
     };
     if (uiAmount) {
-      return (
-        asks
-          ? this._slabAsks.getL2DepthJS(depth, asks).map(convert)
-          : this._slabBids.getL2DepthJS(depth, asks).map(convert)
-      ) as any;
+      return asks
+        ? this._slabAsks.getL2DepthJS(depth, asks).map(convert)
+        : this._slabBids.getL2DepthJS(depth, asks).map(convert);
     }
-    return (
-      asks
-        ? this._slabAsks.getL2DepthJS(depth, asks)
-        : this._slabBids.getL2DepthJS(depth, asks)
-    ) as any;
+    return asks
+      ? this._slabAsks.getL2DepthJS(depth, asks)
+      : this._slabBids.getL2DepthJS(depth, asks);
   }
 }
 
-export interface GetL2 {
-  getL2: {
-    (depth: number, asks: boolean, uiAmount: false): aaob.Price[];
-    (depth: number, asks: boolean, uiAmount: true): {
-      price: number;
-      size: number;
-    };
-  };
+export interface UiPrice {
+  price: number;
+  size: number;
 }
