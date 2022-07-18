@@ -3,7 +3,6 @@ import BN from "bn.js";
 import { DEX_ID } from "./ids";
 import { MarketState, Order, UserAccount } from "./state";
 import { closeAccount, initializeAccount } from "./bindings";
-import { BuiltInParserName } from "prettier";
 
 /**
  * Open Orders class
@@ -157,9 +156,13 @@ export class OpenOrders {
     connection: Connection,
     market: PublicKey,
     owner: PublicKey,
-    marketState: MarketState,
+    marketState?: MarketState,
     programId = DEX_ID
   ) {
+    if (!marketState) {
+      marketState = await MarketState.retrieve(connection, market);
+    }
+
     const [address] = await PublicKey.findProgramAddress(
       [market.toBuffer(), owner.toBuffer()],
       programId

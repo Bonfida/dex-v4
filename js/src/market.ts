@@ -5,16 +5,21 @@ import {
   Keypair,
   Transaction,
   TransactionSignature,
-  TransactionInstruction,
+  TransactionInstruction
 } from "@solana/web3.js";
-import { getMintDecimals, getTokenBalance, divideBnToNumber } from "./utils";
+import {
+  getMintDecimals,
+  getTokenBalance,
+  divideBnToNumber,
+  computeUiPrice
+} from "./utils";
 import { CALLBACK_INFO_LEN, MarketState, SelfTradeBehavior } from "./state";
 import { DEX_ID, SRM_MINT, MSRM_MINT } from "./ids";
 import {
   EventQueue,
   getPriceFromKey,
   MarketState as AaobMarketState,
-  Slab,
+  Slab
 } from "@bonfida/aaob";
 import { getFeeTier } from "./fees";
 import { OpenOrders } from "./openOrders";
@@ -99,7 +104,9 @@ export class Market {
   private _commitment: Commitment;
 
   private _tickSize: number;
+  private _tickSizeBN: BN;
   private _minOrderSize: number;
+  private _minOrderSizeBN: BN;
   private _admin: PublicKey;
   private _baseCurrencyMultiplier: BN;
   private _quoteCurrencyMultiplier: BN;
@@ -131,11 +138,15 @@ export class Market {
     this._orderbookAddress = orderbookAddress;
     this._baseSplTokenMultiplier = new BN(10).pow(new BN(baseDecimals));
     this._quoteSplTokenMultiplier = new BN(10).pow(new BN(quoteDecimals));
-    this._tickSize = orderbookState.tickSize.toNumber();
-    this._minOrderSize = marketState.minBaseOrderSize.toNumber();
-    this._admin = marketState.admin;
     this._baseCurrencyMultiplier = marketState.baseCurrencyMultiplier;
     this._quoteCurrencyMultiplier = marketState.quoteCurrencyMultiplier;
+    this._tickSize = computeUiPrice(this, orderbookState.tickSize);
+    this._tickSizeBN = orderbookState.tickSize;
+    this._minOrderSize = this.baseSplSizeToNumber(
+      orderbookState.minBaseOrderSize
+    );
+    this._minOrderSizeBN = marketState.minBaseOrderSize;
+    this._admin = marketState.admin;
   }
 
   /**
@@ -162,7 +173,7 @@ export class Market {
 
     const [baseDecimals, quoteDecimals] = await Promise.all([
       getMintDecimals(connection, marketState.baseMint),
-      getMintDecimals(connection, marketState.quoteMint),
+      getMintDecimals(connection, marketState.quoteMint)
     ]);
 
     return new Market(
@@ -255,9 +266,19 @@ export class Market {
     return this._tickSize;
   }
 
+  /** Returns the big number tick size of the market */
+  get tickSizeBN(): BN {
+    return this._tickSizeBN;
+  }
+
   /** Returns the min order size of the market */
   get minOrderSize(): number {
     return this._minOrderSize;
+  }
+
+  /** Returns the big number min order size of the market */
+  get minOrderSizeBN(): BN {
+    return this._minOrderSizeBN;
   }
 
   get marketAdmin(): PublicKey {
@@ -471,14 +492,14 @@ export class Market {
         pubkey: srmAddress,
         mint: SRM_MINT,
         balance: srmBalance,
-        feeTier: getFeeTier(0, srmBalance),
+        feeTier: getFeeTier(0, srmBalance)
       },
       {
         pubkey: msrmAddress,
         mint: MSRM_MINT,
         balance: msrmBalance,
-        feeTier: getFeeTier(msrmBalance, 0),
-      },
+        feeTier: getFeeTier(msrmBalance, 0)
+      }
     ];
   }
 
@@ -495,7 +516,7 @@ export class Market {
     signers: Array<Keypair>
   ): Promise<TransactionSignature> {
     const signature = await connection.sendTransaction(transaction, signers, {
-      skipPreflight: this._skipPreflight,
+      skipPreflight: this._skipPreflight
     });
     const { value } = await connection.confirmTransaction(
       signature,
@@ -694,7 +715,7 @@ export class Market {
           feeTier: o.callbackInfo.slice(32)[0],
           size: o.leafNode.baseQuantity.toNumber(),
           openOrdersAddress: new PublicKey(o.callbackInfo.slice(0, 32)),
-          side: side,
+          side: side
         };
       });
   }
@@ -727,7 +748,7 @@ export class Market {
           .mul(this.baseCurrencyMultiplier)
           .div(this.quoteCurrencyMultiplier),
         priceRaw: e.price,
-        size: e.size.mul(this.baseCurrencyMultiplier),
+        size: e.size.mul(this.baseCurrencyMultiplier)
       };
     });
   }
