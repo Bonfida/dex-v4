@@ -96,11 +96,7 @@ export const swapTest = async (
     [marketKey.toBuffer(), Alice.publicKey.toBuffer()],
     DEX_ID
   );
-  let aliceUserAccount = await UserAccount.retrieve(
-    connection,
-    aliceUa,
-    marketState
-  );
+  let aliceUserAccount = await UserAccount.retrieve(connection, aliceUa);
   expect(aliceUserAccount.baseTokenFree.toNumber()).toBe(0);
   expect(aliceUserAccount.baseTokenLocked.toNumber()).toBe(swapSize);
   expect(aliceUserAccount.quoteTokenFree.toNumber()).toBe(0);
@@ -201,11 +197,7 @@ export const swapTest = async (
   /**
    * Verify Alice user account
    */
-  aliceUserAccount = await UserAccount.retrieve(
-    connection,
-    aliceUa,
-    marketState
-  );
+  aliceUserAccount = await UserAccount.retrieve(connection, aliceUa);
   expect(aliceUserAccount.baseTokenFree.toNumber()).toBe(0);
   expect(aliceUserAccount.baseTokenLocked.toNumber()).toBe(0);
   expect(aliceUserAccount.quoteTokenFree.toNumber()).toBe(

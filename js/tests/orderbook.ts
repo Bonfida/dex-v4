@@ -169,11 +169,7 @@ export const orderbookTest = async (
     [marketKey.toBuffer(), Bob.publicKey.toBuffer()],
     DEX_ID
   );
-  let bobUserAccount = await UserAccount.retrieve(
-    connection,
-    bobUa,
-    marketState
-  );
+  let bobUserAccount = await UserAccount.retrieve(connection, bobUa);
   expect(bobUserAccount.tag).toBe(AccountTag.UserAccount);
   expect(bobUserAccount.market.toBase58()).toBe(marketKey.toBase58());
   expect(bobUserAccount.owner.toBase58()).toBe(Bob.publicKey.toBase58());
@@ -233,7 +229,7 @@ export const orderbookTest = async (
    * Check user account
    */
 
-  bobUserAccount = await UserAccount.retrieve(connection, bobUa, marketState);
+  bobUserAccount = await UserAccount.retrieve(connection, bobUa);
   expect(bobUserAccount.tag).toBe(AccountTag.UserAccount);
   expect(bobUserAccount.market.toBase58()).toBe(marketKey.toBase58());
   expect(bobUserAccount.owner.toBase58()).toBe(Bob.publicKey.toBase58());
@@ -256,7 +252,7 @@ export const orderbookTest = async (
   ]);
   console.log(`Settled ${tx}`);
 
-  bobUserAccount = await UserAccount.retrieve(connection, bobUa, marketState);
+  bobUserAccount = await UserAccount.retrieve(connection, bobUa);
   expect(bobUserAccount.tag).toBe(AccountTag.UserAccount);
   expect(bobUserAccount.market.toBase58()).toBe(marketKey.toBase58());
   expect(bobUserAccount.owner.toBase58()).toBe(Bob.publicKey.toBase58());

@@ -80,11 +80,7 @@ export const simpleTrade = async (
     [marketKey.toBuffer(), Alice.publicKey.toBuffer()],
     DEX_ID
   );
-  let aliceUserAccount = await UserAccount.retrieve(
-    connection,
-    aliceUa,
-    marketState
-  );
+  let aliceUserAccount = await UserAccount.retrieve(connection, aliceUa);
 
   expect(aliceUserAccount.tag).toBe(AccountTag.UserAccount);
   expect(aliceUserAccount.market.toBase58()).toBe(marketKey.toBase58());
@@ -104,11 +100,7 @@ export const simpleTrade = async (
     [marketKey.toBuffer(), Bob.publicKey.toBuffer()],
     DEX_ID
   );
-  let bobUserAccount = await UserAccount.retrieve(
-    connection,
-    bobUa,
-    marketState
-  );
+  let bobUserAccount = await UserAccount.retrieve(connection, bobUa);
   expect(bobUserAccount.tag).toBe(AccountTag.UserAccount);
   expect(bobUserAccount.market.toBase58()).toBe(marketKey.toBase58());
   expect(bobUserAccount.owner.toBase58()).toBe(Bob.publicKey.toBase58());
@@ -209,11 +201,7 @@ export const simpleTrade = async (
    * Check user accounts
    */
 
-  aliceUserAccount = await UserAccount.retrieve(
-    connection,
-    aliceUa,
-    marketState
-  );
+  aliceUserAccount = await UserAccount.retrieve(connection, aliceUa);
 
   expect(aliceUserAccount.baseTokenFree.toNumber()).toBe(0);
   expect(aliceUserAccount.baseTokenLocked.toNumber()).toBe(0);
@@ -241,7 +229,7 @@ export const simpleTrade = async (
   expect(aliceUserAccount.accumulatedTakerBaseVolume.toNumber()).toBe(bobSize);
   expect(aliceUserAccount.orders.length).toBe(1);
 
-  bobUserAccount = await UserAccount.retrieve(connection, bobUa, marketState);
+  bobUserAccount = await UserAccount.retrieve(connection, bobUa);
   expect(bobUserAccount.baseTokenFree.toNumber()).toBe(0);
   expect(bobUserAccount.baseTokenLocked.toNumber()).toBe(0);
   expect(bobUserAccount.quoteTokenFree.toNumber()).toBe(0);
@@ -330,11 +318,7 @@ export const simpleTrade = async (
   ]);
   console.log(`Canceled order ${tx}`);
 
-  aliceUserAccount = await UserAccount.retrieve(
-    connection,
-    aliceUa,
-    marketState
-  );
+  aliceUserAccount = await UserAccount.retrieve(connection, aliceUa);
 
   expect(aliceUserAccount.baseTokenFree.toNumber()).toBe(0);
   expect(aliceUserAccount.baseTokenLocked.toNumber()).toBe(0);
@@ -371,11 +355,7 @@ export const simpleTrade = async (
   ]);
   console.log(`Settle order ${tx}`);
 
-  aliceUserAccount = await UserAccount.retrieve(
-    connection,
-    aliceUa,
-    marketState
-  );
+  aliceUserAccount = await UserAccount.retrieve(connection, aliceUa);
 
   expect(aliceUserAccount.baseTokenFree.toNumber()).toBe(0);
   expect(aliceUserAccount.baseTokenLocked.toNumber()).toBe(0);

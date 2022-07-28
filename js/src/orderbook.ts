@@ -101,7 +101,7 @@ export class Orderbook {
         size: divideBnToNumber(
           p.size,
           new BN(10).pow(new BN(this.market.baseDecimals))
-        )
+        ),
       };
     };
     if (uiAmount) {
