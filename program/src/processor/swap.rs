@@ -167,7 +167,7 @@ pub(crate) fn process(
 ) -> ProgramResult {
     let Params {
         side,
-        mut base_qty,
+        base_qty,
         mut quote_qty,
         match_limit,
         has_discount_token_account,
@@ -177,11 +177,10 @@ pub(crate) fn process(
 
     let market_state = DexState::get(accounts.market)?;
 
-    base_qty /= market_state.base_currency_multiplier;
-    quote_qty /= market_state.quote_currency_multiplier;
+    let base_qty_scaled = base_qty / market_state.base_currency_multiplier;
 
     // Check the order size
-    if base_qty < market_state.min_base_order_size {
+    if base_qty < &market_state.min_base_order_size {
         msg!("The base order size is too small.");
         return Err(ProgramError::InvalidArgument);
     }
@@ -200,6 +199,7 @@ pub(crate) fn process(
         // We make sure to leave enough quote quantity to pay for taker fees in the worst case
         quote_qty = fee_tier.remove_taker_fee(quote_qty);
     }
+    let quote_qty_scaled = quote_qty / market_state.quote_currency_multiplier;
 
     let mut orderbook_guard = accounts.orderbook.data.borrow_mut();
     let orderbook = agnostic_orderbook::state::market_state::MarketState::from_buffer(
@@ -209,14 +209,19 @@ pub(crate) fn process(
     let tick_size = orderbook.tick_size;
     drop(orderbook_guard);
 
-    let (max_base_qty, max_quote_qty, limit_price) = match FromPrimitive::from_u8(*side).unwrap() {
-        Side::Bid => (u64::MAX, quote_qty, u64::MAX - (u64::MAX % tick_size)),
-        Side::Ask => (base_qty, u64::MAX, 0),
-    };
+    let (max_base_qty_scaled, max_quote_qty_scaled, limit_price) =
+        match FromPrimitive::from_u8(*side).unwrap() {
+            Side::Bid => (
+                u64::MAX,
+                quote_qty_scaled,
+                u64::MAX - (u64::MAX % tick_size),
+            ),
+            Side::Ask => (base_qty_scaled, u64::MAX, 0),
+        };
 
     let invoke_params = agnostic_orderbook::instruction::new_order::Params {
-        max_base_qty,
-        max_quote_qty,
+        max_base_qty: max_base_qty_scaled,
+        max_quote_qty: max_quote_qty_scaled,
         limit_price,
         side: FromPrimitive::from_u8(*side).unwrap(),
         match_limit: *match_limit,
@@ -245,6 +250,15 @@ pub(crate) fn process(
         Ok(s) => s,
     };
 
+    order_summary.total_base_qty = order_summary
+        .total_base_qty
+        .checked_mul(market_state.base_currency_multiplier)
+        .unwrap();
+    order_summary.total_quote_qty = order_summary
+        .total_quote_qty
+        .checked_mul(market_state.quote_currency_multiplier)
+        .unwrap();
+
     let referral_fee = fee_tier.referral_fee(order_summary.total_quote_qty);
     let royalties_fees = order_summary
         .total_quote_qty
@@ -259,18 +273,12 @@ pub(crate) fn process(
                 order_summary.total_quote_qty +=
                     fee_tier.taker_fee(order_summary.total_quote_qty) + royalties_fees;
 
-                let is_valid = order_summary.total_base_qty >= base_qty;
+                let is_valid = &order_summary.total_base_qty >= base_qty;
 
                 (
                     is_valid,
-                    order_summary
-                        .total_base_qty
-                        .checked_mul(market_state.base_currency_multiplier)
-                        .unwrap(),
-                    order_summary
-                        .total_quote_qty
-                        .checked_mul(market_state.quote_currency_multiplier)
-                        .unwrap(),
+                    order_summary.total_base_qty,
+                    order_summary.total_quote_qty,
                 )
             }
             Side::Ask => {
@@ -280,14 +288,10 @@ pub(crate) fn process(
 
                 (
                     is_valid,
-                    order_summary
-                        .total_base_qty
-                        .checked_mul(market_state.base_currency_multiplier)
-                        .unwrap(),
+                    order_summary.total_base_qty,
                     order_summary
                         .total_quote_qty
                         .checked_sub(taker_fee + royalties_fees)
-                        .and_then(|n| n.checked_mul(market_state.quote_currency_multiplier))
                         .unwrap(),
                 )
             }

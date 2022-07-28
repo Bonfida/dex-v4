@@ -218,7 +218,7 @@ pub(crate) fn process(
     let Params {
         side,
         limit_price,
-        mut max_base_qty,
+        max_base_qty,
         mut max_quote_qty,
         order_type,
         self_trade_behavior,
@@ -235,11 +235,10 @@ pub(crate) fn process(
     let mut user_account_data = accounts.user.data.borrow_mut();
     let mut user_account = accounts.load_user_account(&mut user_account_data)?;
 
-    max_base_qty /= market_state.base_currency_multiplier;
-    max_quote_qty /= market_state.quote_currency_multiplier;
+    let max_base_qty_scaled = max_base_qty / market_state.base_currency_multiplier;
 
     // Check the order size
-    if max_base_qty < market_state.min_base_order_size {
+    if max_base_qty < &market_state.min_base_order_size {
         msg!("The base order size is too small.");
         return Err(ProgramError::InvalidArgument);
     }
@@ -263,10 +262,11 @@ pub(crate) fn process(
         // We make sure to leave enough quote quantity to pay for taker fees in the worst case
         max_quote_qty = fee_tier.remove_taker_fee(max_quote_qty);
     }
+    let max_quote_qty_scaled = max_quote_qty / market_state.quote_currency_multiplier;
 
     let invoke_params = agnostic_orderbook::instruction::new_order::Params {
-        max_base_qty,
-        max_quote_qty,
+        max_base_qty: max_base_qty_scaled,
+        max_quote_qty: max_quote_qty_scaled,
         limit_price: *limit_price,
         side: FromPrimitive::from_u8(*side).unwrap(),
         match_limit: *match_limit,
@@ -294,6 +294,15 @@ pub(crate) fn process(
         Ok(s) => s,
     };
 
+    order_summary.total_base_qty = order_summary
+        .total_base_qty
+        .checked_mul(market_state.base_currency_multiplier)
+        .unwrap();
+    order_summary.total_quote_qty = order_summary
+        .total_quote_qty
+        .checked_mul(market_state.quote_currency_multiplier)
+        .unwrap();
+
     let (qty_to_transfer, transfer_destination, referral_fee) =
         match FromPrimitive::from_u8(*side).unwrap() {
             Side::Bid => {
@@ -319,12 +328,7 @@ pub(crate) fn process(
                 user_account.header.base_token_free +=
                     order_summary.total_base_qty - order_summary.total_base_qty_posted;
 
-                (
-                    q.checked_mul(market_state.quote_currency_multiplier)
-                        .unwrap(),
-                    accounts.quote_vault,
-                    referral_fee,
-                )
+                (q, accounts.quote_vault, referral_fee)
             }
             Side::Ask => {
                 let q = order_summary
@@ -347,12 +351,7 @@ pub(crate) fn process(
                 user_account.header.quote_token_free += taken_quote_qty
                     .checked_sub(taker_fee + royalties_fees)
                     .unwrap();
-                (
-                    q.checked_mul(market_state.base_currency_multiplier)
-                        .unwrap(),
-                    accounts.base_vault,
-                    referral_fee,
-                )
+                (q, accounts.base_vault, referral_fee)
             }
         };
 
@@ -362,7 +361,7 @@ pub(crate) fn process(
             if *side == Side::Bid as u8 {
                 order_summary.total_quote_qty < max_quote_qty
             } else {
-                order_summary.total_base_qty < max_base_qty
+                &order_summary.total_base_qty < max_base_qty
             }
         }
         OrderType::PostOnly => order_summary.posted_order_id.is_none(),

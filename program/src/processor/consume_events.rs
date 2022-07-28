@@ -168,11 +168,17 @@ fn consume_event(
             let FillEvent {
                 tag: _,
                 taker_side,
-                quote_size,
+                mut quote_size,
                 maker_order_id: _,
-                base_size,
+                mut base_size,
                 ..
             } = event;
+            quote_size = quote_size
+                .checked_mul(market_state.quote_currency_multiplier)
+                .unwrap();
+            base_size = base_size
+                .checked_mul(market_state.base_currency_multiplier)
+                .unwrap();
             let maker_account_info = &accounts[accounts
                 .binary_search_by_key(&maker_callback_info.user_account, |k| *k.key)
                 .map_err(|_| DexError::MissingUserAccount)?];
@@ -180,12 +186,12 @@ fn consume_event(
             let mut maker_account_data = maker_account_info.data.borrow_mut();
             let mut maker_account = UserAccount::from_buffer(&mut maker_account_data).unwrap();
             let (maker_fee_tier, _) = FeeTier::from_u8(maker_callback_info.fee_tier);
-            let taker_fee = taker_fee_tier.taker_fee(*quote_size);
-            let maker_rebate = maker_fee_tier.maker_rebate(*quote_size);
+            let taker_fee = taker_fee_tier.taker_fee(quote_size);
+            let maker_rebate = maker_fee_tier.maker_rebate(quote_size);
             let royalties_fee =
-                market_state.royalties_bps.checked_mul(*quote_size).unwrap() / 10_000;
+                market_state.royalties_bps.checked_mul(quote_size).unwrap() / 10_000;
             let referral_fee = if is_referred {
-                taker_fee_tier.referral_fee(*quote_size)
+                taker_fee_tier.referral_fee(quote_size)
             } else {
                 0
             };
@@ -215,19 +221,19 @@ fn consume_event(
                     maker_account.header.base_token_locked = maker_account
                         .header
                         .base_token_locked
-                        .checked_sub(*base_size)
+                        .checked_sub(base_size)
                         .unwrap();
                 }
                 Side::Ask => {
                     maker_account.header.base_token_free = maker_account
                         .header
                         .base_token_free
-                        .checked_add(*base_size)
+                        .checked_add(base_size)
                         .unwrap();
                     maker_account.header.quote_token_locked = maker_account
                         .header
                         .quote_token_locked
-                        .checked_sub(*quote_size)
+                        .checked_sub(quote_size)
                         .unwrap();
                     maker_account
                         .header
@@ -242,16 +248,16 @@ fn consume_event(
             maker_account.header.accumulated_maker_quote_volume = maker_account
                 .header
                 .accumulated_maker_quote_volume
-                .checked_add(*quote_size)
+                .checked_add(quote_size)
                 .unwrap();
             maker_account.header.accumulated_maker_base_volume = maker_account
                 .header
                 .accumulated_maker_base_volume
-                .checked_add(*base_size)
+                .checked_add(base_size)
                 .unwrap();
 
-            market_state.quote_volume = market_state.quote_volume.checked_add(*quote_size).unwrap();
-            market_state.base_volume = market_state.base_volume.checked_add(*base_size).unwrap();
+            market_state.quote_volume = market_state.quote_volume.checked_add(quote_size).unwrap();
+            market_state.base_volume = market_state.base_volume.checked_add(base_size).unwrap();
         }
         EventRef::Out(OutEventRef {
             event,
@@ -260,7 +266,7 @@ fn consume_event(
             let OutEvent {
                 side,
                 order_id,
-                base_size,
+                mut base_size,
                 ..
             } = event;
             let user_account_info = &accounts[accounts
@@ -269,23 +275,27 @@ fn consume_event(
             let mut user_account_data = user_account_info.data.borrow_mut();
             let mut user_account = UserAccount::from_buffer(&mut user_account_data).unwrap();
 
-            if *base_size != 0 {
+            base_size = base_size
+                .checked_mul(market_state.base_currency_multiplier)
+                .unwrap();
+
+            if base_size != 0 {
                 match Side::from_u8(*side).unwrap() {
                     Side::Ask => {
                         user_account.header.base_token_free = user_account
                             .header
                             .base_token_free
-                            .checked_add(*base_size)
+                            .checked_add(base_size)
                             .unwrap();
                         user_account.header.base_token_locked = user_account
                             .header
                             .base_token_locked
-                            .checked_sub(*base_size)
+                            .checked_sub(base_size)
                             .unwrap();
                     }
                     Side::Bid => {
                         let price = (order_id >> 64) as u64;
-                        let qty_to_transfer = fp32_mul(*base_size, price);
+                        let qty_to_transfer = fp32_mul(base_size, price);
                         user_account.header.quote_token_free = user_account
                             .header
                             .quote_token_free

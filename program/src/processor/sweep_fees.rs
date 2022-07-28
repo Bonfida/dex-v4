@@ -89,7 +89,7 @@ pub(crate) fn process(program_id: &Pubkey, accounts: &[AccountInfo]) -> ProgramR
     check_accounts(program_id, &market_state, &accounts)?;
     check_metadata_account(accounts.token_metadata, &market_state.base_mint)?;
 
-    if market_state.accumulated_fees == 0 {
+    if market_state.accumulated_fees == 0 && market_state.accumulated_royalties == 0 {
         msg!("There are no fees to be extracted from the market");
         return Err(DexError::NoOp.into());
     }
@@ -137,7 +137,7 @@ pub(crate) fn process(program_id: &Pubkey, accounts: &[AccountInfo]) -> ProgramR
                     ]],
                 )?;
             }
-            
+
             if share_sum != 100 {
                 msg!("Invalid metadata shares - received {}", share_sum);
                 return Err(ProgramError::InvalidAccountData);
