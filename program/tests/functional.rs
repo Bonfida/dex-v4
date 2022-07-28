@@ -13,6 +13,10 @@ use dex_v4::state::UserAccountHeader;
 use dex_v4::state::DEX_STATE_LEN;
 use dex_v4::state::USER_ACCOUNT_HEADER_LEN;
 use mpl_token_metadata::pda::find_metadata_account;
+use solana_program::account_info::AccountInfo;
+use solana_program::entrypoint::ProgramResult;
+use solana_program::msg;
+use solana_program::program_error::PrintProgramError;
 use solana_program::pubkey::Pubkey;
 use solana_program::system_instruction::create_account;
 use solana_program::system_program;
@@ -148,7 +152,7 @@ async fn test_dex() {
         },
         create_market::Params {
             signer_nonce: signer_nonce as u64,
-            min_base_order_size: 10,
+            min_base_order_size: 10_000,
             tick_size: 1,
             base_currency_multiplier: 1_000,
             quote_currency_multiplier: 1,

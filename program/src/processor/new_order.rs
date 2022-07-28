@@ -298,6 +298,10 @@ pub(crate) fn process(
         .total_base_qty
         .checked_mul(market_state.base_currency_multiplier)
         .unwrap();
+    order_summary.total_base_qty_posted = order_summary
+        .total_base_qty_posted
+        .checked_mul(market_state.base_currency_multiplier)
+        .unwrap();
     order_summary.total_quote_qty = order_summary
         .total_quote_qty
         .checked_mul(market_state.quote_currency_multiplier)
