@@ -151,11 +151,10 @@ pub(crate) fn process(
         asks: accounts.asks,
     };
 
-    let order_summary = match agnostic_orderbook::instruction::cancel_order::process::<CallBackInfo>(
-        program_id,
-        invoke_accounts,
-        invoke_params,
-    ) {
+    let mut order_summary = match agnostic_orderbook::instruction::cancel_order::process::<
+        CallBackInfo,
+    >(program_id, invoke_accounts, invoke_params)
+    {
         Err(error) => {
             error.print::<AoError>();
             return Err(DexError::AOBError.into());
@@ -163,6 +162,15 @@ pub(crate) fn process(
         Ok(s) => s,
     };
     let side = get_side_from_order_id(order_id);
+
+    order_summary.total_base_qty = order_summary
+        .total_base_qty
+        .checked_mul(market_state.base_currency_multiplier)
+        .unwrap();
+    order_summary.total_quote_qty = order_summary
+        .total_quote_qty
+        .checked_mul(market_state.quote_currency_multiplier)
+        .unwrap();
 
     match side {
         Side::Bid => {

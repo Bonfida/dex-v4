@@ -176,7 +176,7 @@ pub(crate) fn process(
         base_volume: 0,
         quote_volume: 0,
         accumulated_fees: 0,
-        min_base_order_size: *min_base_order_size / *base_currency_multiplier,
+        min_base_order_size: *min_base_order_size,
         fee_type: MarketFeeType::Default as u8,
         _padding: [0; 6],
         royalties_bps: royalties_bps as u64,
@@ -186,7 +186,7 @@ pub(crate) fn process(
     };
 
     let invoke_params = agnostic_orderbook::instruction::create_market::Params {
-        min_base_order_size: *min_base_order_size,
+        min_base_order_size: *min_base_order_size / *base_currency_multiplier,
         tick_size: *tick_size,
     };
     let invoke_accounts = agnostic_orderbook::instruction::create_market::Accounts {
