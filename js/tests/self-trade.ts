@@ -222,11 +222,7 @@ export const selfTradeTest = async (
    */
 
   // Alice
-  let aliceUserAccount = await UserAccount.retrieve(
-    connection,
-    aliceUa,
-    marketState
-  );
+  let aliceUserAccount = await UserAccount.retrieve(connection, aliceUa);
   const quoteTokenFree = new BN(bidSizes[0])
     .mul(executionPrice1)
     .add(new BN(bidSizes[2]).mul(executionPrice3))
@@ -265,11 +261,7 @@ export const selfTradeTest = async (
 
   // Bob
 
-  let bobUserAccount = await UserAccount.retrieve(
-    connection,
-    bobUa,
-    marketState
-  );
+  let bobUserAccount = await UserAccount.retrieve(connection, bobUa);
 
   expect(bobUserAccount.tag).toBe(AccountTag.UserAccount);
   expect(bobUserAccount.market.toBase58()).toBe(marketKey.toBase58());
@@ -357,7 +349,7 @@ export const selfTradeTest = async (
    */
 
   // Bob
-  bobUserAccount = await UserAccount.retrieve(connection, bobUa, marketState);
+  bobUserAccount = await UserAccount.retrieve(connection, bobUa);
   const takerVolume = new BN(2 * bidSizes[1])
     .mul(computeFp32Price(market, minPrice / 2))
     .shrn(32)

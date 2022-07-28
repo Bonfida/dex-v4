@@ -3,38 +3,38 @@ export const FEES = {
   6: {
     fees: { taker: 0.0003, maker: 0 },
     srm: Infinity,
-    msrm: 1,
+    msrm: 1
   },
   5: {
     fees: { taker: 0.00032, maker: 0 },
     srm: 1_000_000,
-    msrm: Infinity,
+    msrm: Infinity
   },
   4: {
     fees: { taker: 0.00034, maker: 0 },
     srm: 100_000,
-    msrm: Infinity,
+    msrm: Infinity
   },
   3: {
     fees: { taker: 0.00036, maker: 0 },
     srm: 10_000,
-    msrm: Infinity,
+    msrm: Infinity
   },
   2: {
     fees: { taker: 0.00038, maker: 0 },
     srm: 1_000,
-    msrm: Infinity,
+    msrm: Infinity
   },
   1: {
     fees: { taker: 0.00039, maker: 0 },
     srm: 100,
-    msrm: Infinity,
+    msrm: Infinity
   },
   0: {
     fees: { taker: 0.0004, maker: 0 },
     srm: 0,
-    msrm: Infinity,
-  },
+    msrm: Infinity
+  }
 };
 
 /**
