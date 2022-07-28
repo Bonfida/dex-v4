@@ -177,8 +177,6 @@ pub(crate) fn process(
 
     let market_state = DexState::get(accounts.market)?;
 
-    let base_qty_scaled = base_qty / market_state.base_currency_multiplier;
-
     // Check the order size
     if base_qty < &market_state.min_base_order_size {
         msg!("The base order size is too small.");
@@ -199,7 +197,6 @@ pub(crate) fn process(
         // We make sure to leave enough quote quantity to pay for taker fees in the worst case
         quote_qty = fee_tier.remove_taker_fee(quote_qty);
     }
-    let quote_qty_scaled = quote_qty / market_state.quote_currency_multiplier;
 
     let mut orderbook_guard = accounts.orderbook.data.borrow_mut();
     let orderbook = agnostic_orderbook::state::market_state::MarketState::from_buffer(
@@ -213,10 +210,10 @@ pub(crate) fn process(
         match FromPrimitive::from_u8(*side).unwrap() {
             Side::Bid => (
                 u64::MAX,
-                quote_qty_scaled,
+                market_state.scale_quote_amount(quote_qty),
                 u64::MAX - (u64::MAX % tick_size),
             ),
-            Side::Ask => (base_qty_scaled, u64::MAX, 0),
+            Side::Ask => (market_state.scale_base_amount(*base_qty), u64::MAX, 0),
         };
 
     let invoke_params = agnostic_orderbook::instruction::new_order::Params {
@@ -250,17 +247,8 @@ pub(crate) fn process(
         Ok(s) => s,
     };
 
-    order_summary.total_base_qty = order_summary
-        .total_base_qty
-        .checked_mul(market_state.base_currency_multiplier)
-        .unwrap();
-    order_summary.total_base_qty_posted = order_summary
-        .total_base_qty_posted
-        .checked_mul(market_state.base_currency_multiplier)
-        .unwrap();
-    order_summary.total_quote_qty = order_summary
-        .total_quote_qty
-        .checked_mul(market_state.quote_currency_multiplier)
+    market_state
+        .unscale_order_summary(&mut order_summary)
         .unwrap();
 
     let referral_fee = fee_tier.referral_fee(order_summary.total_quote_qty);

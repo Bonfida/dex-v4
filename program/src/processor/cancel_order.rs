@@ -163,17 +163,8 @@ pub(crate) fn process(
     };
     let side = get_side_from_order_id(order_id);
 
-    order_summary.total_base_qty = order_summary
-        .total_base_qty
-        .checked_mul(market_state.base_currency_multiplier)
-        .unwrap();
-    order_summary.total_base_qty_posted = order_summary
-        .total_base_qty_posted
-        .checked_mul(market_state.base_currency_multiplier)
-        .unwrap();
-    order_summary.total_quote_qty = order_summary
-        .total_quote_qty
-        .checked_mul(market_state.quote_currency_multiplier)
+    market_state
+        .unscale_order_summary(&mut order_summary)
         .unwrap();
 
     match side {
