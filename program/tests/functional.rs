@@ -533,7 +533,7 @@ async fn test_dex() {
         },
         swap::Params {
             side: agnostic_orderbook::state::Side::Bid as u8,
-            base_qty: 10,
+            base_qty: 10_000,
             quote_qty: 100000,
             match_limit: 10,
             has_discount_token_account: 0,

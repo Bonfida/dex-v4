@@ -1,4 +1,4 @@
-use agnostic_orderbook::state::orderbook::CallbackInfo;
+use agnostic_orderbook::state::{orderbook::CallbackInfo, OrderSummary};
 use borsh::{BorshDeserialize, BorshSerialize};
 use bytemuck::{try_cast_slice_mut, try_from_bytes_mut, Pod, Zeroable};
 use num_derive::{FromPrimitive, ToPrimitive};
@@ -108,6 +108,40 @@ impl DexState {
             try_from_bytes_mut::<Self>(&mut s[0..DEX_STATE_LEN]).unwrap()
         });
         a
+    }
+
+    pub(crate) fn scale_quote_amount(&self, raw_quote_amount: u64) -> u64 {
+        raw_quote_amount / self.quote_currency_multiplier
+    }
+
+    pub(crate) fn scale_base_amount(&self, raw_base_amount: u64) -> u64 {
+        raw_base_amount / self.base_currency_multiplier
+    }
+
+    pub(crate) fn unscale_quote_amount(&self, scaled_quote_amount: u64) -> Option<u64> {
+        scaled_quote_amount.checked_mul(self.quote_currency_multiplier)
+    }
+
+    pub(crate) fn unscale_base_amount(&self, scaled_base_amount: u64) -> Option<u64> {
+        scaled_base_amount.checked_mul(self.base_currency_multiplier)
+    }
+
+    pub(crate) fn unscale_order_summary(&self, order_summary: &mut OrderSummary) -> Option<()> {
+        order_summary.total_base_qty = self.unscale_base_amount(order_summary.total_base_qty)?;
+        order_summary.total_base_qty_posted =
+            self.unscale_base_amount(order_summary.total_base_qty_posted)?;
+        order_summary.total_quote_qty = self.unscale_quote_amount(order_summary.total_quote_qty)?;
+        Some(())
+    }
+
+    pub(crate) fn get_quote_from_base(
+        &self,
+        raw_base_amount: u64,
+        scaled_price_fp32: u64,
+    ) -> Option<u64> {
+        fp32_mul(raw_base_amount, scaled_price_fp32)
+            .and_then(|n| n.checked_mul(self.quote_currency_multiplier))
+            .and_then(|n| n.checked_div(self.base_currency_multiplier))
     }
 }
 
