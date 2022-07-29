@@ -151,10 +151,7 @@ pub(crate) fn process(program_id: &Pubkey, accounts: &[AccountInfo]) -> ProgramR
         accounts.destination_token_account.key,
         accounts.market_signer.key,
         &[],
-        market_state
-            .accumulated_fees
-            .checked_mul(market_state.quote_currency_multiplier)
-            .unwrap(),
+        market_state.accumulated_fees,
     )?;
 
     invoke_signed(

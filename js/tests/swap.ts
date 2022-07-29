@@ -144,10 +144,12 @@ export const swapTest = async (
 
   const executionPrice = computeFp32Price(market, swapPrice);
   const takerFees = computeTakerFee(
-    new BN(swapSize).mul(executionPrice).shrn(32)
-  )
-    .mul(market.quoteCurrencyMultiplier)
-    .div(market.baseCurrencyMultiplier);
+    new BN(swapSize)
+      .mul(executionPrice)
+      .shrn(32)
+      .mul(market.quoteCurrencyMultiplier)
+      .div(market.baseCurrencyMultiplier)
+  );
 
   /**
    * Check market state

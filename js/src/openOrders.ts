@@ -168,11 +168,7 @@ export class OpenOrders {
       programId
     );
 
-    const userAccount = await UserAccount.retrieve(
-      connection,
-      address,
-      marketState
-    );
+    const userAccount = await UserAccount.retrieve(connection, address);
 
     return new OpenOrders(
       address,

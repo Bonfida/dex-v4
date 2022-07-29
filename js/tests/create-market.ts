@@ -24,6 +24,7 @@ export const createMarketTest = async (
     6,
     6
   );
+  console.log("Created context");
 
   let marketObj = await MarketState.retrieve(connection, marketKey);
   const now = new Date().getTime() / 1_000;
