@@ -72,21 +72,21 @@ jest.setTimeout(50_000_000);
 //   );
 // });
 
-test("Simple Trade (baseCurrencyMultiplier != 1)", async () => {
-  await simpleTrade(
-    connection,
-    feePayer,
-    6,
-    6,
-    20_000,
-    30_000,
-    1,
-    6,
-    2,
-    new BN(10),
-    new BN(5)
-  );
-});
+// test("Simple Trade (baseCurrencyMultiplier != 1)", async () => {
+//   await simpleTrade(
+//     connection,
+//     feePayer,
+//     6,
+//     6,
+//     20_000,
+//     30_000,
+//     1,
+//     6,
+//     2,
+//     new BN(10),
+//     new BN(5)
+//   );
+// });
 
 // test("Orderbook (6, 6)", async () => {
 //   await orderbookTest(connection, feePayer, 6, 6, 100, 1_000, 1, 100, 2);

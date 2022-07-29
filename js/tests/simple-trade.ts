@@ -47,7 +47,7 @@ export const simpleTrade = async (
    */
 
   const tickSize = new BN(random(0, maxTickSize) * 2 ** 32);
-  const minBaseOrderSize = new BN(1);
+  const minBaseOrderSize = baseCurrencyMultiplier || new BN(1);
   const { marketKey, base, quote, Alice, Bob } = await createContext(
     connection,
     feePayer,
@@ -172,9 +172,13 @@ export const simpleTrade = async (
 
   console.log(tx);
   const executionPrice = computeFp32Price(market, bobPrice);
-  const takerFee = computeTakerFee(new BN(bobSize).mul(executionPrice).shrn(32))
-    .mul(market.quoteCurrencyMultiplier)
-    .div(market.baseCurrencyMultiplier);
+  const takerFee = computeTakerFee(
+    new BN(bobSize)
+      .mul(executionPrice)
+      .shrn(32)
+      .mul(market.quoteCurrencyMultiplier)
+      .div(market.baseCurrencyMultiplier)
+  );
   const orderPrice = computeFp32Price(market, alicePrice);
 
   /**
