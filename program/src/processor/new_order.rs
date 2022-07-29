@@ -319,8 +319,11 @@ pub(crate) fn process(
                     .quote_token_free
                     .saturating_sub(order_summary.total_quote_qty);
                 user_account.header.quote_token_locked += posted_quote_qty;
-                user_account.header.base_token_free +=
-                    order_summary.total_base_qty - order_summary.total_base_qty_posted;
+                user_account.header.base_token_free = order_summary
+                    .total_base_qty
+                    .checked_sub(order_summary.total_base_qty_posted)
+                    .and_then(|n| n.checked_add(user_account.header.base_token_free))
+                    .unwrap();
 
                 (q, accounts.quote_vault, referral_fee)
             }
@@ -340,8 +343,9 @@ pub(crate) fn process(
                     .unwrap()
                     / 10_000;
                 let referral_fee = fee_tier.referral_fee(taken_quote_qty);
-                user_account.header.quote_token_free += taken_quote_qty
+                user_account.header.quote_token_free = taken_quote_qty
                     .checked_sub(taker_fee + royalties_fees)
+                    .and_then(|n| n.checked_add(user_account.header.quote_token_free))
                     .unwrap();
                 (q, accounts.base_vault, referral_fee)
             }
