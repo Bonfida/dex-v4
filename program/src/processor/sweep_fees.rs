@@ -89,12 +89,10 @@ pub(crate) fn process(program_id: &Pubkey, accounts: &[AccountInfo]) -> ProgramR
     check_accounts(program_id, &market_state, &accounts)?;
     check_metadata_account(accounts.token_metadata, &market_state.base_mint)?;
 
-    if market_state.accumulated_fees == 0 && market_state.accumulated_royalties == 0 {
-        msg!("There are no fees to be extracted from the market");
-        return Err(DexError::NoOp.into());
-    }
+    let mut no_op = true;
 
-    if accounts.token_metadata.data_len() != 0 {
+    if accounts.token_metadata.data_len() != 0 && market_state.accumulated_royalties != 0 {
+        no_op = false;
         let metadata = Metadata::from_account_info(accounts.token_metadata)?;
         let mut share_sum = 0;
         if let Some(creators) = metadata.data.creators {
@@ -119,9 +117,7 @@ pub(crate) fn process(program_id: &Pubkey, accounts: &[AccountInfo]) -> ProgramR
                     token_destination.key,
                     accounts.market_signer.key,
                     &[],
-                    amount
-                        .checked_mul(market_state.quote_currency_multiplier)
-                        .unwrap(),
+                    amount,
                 )?;
                 invoke_signed(
                     &transfer_instruction,
@@ -145,30 +141,38 @@ pub(crate) fn process(program_id: &Pubkey, accounts: &[AccountInfo]) -> ProgramR
         }
     }
 
-    let transfer_instruction = spl_token::instruction::transfer(
-        &spl_token::ID,
-        accounts.quote_vault.key,
-        accounts.destination_token_account.key,
-        accounts.market_signer.key,
-        &[],
-        market_state.accumulated_fees,
-    )?;
+    if market_state.accumulated_fees != 0 {
+        no_op = false;
+        let transfer_instruction = spl_token::instruction::transfer(
+            &spl_token::ID,
+            accounts.quote_vault.key,
+            accounts.destination_token_account.key,
+            accounts.market_signer.key,
+            &[],
+            market_state.accumulated_fees,
+        )?;
 
-    invoke_signed(
-        &transfer_instruction,
-        &[
-            accounts.spl_token_program.clone(),
-            accounts.quote_vault.clone(),
-            accounts.destination_token_account.clone(),
-            accounts.market_signer.clone(),
-        ],
-        &[&[
-            &accounts.market.key.to_bytes(),
-            &[market_state.signer_nonce as u8],
-        ]],
-    )?;
+        invoke_signed(
+            &transfer_instruction,
+            &[
+                accounts.spl_token_program.clone(),
+                accounts.quote_vault.clone(),
+                accounts.destination_token_account.clone(),
+                accounts.market_signer.clone(),
+            ],
+            &[&[
+                &accounts.market.key.to_bytes(),
+                &[market_state.signer_nonce as u8],
+            ]],
+        )?;
 
-    market_state.accumulated_fees = 0;
+        market_state.accumulated_fees = 0;
+    }
+
+    if no_op {
+        msg!("There are no fees to be extracted from this market!");
+        return Err(DexError::NoOp.into());
+    }
 
     Ok(())
 }
