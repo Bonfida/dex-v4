@@ -398,9 +398,7 @@ pub(crate) fn process(
             a.key,
             accounts.user_owner.key,
             &[],
-            referral_fee
-                .checked_mul(market_state.quote_currency_multiplier)
-                .unwrap(),
+            referral_fee,
         )?;
 
         invoke_signed(

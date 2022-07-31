@@ -5,7 +5,7 @@ use num_derive::{FromPrimitive, ToPrimitive};
 use solana_program::{
     account_info::AccountInfo, msg, program_error::ProgramError, program_pack::Pack, pubkey::Pubkey,
 };
-use std::{cell::RefMut, mem::size_of};
+use std::{cell::RefMut, convert::TryInto, mem::size_of};
 
 use crate::{
     error::DexError,
@@ -140,8 +140,9 @@ impl DexState {
         scaled_price_fp32: u64,
     ) -> Option<u64> {
         fp32_mul(raw_base_amount, scaled_price_fp32)
-            .and_then(|n| n.checked_mul(self.quote_currency_multiplier))
-            .and_then(|n| n.checked_div(self.base_currency_multiplier))
+            .and_then(|n| (n as u128).checked_mul(self.quote_currency_multiplier as u128))
+            .and_then(|n| n.checked_div(self.base_currency_multiplier as u128))
+            .and_then(|n| n.try_into().ok())
     }
 }
 
