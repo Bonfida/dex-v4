@@ -14,7 +14,7 @@ disable-mpl-checks = []
 
 [dependencies]
 num-derive = "0.3.3"
-solana-program = "~1.11"
+solana-program = "~1.10"
 bytemuck = {version = "1.7.2", features = ["derive"]}
 num_enum = "0.5.4"
 borsh = "0.9.1"
@@ -27,11 +27,11 @@ bonfida-utils = { version = "0.2.12", features = ["instruction_params_casting"] 
 mpl-token-metadata = {git = "https://github.com/metaplex-foundation/metaplex-program-library.git", features = ["no-entrypoint"]}
 
 [dev-dependencies]
-solana-sdk = "~1.11"
-solana-client = "~1.11"
+solana-sdk = "~1.10"
+solana-client = "~1.10"
 rand = "0.8.3"
 serum_dex = {git = "https://github.com/project-serum/serum-dex.git", features = ["no-entrypoint"]}
-solana-program-test = "~1.11"
+solana-program-test = "~1.10"
 tokio = {version="1.12.0", features = ["macros", "rt"]}
 futures = "0.3.15"
 futures-util = "0.3.15"
