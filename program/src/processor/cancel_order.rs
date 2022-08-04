@@ -122,7 +122,7 @@ pub(crate) fn process(
 
     let Params {
         mut order_id,
-        order_index,
+        mut order_index,
         is_client_id,
         _padding,
     } = params;
@@ -134,9 +134,11 @@ pub(crate) fn process(
     check_accounts(&market_state, &accounts).unwrap();
 
     if *is_client_id {
-        order_id = user_account.find_order_id_by_client_id(order_id).unwrap();
+        (order_index, order_id) = user_account
+            .find_order_id_and_index_by_client_id(order_id)
+            .unwrap();
     } else {
-        let order_id_from_index = user_account.read_order(*order_index as usize)?.id;
+        let order_id_from_index = user_account.read_order(order_index as usize)?.id;
         if order_id != order_id_from_index {
             msg!("Order id does not match with the order at the given index!");
             return Err(ProgramError::InvalidArgument);
@@ -194,7 +196,7 @@ pub(crate) fn process(
         }
     };
 
-    user_account.remove_order(*order_index as usize)?;
+    user_account.remove_order(order_index as usize)?;
 
     Ok(())
 }
