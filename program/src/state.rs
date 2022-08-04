@@ -292,13 +292,17 @@ impl<'a> UserAccount<'a> {
     }
 
     #[allow(missing_docs)]
-    pub fn find_order_id_by_client_id(&self, client_order_id: u128) -> Result<u128, DexError> {
+    pub fn find_order_id_and_index_by_client_id(
+        &self,
+        client_order_id: u128,
+    ) -> Result<(u64, u128), DexError> {
         let res = self
             .orders
             .iter()
-            .find(|b| b.client_id == client_order_id)
-            .ok_or(DexError::OrderNotFound)?
-            .id;
+            .enumerate()
+            .find(|(_, b)| b.client_id == client_order_id)
+            .map(|(idx, b)| (idx as u64, b.id))
+            .ok_or(DexError::OrderNotFound)?;
         Ok(res)
     }
 }
