@@ -6,7 +6,7 @@ use {
     },
     borsh::{BorshDeserialize, BorshSerialize},
     bytemuck::{Pod, Zeroable},
-    mpl_token_metadata::state::Metadata,
+    mpl_token_metadata::state::{Metadata, TokenMetadataAccount},
     solana_program::{
         account_info::{next_account_info, AccountInfo},
         entrypoint::ProgramResult,
@@ -97,7 +97,7 @@ pub(crate) fn process(program_id: &Pubkey, accounts: &[AccountInfo]) -> ProgramR
         return Err(DexError::EventQueueMustBeEmpty.into());
     }
 
-    let metadata = Metadata::from_account_info(accounts.token_metadata)?;
+    let metadata: Metadata = Metadata::from_account_info(accounts.token_metadata)?;
     verify_metadata(&metadata.data.creators.unwrap())?;
 
     market_state.royalties_bps = metadata.data.seller_fee_basis_points as u64;

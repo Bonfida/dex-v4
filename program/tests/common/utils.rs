@@ -5,7 +5,7 @@ use solana_program::instruction::Instruction;
 use solana_program::program_pack::Pack;
 use solana_program::pubkey::Pubkey;
 use solana_program::system_instruction::create_account;
-use solana_program_test::{ProgramTest, ProgramTestContext};
+use solana_program_test::{BanksClientError, ProgramTest, ProgramTestContext};
 use solana_sdk::account::Account;
 use solana_sdk::signature::Signer;
 use solana_sdk::transport::TransportError;
@@ -18,7 +18,7 @@ pub async fn sign_send_instructions(
     ctx: &mut ProgramTestContext,
     instructions: Vec<Instruction>,
     signers: Vec<&Keypair>,
-) -> Result<(), TransportError> {
+) -> Result<(), BanksClientError> {
     let mut transaction = Transaction::new_with_payer(&instructions, Some(&ctx.payer.pubkey()));
     let mut payer_signers = vec![&ctx.payer];
     for s in signers {
@@ -33,7 +33,7 @@ pub async fn create_associated_token(
     prg_test_ctx: &mut ProgramTestContext,
     mint: &Pubkey,
     owner: &Pubkey,
-) -> Result<Pubkey, TransportError> {
+) -> Result<Pubkey, BanksClientError> {
     let create_associated_instruction =
         create_associated_token_account(&prg_test_ctx.payer.pubkey(), owner, mint);
     let associated_key = get_associated_token_address(owner, mint);

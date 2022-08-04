@@ -11,7 +11,7 @@ use bonfida_utils::InstructionsAccount;
 use borsh::BorshDeserialize;
 use borsh::BorshSerialize;
 use bytemuck::{try_from_bytes, Pod, Zeroable};
-use mpl_token_metadata::state::Metadata;
+use mpl_token_metadata::state::{Metadata, TokenMetadataAccount};
 use solana_program::{
     account_info::{next_account_info, AccountInfo},
     clock::Clock,
@@ -151,7 +151,7 @@ pub(crate) fn process(
     let mut market_state = DexState::get_unchecked(accounts.market);
 
     let royalties_bps = if accounts.token_metadata.data_len() != 0 {
-        let metadata = Metadata::from_account_info(accounts.token_metadata)?;
+        let metadata: Metadata = Metadata::from_account_info(accounts.token_metadata)?;
         if let Some(creators) = &metadata.data.creators {
             #[cfg(not(feature = "disable-mpl-checks"))]
             verify_metadata(creators)?;

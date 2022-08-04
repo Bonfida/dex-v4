@@ -1,7 +1,7 @@
 use crate::error::DexError;
 use mpl_token_metadata::{
     pda::find_metadata_account,
-    state::{Creator, Metadata},
+    state::{Creator, Metadata, TokenMetadataAccount},
 };
 use solana_program::{
     account_info::AccountInfo, entrypoint::ProgramResult, msg, program_error::ProgramError,
@@ -79,7 +79,7 @@ pub fn check_metadata_account(account: &AccountInfo, mint: &Pubkey) -> ProgramRe
 
 #[allow(dead_code)]
 pub fn get_verified_creators(account: &AccountInfo) -> Option<Vec<Creator>> {
-    let metadata = Metadata::from_account_info(account).unwrap();
+    let metadata: Metadata = Metadata::from_account_info(account).unwrap();
     let creators = metadata.data.creators;
 
     if let Some(creators) = creators {

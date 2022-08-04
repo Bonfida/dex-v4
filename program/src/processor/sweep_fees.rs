@@ -11,7 +11,7 @@ use bonfida_utils::InstructionsAccount;
 use borsh::BorshDeserialize;
 use borsh::BorshSerialize;
 use bytemuck::{Pod, Zeroable};
-use mpl_token_metadata::state::Metadata;
+use mpl_token_metadata::state::{Metadata, TokenMetadataAccount};
 use solana_program::{
     account_info::{next_account_info, AccountInfo},
     entrypoint::ProgramResult,
@@ -93,7 +93,7 @@ pub(crate) fn process(program_id: &Pubkey, accounts: &[AccountInfo]) -> ProgramR
 
     if accounts.token_metadata.data_len() != 0 && market_state.accumulated_royalties != 0 {
         no_op = false;
-        let metadata = Metadata::from_account_info(accounts.token_metadata)?;
+        let metadata: Metadata = Metadata::from_account_info(accounts.token_metadata)?;
         let mut share_sum = 0;
         if let Some(creators) = metadata.data.creators {
             for (idx, creator) in creators.into_iter().enumerate() {
