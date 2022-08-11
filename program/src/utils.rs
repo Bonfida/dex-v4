@@ -5,8 +5,9 @@ use mpl_token_metadata::{
 };
 use solana_program::{
     account_info::AccountInfo, entrypoint::ProgramResult, msg, program_error::ProgramError,
-    pubkey::Pubkey,
+    program_pack::Pack, pubkey::Pubkey,
 };
+use spl_token::state::Account;
 
 // Safety verification functions
 pub fn check_account_key(
@@ -98,6 +99,15 @@ pub fn verify_metadata(creators: &[Creator]) -> ProgramResult {
     let sum: u8 = creators.iter().map(|x| x.share).sum();
     if sum != 100 {
         msg!("Invalid metadata shares - received {}", sum);
+        return Err(ProgramError::InvalidArgument);
+    }
+    Ok(())
+}
+
+pub fn assert_no_delegate_or_close(account: &AccountInfo) -> ProgramResult {
+    let token_acc = Account::unpack(&account.data.borrow())?;
+    if token_acc.delegate.is_some() || token_acc.close_authority.is_some() {
+        msg!("This token account cannot have a delegate or close authority");
         return Err(ProgramError::InvalidArgument);
     }
     Ok(())

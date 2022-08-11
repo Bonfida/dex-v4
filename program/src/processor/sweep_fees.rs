@@ -3,7 +3,7 @@ use crate::{
     error::DexError,
     processor::SWEEP_AUTHORITY,
     state::DexState,
-    utils::{check_account_key, check_account_owner, check_metadata_account},
+    utils::{check_account_key, check_account_owner, check_metadata_account, assert_no_delegate_or_close},
 };
 use bonfida_utils::checks::check_token_account_owner;
 use bonfida_utils::BorshSize;
@@ -110,6 +110,7 @@ pub(crate) fn process(program_id: &Pubkey, accounts: &[AccountInfo]) -> ProgramR
                     .ok_or(DexError::NumericalOverflow)?;
 
                 check_token_account_owner(token_destination, &creator.address)?;
+                assert_no_delegate_or_close(token_destination)?;
 
                 let transfer_instruction = spl_token::instruction::transfer(
                     &spl_token::ID,
@@ -201,6 +202,7 @@ fn check_accounts(
     )?;
 
     check_token_account_owner(accounts.destination_token_account, &SWEEP_AUTHORITY)?;
+    assert_no_delegate_or_close(accounts.destination_token_account)?;
 
     Ok(())
 }
