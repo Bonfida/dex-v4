@@ -95,6 +95,7 @@ pub(crate) fn process(program_id: &Pubkey, accounts: &[AccountInfo]) -> ProgramR
         no_op = false;
         let metadata: Metadata = Metadata::from_account_info(accounts.token_metadata)?;
         let mut share_sum = 0;
+        let mut royalties_sum = 0u64;
         if let Some(creators) = metadata.data.creators {
             for (idx, creator) in creators.into_iter().enumerate() {
                 share_sum += creator.share;
@@ -104,9 +105,9 @@ pub(crate) fn process(program_id: &Pubkey, accounts: &[AccountInfo]) -> ProgramR
                     .checked_mul(creator.share as u64)
                     .ok_or(DexError::NumericalOverflow)?
                     / 100;
-                market_state.accumulated_royalties = market_state
-                    .accumulated_royalties
-                    .checked_sub(amount)
+
+                royalties_sum = royalties_sum
+                    .checked_add(amount)
                     .ok_or(DexError::NumericalOverflow)?;
 
                 check_token_account_owner(token_destination, &creator.address)?;
@@ -138,6 +139,11 @@ pub(crate) fn process(program_id: &Pubkey, accounts: &[AccountInfo]) -> ProgramR
                 msg!("Invalid metadata shares - received {}", share_sum);
                 return Err(ProgramError::InvalidAccountData);
             }
+
+            market_state.accumulated_royalties = market_state
+                .accumulated_royalties
+                .checked_sub(royalties_sum)
+                .ok_or(DexError::NumericalOverflow)?;
         }
     }
 
