@@ -707,7 +707,9 @@ export class Market {
    */
   filterForOpenOrdersFromSlab(slab: Slab, openOrders: OpenOrders, side: Side) {
     return [...slab]
-      .filter((o) => openOrders?.address.equals(new PublicKey(o.callbackInfo)))
+      .filter((o) =>
+        openOrders?.address.equals(new PublicKey(o.callbackInfo.slice(32)))
+      )
       .map((o) => {
         return {
           orderId: o.leafNode.key,
