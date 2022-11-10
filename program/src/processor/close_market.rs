@@ -4,7 +4,7 @@ use crate::{
     state::{AccountTag, CallBackInfo, DexState},
     utils::{check_account_key, check_account_owner, check_signer},
 };
-use agnostic_orderbook::error::AoError;
+use asset_agnostic_orderbook::error::AoError;
 use bonfida_utils::BorshSize;
 use bonfida_utils::InstructionsAccount;
 use borsh::BorshDeserialize;
@@ -135,16 +135,16 @@ pub(crate) fn process(program_id: &Pubkey, accounts: &[AccountInfo]) -> ProgramR
         return Err(ProgramError::from(DexError::MarketStillActive));
     }
 
-    let invoke_accounts = agnostic_orderbook::instruction::close_market::Accounts {
+    let invoke_accounts = asset_agnostic_orderbook::instruction::close_market::Accounts {
         market: accounts.orderbook,
         event_queue: accounts.event_queue,
         bids: accounts.bids,
         asks: accounts.asks,
         lamports_target_account: accounts.target_lamports_account,
     };
-    let invoke_params = agnostic_orderbook::instruction::close_market::Params {};
+    let invoke_params = asset_agnostic_orderbook::instruction::close_market::Params {};
 
-    if let Err(error) = agnostic_orderbook::instruction::close_market::process::<CallBackInfo>(
+    if let Err(error) = asset_agnostic_orderbook::instruction::close_market::process::<CallBackInfo>(
         program_id,
         invoke_accounts,
         invoke_params,

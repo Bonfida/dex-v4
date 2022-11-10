@@ -4,7 +4,7 @@ use crate::{
     state::{CallBackInfo, DexState, UserAccount},
     utils::{check_account_key, check_account_owner, check_signer},
 };
-use agnostic_orderbook::{
+use asset_agnostic_orderbook::{
     error::AoError,
     state::{get_side_from_order_id, Side},
 };
@@ -145,15 +145,15 @@ pub(crate) fn process(
         }
     }
 
-    let invoke_params = agnostic_orderbook::instruction::cancel_order::Params { order_id };
-    let invoke_accounts = agnostic_orderbook::instruction::cancel_order::Accounts {
+    let invoke_params = asset_agnostic_orderbook::instruction::cancel_order::Params { order_id };
+    let invoke_accounts = asset_agnostic_orderbook::instruction::cancel_order::Accounts {
         market: accounts.orderbook,
         event_queue: accounts.event_queue,
         bids: accounts.bids,
         asks: accounts.asks,
     };
 
-    let mut order_summary = match agnostic_orderbook::instruction::cancel_order::process::<
+    let mut order_summary = match asset_agnostic_orderbook::instruction::cancel_order::process::<
         CallBackInfo,
     >(program_id, invoke_accounts, invoke_params)
     {

@@ -1,5 +1,5 @@
-use agnostic_orderbook::state::market_state::MarketState;
-use agnostic_orderbook::state::AccountTag;
+use asset_agnostic_orderbook::state::market_state::MarketState;
+use asset_agnostic_orderbook::state::AccountTag;
 use bytemuck::try_from_bytes_mut;
 use dex_v4::instruction_auto::cancel_order;
 use dex_v4::instruction_auto::consume_events;
@@ -320,12 +320,13 @@ async fn test_dex() {
             client_order_id: 0,
             #[cfg(any(feature = "aarch64-test", target_arch = "aarch64"))]
             client_order_id: bytemuck::cast(0u128),
-            side: agnostic_orderbook::state::Side::Ask as u8,
+            side: asset_agnostic_orderbook::state::Side::Ask as u8,
             limit_price: 1 << 32,
             max_base_qty: 100_000,
             max_quote_qty: 100_000,
             order_type: new_order::OrderType::Limit as u8,
-            self_trade_behavior: agnostic_orderbook::state::SelfTradeBehavior::DecrementTake as u8,
+            self_trade_behavior: asset_agnostic_orderbook::state::SelfTradeBehavior::DecrementTake
+                as u8,
             match_limit: 10,
             has_discount_token_account: false as u8,
             _padding: 0,
@@ -404,12 +405,13 @@ async fn test_dex() {
             client_order_id: 0,
             #[cfg(any(feature = "aarch64-test", target_arch = "aarch64"))]
             client_order_id: bytemuck::cast(0u128),
-            side: agnostic_orderbook::state::Side::Ask as u8,
+            side: asset_agnostic_orderbook::state::Side::Ask as u8,
             limit_price: 1000 << 32,
             max_base_qty: 110000,
             max_quote_qty: 1000000,
             order_type: new_order::OrderType::Limit as u8,
-            self_trade_behavior: agnostic_orderbook::state::SelfTradeBehavior::DecrementTake as u8,
+            self_trade_behavior: asset_agnostic_orderbook::state::SelfTradeBehavior::DecrementTake
+                as u8,
             match_limit: 10,
             has_discount_token_account: false as u8,
             _padding: 0,
@@ -447,12 +449,13 @@ async fn test_dex() {
             client_order_id: 0,
             #[cfg(any(feature = "aarch64-test", target_arch = "aarch64"))]
             client_order_id: bytemuck::cast(0u128),
-            side: agnostic_orderbook::state::Side::Bid as u8,
+            side: asset_agnostic_orderbook::state::Side::Bid as u8,
             limit_price: 1000 << 32,
             max_base_qty: 100000,
             max_quote_qty: 100000,
             order_type: new_order::OrderType::ImmediateOrCancel as u8,
-            self_trade_behavior: agnostic_orderbook::state::SelfTradeBehavior::DecrementTake as u8,
+            self_trade_behavior: asset_agnostic_orderbook::state::SelfTradeBehavior::DecrementTake
+                as u8,
             match_limit: 10,
             has_discount_token_account: false as u8,
             _padding: 0,
@@ -532,7 +535,7 @@ async fn test_dex() {
             fee_referral_account: None,
         },
         swap::Params {
-            side: agnostic_orderbook::state::Side::Bid as u8,
+            side: asset_agnostic_orderbook::state::Side::Bid as u8,
             base_qty: 10_000,
             quote_qty: 100000,
             match_limit: 10,

@@ -1,4 +1,4 @@
-use agnostic_orderbook::state::{orderbook::CallbackInfo, OrderSummary};
+use asset_agnostic_orderbook::state::{orderbook::CallbackInfo, OrderSummary};
 use borsh::{BorshDeserialize, BorshSerialize};
 use bytemuck::{try_cast_slice_mut, try_from_bytes_mut, Pod, Zeroable};
 use num_derive::{FromPrimitive, ToPrimitive};

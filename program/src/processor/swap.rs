@@ -3,8 +3,8 @@ use crate::{
     state::{CallBackInfo, DexState, FeeTier},
     utils::{check_account_key, check_account_owner, check_signer},
 };
-use agnostic_orderbook::state::{SelfTradeBehavior, Side};
-use agnostic_orderbook::{error::AoError, state::AccountTag};
+use asset_agnostic_orderbook::state::{SelfTradeBehavior, Side};
+use asset_agnostic_orderbook::{error::AoError, state::AccountTag};
 use bonfida_utils::BorshSize;
 use bonfida_utils::InstructionsAccount;
 use borsh::BorshDeserialize;
@@ -199,7 +199,7 @@ pub(crate) fn process(
     }
 
     let mut orderbook_guard = accounts.orderbook.data.borrow_mut();
-    let orderbook = agnostic_orderbook::state::market_state::MarketState::from_buffer(
+    let orderbook = asset_agnostic_orderbook::state::market_state::MarketState::from_buffer(
         &mut orderbook_guard,
         AccountTag::Market,
     )?;
@@ -216,7 +216,7 @@ pub(crate) fn process(
             Side::Ask => (market_state.scale_base_amount(*base_qty), u64::MAX, 0),
         };
 
-    let invoke_params = agnostic_orderbook::instruction::new_order::Params {
+    let invoke_params = asset_agnostic_orderbook::instruction::new_order::Params {
         max_base_qty: max_base_qty_scaled,
         max_quote_qty: max_quote_qty_scaled,
         limit_price,
@@ -228,14 +228,14 @@ pub(crate) fn process(
         // No impact as user is Pubkey::default()
         self_trade_behavior: SelfTradeBehavior::DecrementTake,
     };
-    let invoke_accounts = agnostic_orderbook::instruction::new_order::Accounts {
+    let invoke_accounts = asset_agnostic_orderbook::instruction::new_order::Accounts {
         market: accounts.orderbook,
         event_queue: accounts.event_queue,
         bids: accounts.bids,
         asks: accounts.asks,
     };
 
-    let mut order_summary = match agnostic_orderbook::instruction::new_order::process(
+    let mut order_summary = match asset_agnostic_orderbook::instruction::new_order::process(
         program_id,
         invoke_accounts,
         invoke_params,

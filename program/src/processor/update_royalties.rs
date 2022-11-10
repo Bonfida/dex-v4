@@ -16,7 +16,7 @@ use {
     },
 };
 
-use agnostic_orderbook::state::{event_queue::EventQueue, AccountTag};
+use asset_agnostic_orderbook::state::{event_queue::EventQueue, AccountTag};
 
 use crate::{
     error::DexError,
@@ -75,7 +75,7 @@ pub(crate) fn process(program_id: &Pubkey, accounts: &[AccountInfo]) -> ProgramR
 
     let mut market_state = DexState::get(accounts.market)?;
     let mut orderbook_guard = accounts.orderbook.data.borrow_mut();
-    let aob_state = agnostic_orderbook::state::market_state::MarketState::from_buffer(
+    let aob_state = asset_agnostic_orderbook::state::market_state::MarketState::from_buffer(
         &mut orderbook_guard,
         AccountTag::Market,
     )?;

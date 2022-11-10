@@ -7,7 +7,7 @@ use crate::{
     state::{CallBackInfo, DexState, FeeTier, UserAccount},
     utils::{check_account_key, check_account_owner, fp32_mul},
 };
-use agnostic_orderbook::{
+use asset_agnostic_orderbook::{
     error::AoError,
     state::{
         event_queue::{EventQueue, EventRef, FillEvent, FillEventRef, OutEvent, OutEventRef},
@@ -124,16 +124,15 @@ pub(crate) fn process(
 
     drop(event_queue_guard);
 
-    let invoke_params = agnostic_orderbook::instruction::consume_events::Params {
+    let invoke_params = asset_agnostic_orderbook::instruction::consume_events::Params {
         number_of_entries_to_consume: total_iterations,
     };
-    let invoke_accounts = agnostic_orderbook::instruction::consume_events::Accounts {
+    let invoke_accounts = asset_agnostic_orderbook::instruction::consume_events::Accounts {
         market: accounts.orderbook,
         event_queue: accounts.event_queue,
-        reward_target: accounts.reward_target,
     };
 
-    if let Err(error) = agnostic_orderbook::instruction::consume_events::process::<CallBackInfo>(
+    if let Err(error) = asset_agnostic_orderbook::instruction::consume_events::process::<CallBackInfo>(
         program_id,
         invoke_accounts,
         invoke_params,
