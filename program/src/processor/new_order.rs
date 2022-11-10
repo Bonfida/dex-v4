@@ -5,8 +5,8 @@ use crate::{
     utils::check_account_owner,
     utils::{check_account_key, check_signer},
 };
-use agnostic_orderbook::error::AoError;
-use agnostic_orderbook::state::Side;
+use asset_agnostic_orderbook::error::AoError;
+use asset_agnostic_orderbook::state::Side;
 use bonfida_utils::BorshSize;
 use bonfida_utils::InstructionsAccount;
 use borsh::BorshDeserialize;
@@ -261,7 +261,7 @@ pub(crate) fn process(
         max_quote_qty = fee_tier.remove_taker_fee(max_quote_qty);
     }
 
-    let invoke_params = agnostic_orderbook::instruction::new_order::Params {
+    let invoke_params = asset_agnostic_orderbook::instruction::new_order::Params {
         max_base_qty: market_state.scale_base_amount(*max_base_qty),
         max_quote_qty: market_state.scale_quote_amount(max_quote_qty),
         limit_price: *limit_price,
@@ -272,14 +272,14 @@ pub(crate) fn process(
         post_allowed,
         self_trade_behavior: FromPrimitive::from_u8(*self_trade_behavior).unwrap(),
     };
-    let invoke_accounts = agnostic_orderbook::instruction::new_order::Accounts {
+    let invoke_accounts = asset_agnostic_orderbook::instruction::new_order::Accounts {
         market: accounts.orderbook,
         event_queue: accounts.event_queue,
         bids: accounts.bids,
         asks: accounts.asks,
     };
 
-    let mut order_summary = match agnostic_orderbook::instruction::new_order::process(
+    let mut order_summary = match asset_agnostic_orderbook::instruction::new_order::process(
         program_id,
         invoke_accounts,
         invoke_params,

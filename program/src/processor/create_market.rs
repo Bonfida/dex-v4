@@ -4,7 +4,7 @@ use crate::{
     state::{AccountTag, CallBackInfo, DexState, MarketFeeType},
     utils::{check_account_owner, check_metadata_account, verify_metadata},
 };
-use agnostic_orderbook::error::AoError;
+use asset_agnostic_orderbook::error::AoError;
 use bonfida_utils::checks::check_rent_exempt;
 use bonfida_utils::BorshSize;
 use bonfida_utils::InstructionsAccount;
@@ -185,18 +185,18 @@ pub(crate) fn process(
         quote_currency_multiplier: *quote_currency_multiplier,
     };
 
-    let invoke_params = agnostic_orderbook::instruction::create_market::Params {
+    let invoke_params = asset_agnostic_orderbook::instruction::create_market::Params {
         min_base_order_size: *min_base_order_size / *base_currency_multiplier,
         tick_size: *tick_size,
     };
-    let invoke_accounts = agnostic_orderbook::instruction::create_market::Accounts {
+    let invoke_accounts = asset_agnostic_orderbook::instruction::create_market::Accounts {
         market: accounts.orderbook,
         event_queue: accounts.event_queue,
         bids: accounts.bids,
         asks: accounts.asks,
     };
 
-    if let Err(error) = agnostic_orderbook::instruction::create_market::process::<CallBackInfo>(
+    if let Err(error) = asset_agnostic_orderbook::instruction::create_market::process::<CallBackInfo>(
         program_id,
         invoke_accounts,
         invoke_params,

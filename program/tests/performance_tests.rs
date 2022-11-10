@@ -63,8 +63,8 @@ async fn test_dex_perf() {
         let limit_price = rng.sample(uniform);
 
         match i % 2 {
-            0 => side = agnostic_orderbook::state::Side::Bid,
-            1 => side = agnostic_orderbook::state::Side::Ask,
+            0 => side = asset_agnostic_orderbook::state::Side::Bid,
+            1 => side = asset_agnostic_orderbook::state::Side::Ask,
             _ => unreachable!(),
         }
 
@@ -85,8 +85,8 @@ async fn test_dex_perf() {
             &serum_dex_test_ctx,
             serum_dex_program_id,
             match side {
-                agnostic_orderbook::state::Side::Bid => serum_dex::matching::Side::Bid,
-                agnostic_orderbook::state::Side::Ask => serum_dex::matching::Side::Ask,
+                asset_agnostic_orderbook::state::Side::Bid => serum_dex::matching::Side::Bid,
+                asset_agnostic_orderbook::state::Side::Ask => serum_dex::matching::Side::Ask,
             },
             limit_price,
             max_base_qty,

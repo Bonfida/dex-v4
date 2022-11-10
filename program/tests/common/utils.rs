@@ -1,5 +1,5 @@
-use agnostic_orderbook::state::event_queue::EventQueue;
-use agnostic_orderbook::state::market_state::MarketState;
+use asset_agnostic_orderbook::state::event_queue::EventQueue;
+use asset_agnostic_orderbook::state::market_state::MarketState;
 use dex_v4::state::CallBackInfo;
 use solana_program::instruction::Instruction;
 use solana_program::program_pack::Pack;
@@ -130,7 +130,9 @@ pub async fn create_aob_market_and_accounts(
     // Create bids account
     let bids_account = Keypair::new();
     let slab_space =
-        agnostic_orderbook::state::critbit::Slab::<CallBackInfo>::compute_allocation_size(1_000);
+        asset_agnostic_orderbook::state::critbit::Slab::<CallBackInfo>::compute_allocation_size(
+            1_000,
+        );
     let create_bids_account_instruction = create_account(
         &prg_test_ctx.payer.pubkey(),
         &bids_account.pubkey(),
