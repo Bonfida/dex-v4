@@ -14,6 +14,10 @@ This program is intended for use to build a decentralized exchange (DEX) special
 
 Detailed API documentation is available for the program by running `cargo doc --open` in the `program` directory.
 
+## FAQ
+
+- [How to choose base/currency multipliers?](https://github.com/Bonfida/dex-v4/issues/97#issuecomment-1382019471)
+
 ## Testing on devnet
 
 #### Market information
