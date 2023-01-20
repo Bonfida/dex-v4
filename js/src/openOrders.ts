@@ -193,7 +193,8 @@ export class OpenOrders {
   static async makeCreateAccountTransaction(
     market: PublicKey,
     owner: PublicKey,
-    maxOrders = 20
+    maxOrders = 20,
+    programId = DEX_ID
   ) {
     return await initializeAccount(market, owner, maxOrders);
   }
@@ -202,8 +203,8 @@ export class OpenOrders {
    *
    * @returns Returns a TransactionInstruction object to close the OpenOrder account
    */
-  async makeCloseAccountTransaction() {
-    return await closeAccount(this.market, this.owner);
+  async makeCloseAccountTransaction(programId = DEX_ID) {
+    return await closeAccount(this.market, this.owner, programId);
   }
 
   /**
