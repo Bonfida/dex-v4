@@ -196,7 +196,7 @@ export class OpenOrders {
     maxOrders = 20,
     programId = DEX_ID
   ) {
-    return await initializeAccount(market, owner, maxOrders);
+    return await initializeAccount(market, owner, maxOrders, programId);
   }
 
   /**
