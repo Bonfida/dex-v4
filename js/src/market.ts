@@ -344,10 +344,15 @@ export class Market {
    * @param owner The owner of the orders to fetch
    * @returns
    */
-  async loadOrdersForOwner(connection: Connection, owner: PublicKey) {
+  async loadOrdersForOwner(
+    connection: Connection,
+    owner: PublicKey,
+    programId: PublicKey = DEX_ID
+    ) {
     const openOrders = await this.findOpenOrdersAccountForOwner(
       connection,
-      owner
+      owner,
+      programId
     );
     const orderbook = await Orderbook.load(connection, this.address);
     return this.filterForOpenOrders(orderbook, openOrders);
@@ -386,13 +391,15 @@ export class Market {
    */
   async findOpenOrdersAccountForOwner(
     connection: Connection,
-    owner: PublicKey
+    owner: PublicKey,
+    programId: PublicKey = DEX_ID
   ) {
     const openOrders = OpenOrders.load(
       connection,
       this.address,
       owner,
-      this._marketState
+      this._marketState,
+      programId
     );
     return openOrders;
   }
@@ -554,13 +561,15 @@ export class Market {
   async cancelOrderByOrderIndex(
     connection: Connection,
     orderIndex: number,
-    owner: Keypair
+    owner: Keypair,
+    programId: PublicKey = DEX_ID
   ) {
     const openOrders = await OpenOrders.load(
       connection,
       this.address,
       owner.publicKey,
-      this._marketState
+      this._marketState,
+      programId
     );
     const orderId = openOrders.orders[orderIndex].id;
     if (!orderId) {
@@ -585,13 +594,15 @@ export class Market {
   async cancelOrderByOrderId(
     connection: Connection,
     orderId: BN,
-    owner: Keypair
+    owner: Keypair,
+    programId: PublicKey = DEX_ID
   ) {
     const openOrders = await OpenOrders.load(
       connection,
       this.address,
       owner.publicKey,
-      this._marketState
+      this._marketState,
+      programId
     );
     const orderIndex = openOrders.orders
       .map((o) => o.id.eq(orderId))
