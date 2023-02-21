@@ -716,17 +716,19 @@ export class Market {
    * @param openOrders Open orders account
    * @returns
    */
-  filterForOpenOrdersFromSlab(slab: Slab, openOrders: OpenOrders, side: Side) {
+  filterForOpenOrdersFromSlab(slab: Slab, openOrders: OpenOrders, side: Side, convertPriceAndSizeToNumber: boolean = true) {
     return [...slab]
       .filter((o) =>
         openOrders?.address.equals(new PublicKey(o.callbackInfo.slice(0, 32)))
       )
       .map((o) => {
+        const priceBN = getPriceFromKey(o.leafNode.key);
+        const sizeBN = o.leafNode.baseQuantity;
         return {
           orderId: o.leafNode.key,
-          price: getPriceFromKey(o.leafNode.key).toNumber(),
+          price: convertPriceAndSizeToNumber ? priceBN.toNumber() : priceBN,
           feeTier: o.callbackInfo.slice(32)[0],
-          size: o.leafNode.baseQuantity.toNumber(),
+          size: convertPriceAndSizeToNumber ? sizeBN.toNumber() : sizeBN,
           openOrdersAddress: new PublicKey(o.callbackInfo.slice(0, 32)),
           side: side
         };
