@@ -1,6 +1,6 @@
 {
   "name": "@bonfida/dex-v4",
-  "version": "0.3.8",
+  "version": "0.3.9",
   "license": "MIT",
   "files": [
     "dist",
