@@ -347,6 +347,7 @@ export class Market {
   async loadOrdersForOwner(
     connection: Connection,
     owner: PublicKey,
+    convertPriceAndSizeToNumber: boolean = true,
     programId: PublicKey = DEX_ID
     ) {
     const openOrders = await this.findOpenOrdersAccountForOwner(
@@ -355,7 +356,7 @@ export class Market {
       programId
     );
     const orderbook = await Orderbook.load(connection, this.address);
-    return this.filterForOpenOrders(orderbook, openOrders);
+    return this.filterForOpenOrders(orderbook, openOrders, convertPriceAndSizeToNumber);
   }
 
   /**
@@ -741,16 +742,18 @@ export class Market {
    * @param openOrder The openOrder that owns the orders
    * @returns
    */
-  filterForOpenOrders(orderbook: Orderbook, openOrder: OpenOrders) {
+  filterForOpenOrders(orderbook: Orderbook, openOrder: OpenOrders, convertPriceAndSizeToNumber: boolean = true) {
     const bids = this.filterForOpenOrdersFromSlab(
       orderbook.slabBids,
       openOrder,
-      Side.Bid
+      Side.Bid,
+      convertPriceAndSizeToNumber
     );
     const asks = this.filterForOpenOrdersFromSlab(
       orderbook.slabAsks,
       openOrder,
-      Side.Ask
+      Side.Ask,
+      convertPriceAndSizeToNumber
     );
     return [...bids, ...asks];
   }
