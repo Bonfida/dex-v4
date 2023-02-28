@@ -1,6 +1,6 @@
 [package]
 name = "dex-v4"
-version = "0.3.1-alpha.0"
+version = "0.3.1-alpha.1"
 authors = ["ellttBen <elliott@bonfida.com>"]
 edition = "2018"
 description = "Orderbook-based on-chain SPL token swap market"
@@ -11,7 +11,7 @@ license = "Apache-2.0"
 [features]
 no-entrypoint = []
 no-admin = []
-aarch64-test = []
+aarch64-test = ["asset-agnostic-orderbook/aarch64-test"]
 disable-mpl-checks = []
 
 [dependencies]
@@ -24,7 +24,7 @@ thiserror = "1.0.24"
 num-traits = "0.2"
 enumflags2 = "0.7.1"
 spl-token = "~3.3.0"
-asset-agnostic-orderbook = "1.0.1-alpha"
+asset-agnostic-orderbook = "1.0.1-alpha.1"
 bonfida-utils = { version = "0.3" }
 mpl-token-metadata = "1.6.1"
 

@@ -905,7 +905,7 @@ checksum = "3c877555693c14d2f84191cfd3ad8582790fc52b5e2274b40b59cf5f5cea25c7"
 
 [[package]]
 name = "dex-v4"
-version = "0.3.1-alpha.0"
+version = "0.3.1-alpha.1"
 dependencies = [
  "asset-agnostic-orderbook",
  "bonfida-utils",

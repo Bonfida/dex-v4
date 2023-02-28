@@ -278,6 +278,9 @@ fn consume_event(
                 .checked_mul(market_state.base_currency_multiplier)
                 .unwrap();
 
+            #[cfg(any(feature = "aarch64-test", target_arch = "aarch64"))]
+            let order_id = &((order_id[0] as u128) + ((order_id[1] as u128) << 64));
+
             if base_size != 0 {
                 match Side::from_u8(*side).unwrap() {
                     Side::Ask => {
